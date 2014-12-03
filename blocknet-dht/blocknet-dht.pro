@@ -22,13 +22,16 @@ SOURCES += \
     src/statdialog.cpp \
     src/blocknetapp.cpp \
     src/dht/dht.cpp \
-    src/util.cpp
+    src/util.cpp \
+    src/logger.cpp
 
 HEADERS += \
     src/statdialog.h \
     src/dht/dht.h \
     src/blocknetapp.h \
-    src/util.h
+    src/util.h \
+    src/logger.h \
+    src/uint256.h
 
 LIBS += \
     -lws2_32 \

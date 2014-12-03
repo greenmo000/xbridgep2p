@@ -7,6 +7,7 @@
 #include <QDialog>
 
 class QTextEdit;
+class QLineEdit;
 
 //*****************************************************************************
 //*****************************************************************************
@@ -24,7 +25,12 @@ public slots:
 private:
     void setupUi();
 
+private slots:
+    void onSearch();
+    void onSend();
+
 private:
+    QLineEdit * m_searchText;
     QTextEdit * m_console;
 };
 

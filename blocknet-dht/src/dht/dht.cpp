@@ -32,6 +32,7 @@ THE SOFTWARE.
 #define _GNU_SOURCE
 
 #include "../util.h"
+#include "../logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -300,12 +301,13 @@ static int send_error(const struct sockaddr *sa, int salen,
                       unsigned char *tid, int tid_len,
                       int code, const char *message);
 
-#define ERROR 0
-#define REPLY 1
-#define PING 2
-#define FIND_NODE 3
-#define GET_PEERS 4
+#define ERROR         0
+#define REPLY         1
+#define PING          2
+#define FIND_NODE     3
+#define GET_PEERS     4
 #define ANNOUNCE_PEER 5
+#define MESSAGE       6
 
 #define WANT4 1
 #define WANT6 2
@@ -371,30 +373,43 @@ static time_t expire_stuff_time;
 static time_t token_bucket_time;
 static int token_bucket_tokens;
 
-FILE *dht_debug = NULL;
+bool dht_debug = false;
 
 #ifdef __GNUC__
     __attribute__ ((format (printf, 1, 2)))
 #endif
-static void
-debugf(const char *format, ...)
+
+char buf[1024];
+
+static void debugf(const char *format, ...)
 {
+    if (!dht_debug)
+    {
+        return;
+    }
+
     va_list args;
     va_start(args, format);
-    if(dht_debug)
-        vfprintf(dht_debug, format, args);
+    vsnprintf(buf, 1024, format, args);
+    buf[1023] = 0;
+//    if(dht_debug)
+//        vfprintf(dht_debug, format, args);
     va_end(args);
-    if(dht_debug)
-        fflush(dht_debug);
+//    if(dht_debug)
+//        fflush(dht_debug);
+    LOG() << buf;
 }
 
-static void
-debug_printable(const unsigned char *buf, int buflen)
+//*****************************************************************************
+//*****************************************************************************
+static void debug_printable(const unsigned char *buf, int buflen)
 {
     int i;
-    if(dht_debug) {
+    if (dht_debug)
+    {
+        LOG l;
         for(i = 0; i < buflen; i++)
-            putc(buf[i] >= 32 && buf[i] <= 126 ? buf[i] : '.', dht_debug);
+            l << (buf[i] >= 32 && buf[i] <= 126 ? buf[i] : '.');
     }
 }
 
@@ -1493,6 +1508,13 @@ storage_store(const unsigned char *id,
 
 //*****************************************************************************
 //*****************************************************************************
+int dht_storage_store(const unsigned char * id, const sockaddr *sa, unsigned short port)
+{
+    return storage_store(id, sa, port);
+}
+
+//*****************************************************************************
+//*****************************************************************************
 static int
 expire_storage(void)
 {
@@ -1766,7 +1788,8 @@ void dht_dump_tables(std::string & s)
                 strcpy(buf, "???");
             }
             stream << " " << buf << ":" << st->peers[i].port << " ("
-                   << (long)(now.tv_sec - st->peers[i].time) << ")";
+                   << (long)(now.tv_sec - st->peers[i].time) << ")"
+                   << std::endl;
         }
         st = st->next;
     }
@@ -2092,7 +2115,6 @@ dht_periodic(const unsigned char * buf, size_t buflen,
         if(message < 0 || message == ERROR || id_cmp(id, zeroes) == 0) {
             debugf("Unparseable message: ");
             debug_printable(buf, buflen);
-            debugf("\n");
             goto dontread;
         }
 
@@ -2114,7 +2136,6 @@ dht_periodic(const unsigned char * buf, size_t buflen,
             if(tid_len != 4) {
                 debugf("Broken node truncates transaction ids: ");
                 debug_printable(buf, buflen);
-                debugf("\n");
                 /* This is really annoying, as it means that we will
                    time-out all our searches that go through this node.
                    Kill it. */
@@ -2224,7 +2245,6 @@ dht_periodic(const unsigned char * buf, size_t buflen,
             } else {
                 debugf("Unexpected reply: ");
                 debug_printable(buf, buflen);
-                debugf("\n");
             }
             break;
         case PING:
@@ -2296,6 +2316,11 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                polluting the DHT. */
             debugf("Sending peer announced.\n");
             send_peer_announced(from, fromlen, tid, tid_len);
+            break;
+        case MESSAGE:
+            debugf("Message received!\n");
+            new_node(id, from, fromlen, 1);
+            break;
         }
     }
 
@@ -2500,6 +2525,79 @@ dht_ping_node(struct sockaddr *sa, int salen)
     if(have_v) {                                        \
         COPY(buf, offset, my_v, sizeof(my_v), size);    \
     }
+
+//*****************************************************************************
+//*****************************************************************************
+int dht_send_message(const unsigned char * id, const char * message, const int length)
+{
+    // make message
+    std::string msg(message, length);
+
+    // TODO base64 encode ?
+    // msg = util::base64_encode(msg);
+
+    char buf[512];
+    int i = 0;
+    {
+        int rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:"); INC(i, rc, 512);
+        COPY(buf, i, myid, 20, 512);
+        rc = _snprintf(buf + i, 512 - i, "e1:q7:message%d:", msg.length()); INC(i, rc, 512);
+        rc = _snprintf(buf + i, 512 - i, "%s", msg.c_str()); INC(i, rc, 512);
+        rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
+    }
+
+    // find peer
+    search * sr = searches;
+    while (sr)
+    {
+        if(sr->af == AF_INET && id_cmp(sr->id, id) == 0)
+        {
+            break;
+        }
+        sr = sr->next;
+    }
+
+    if (sr && sr->numnodes)
+    {
+        // send to
+        dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
+    }
+    else
+    {
+        sr = 0;
+    }
+
+    // find peer
+    search * sr6 = searches;
+    while (sr6)
+    {
+        if(sr6->af == AF_INET6 && id_cmp(sr6->id, id) == 0)
+        {
+            break;
+        }
+        sr6 = sr6->next;
+    }
+
+    if (sr6 && sr6->numnodes)
+    {
+        // send to
+        dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
+    }
+    else
+    {
+        sr6 = 0;
+    }
+
+    if (!sr && !sr6)
+    {
+        return -1;
+    }
+
+    return 0;
+
+fail:
+    return -1;
+}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -3151,6 +3249,8 @@ parse_message(const unsigned char *buf, int buflen,
         return GET_PEERS;
     if(dht_memmem((const char *)buf, buflen, "1:q13:announce_peer", 19))
        return ANNOUNCE_PEER;
+    if(dht_memmem((const char *)buf, buflen, "1:q7:message", 12))
+       return MESSAGE;
     return -1;
 
  overflow:

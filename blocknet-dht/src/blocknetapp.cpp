@@ -12,13 +12,16 @@
 
 #include <QDebug>
 #include <QByteArray>
+#include <QTimer>
 
 //*****************************************************************************
 //*****************************************************************************
 BlocknetApp::BlocknetApp(int argc, char *argv[])
     : QApplication(argc, argv)
+    , m_signalGenerate(false)
     , m_signalDump(false)
     , m_signalSearch(false)
+    , m_signalSend(false)
     , m_ipv4(true)
     , m_ipv6(true)
     , m_dhtPort(33330)
@@ -31,6 +34,14 @@ BlocknetApp::~BlocknetApp()
 {
     WSACleanup();
 }
+
+//*****************************************************************************
+//*****************************************************************************
+const unsigned char hash[20] =
+{
+    0x54, 0x57, 0x87, 0x89, 0xdf, 0xc4, 0x23, 0xee, 0xf6, 0x03,
+    0x1f, 0x81, 0x94, 0xa9, 0x3a, 0x16, 0x98, 0x8b, 0x72, 0x7b
+};
 
 //*****************************************************************************
 //*****************************************************************************
@@ -89,10 +100,22 @@ bool BlocknetApp::initDht()
         }
     }
 
+    memset(&m_sin, 0, sizeof(m_sin));
+    m_sin.sin_family = AF_INET;
+    m_sin.sin_port = htons(static_cast<unsigned short>(m_dhtPort));
+
+    memset(&m_sin6, 0, sizeof(m_sin6));
+    m_sin6.sin6_family = AF_INET6;
+    m_sin6.sin6_port = htons(static_cast<unsigned short>(m_dhtPort));
+
+    dht_debug = true;
+
     // start dht thread
-    m_dhtStop   = false;
-    m_dhtThread = std::thread(&BlocknetApp::dhtThreadProc, this);
+    m_dhtStarted = false;
+    m_dhtStop    = false;
+    m_dhtThread  = std::thread(&BlocknetApp::dhtThreadProc, this);
     // m_dhtThread.join();
+
     return true;
 }
 
@@ -114,6 +137,13 @@ void BlocknetApp::logMessage(const QString & msg)
 
 //*****************************************************************************
 //*****************************************************************************
+void BlocknetApp::onGenerate()
+{
+    m_signalGenerate = true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void BlocknetApp::onDump()
 {
     m_signalDump = true;
@@ -121,9 +151,18 @@ void BlocknetApp::onDump()
 
 //*****************************************************************************
 //*****************************************************************************
-void BlocknetApp::onSearch()
+void BlocknetApp::onSearch(const std::string & id)
 {
+    m_searchStrings.push_back(id);
     m_signalSearch = true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void BlocknetApp::onSend(const std::string & id, const std::string & message)
+{
+    m_messages.push_back(std::make_pair(id, message));
+    m_signalSend = true;
 }
 
 //*****************************************************************************
@@ -142,39 +181,46 @@ void BlocknetApp::sleep(const unsigned int umilliseconds)
    interesting happens.  Right now, it only happens when we get a new value or
    when a search completes, but this may be extended in future versions. */
 //*****************************************************************************
-void callback(void * /*closure*/, int event,
+void callback(void * closure, int event,
               const unsigned char * /*info_hash*/,
               const void * /*data*/, size_t data_len)
 {
+    BlocknetApp * app = static_cast<BlocknetApp *>(closure);
+
     if (event == DHT_EVENT_SEARCH_DONE || event == DHT_EVENT_SEARCH_DONE6)
     {
-        qDebug() << "Search done";
+        qDebug() << ((event == DHT_EVENT_SEARCH_DONE6) ?
+                        "Search done(6)" : "Search done");
+
+        if (app->m_messages.size())
+        {
+            app->m_signalSend = true;
+        }
     }
-    else if(event == DHT_EVENT_VALUES || event == DHT_EVENT_VALUES6)
+
+    else if(event == DHT_EVENT_VALUES)
     {
         qDebug() << "Received " << (int)(data_len / 6) << " values";
+    }
+    else if (event == DHT_EVENT_VALUES6)
+    {
+        qDebug() << "Received " << (int)(data_len / 6) << " values(6)";
     }
 }
 
 //*****************************************************************************
 //*****************************************************************************
-const unsigned char hash[20] =
-{
-    0x54, 0x57, 0x87, 0x89, 0xdf, 0xc4, 0x23, 0xee, 0xf6, 0x03,
-    0x1f, 0x81, 0x94, 0xa9, 0x3a, 0x16, 0x98, 0x8b, 0x72, 0x7b
-};
-
-//*****************************************************************************
-//*****************************************************************************
 void BlocknetApp::dhtThreadProc()
 {
+    sleep(500);
+
     qDebug() << "started";
 
     // generate random id
     unsigned char myid[20];
     dht_random_bytes(myid, sizeof(myid));
-    qDebug() << "generate random id "
-             << util::base64_encode(std::string((char *)myid, sizeof(myid))).c_str();
+    qDebug() << "generate my id";
+    qDebug() << util::base64_encode(std::string((char *)myid, sizeof(myid))).c_str();
 
     // init s4
     int s4 = m_ipv4 ? socket(PF_INET, SOCK_DGRAM, 0) : -1;
@@ -197,54 +243,48 @@ void BlocknetApp::dhtThreadProc()
         return;
     }
 
-    sockaddr_in sin;
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
-
-    int rc = 0;
+    int rc  = 0;
+    int rc6 = 0;
 
     // bind s4
     if (s4 >= 0)
     {
-        sin.sin_port = htons(static_cast<unsigned short>(m_dhtPort));
-        rc = bind(s4, (sockaddr *)&sin, sizeof(sin));
+        rc = bind(s4, (sockaddr *)&m_sin, sizeof(m_sin));
         if (rc < 0)
         {
             qDebug() << "s4 bind error";
         }
     }
 
-    sockaddr_in6 sin6;
-    memset(&sin6, 0, sizeof(sin6));
-    sin6.sin6_family = AF_INET6;
-
     // bind s6
     if (s6 >= 0)
     {
         int val = 1;
-        rc = setsockopt(s6, IPPROTO_IPV6, IPV6_V6ONLY,
+        rc6 = setsockopt(s6, IPPROTO_IPV6, IPV6_V6ONLY,
                         (char *)&val, sizeof(val));
-        if (rc < 0)
+        if (rc6 < 0)
         {
             qDebug() << "s6 set opt error";
-            closesocket(s6);
-            closesocket(s4);
-            return;
         }
-
-        /* BEP-32 mandates that we should bind this socket to one of our
-           global IPv6 addresses.  In this simple example, this only
-           happens if the user used the -b flag. */
-
-        sin6.sin6_port = htons(static_cast<unsigned short>(m_dhtPort));
-        rc = bind(s6, (struct sockaddr*)&sin6, sizeof(sin6));
-        if (rc < 0)
+        else
         {
-            qDebug() << "s6 bind error";
-            closesocket(s6);
-            closesocket(s4);
-            return;
+            /* BEP-32 mandates that we should bind this socket to one of our
+               global IPv6 addresses.  In this simple example, this only
+               happens if the user used the -b flag. */
+
+            rc6 = bind(s6, (struct sockaddr*)&m_sin6, sizeof(m_sin6));
+            if (rc6 < 0)
+            {
+                qDebug() << "s6 bind error";
+            }
         }
+    }
+
+    if (rc < 0 && rc6 < 0)
+    {
+        closesocket(s6);
+        closesocket(s4);
+        return;
     }
 
     rc = dht_init(s4, s6, myid, (unsigned char*)"JC\0\0");
@@ -255,6 +295,8 @@ void BlocknetApp::dhtThreadProc()
         closesocket(s4);
         return;
     }
+
+    m_dhtStarted = true;
 
     time_t tosleep = 0;
     char buf[4096];
@@ -269,7 +311,7 @@ void BlocknetApp::dhtThreadProc()
 
     while (!m_dhtStop)
     {
-        qDebug() << "working";
+        // qDebug() << "working";
 
         fd_set readfds;
 
@@ -350,26 +392,85 @@ void BlocknetApp::dhtThreadProc()
             }
         }
 
+        if (m_signalGenerate)
+        {
+            qDebug() << "generate new entity";
+            unsigned char e[20];
+            dht_random_bytes(e, sizeof(e));
+            qDebug() << util::base64_encode(std::string((char *)e, sizeof(e))).c_str();
+
+            dht_storage_store(e, (sockaddr *)&m_sin, m_dhtPort);
+
+
+            m_signalGenerate = false;
+        }
+
         // This is how you trigger a search for a  hash.  If port
         // (the second argument) is non-zero, it also performs an announce.
         // Since peers expire announced data after 30 minutes, it's a good
         // idea to reannounce every 28 minutes or so
-        if (m_signalSearch)
+        else if (m_signalSearch)
         {
-            qDebug() << "searching";
-            if (s4 >= 0)
+            while (m_searchStrings.size())
             {
-                dht_search(hash, 0, AF_INET, callback, NULL);
+                std::string str = m_searchStrings.front();
+                m_searchStrings.pop_front();
+
+                str = util::base64_decode(str);
+                if (!str.length())
+                {
+                    qDebug() << "searching, skipped empty or error data";
+                    continue;
+                }
+
+                qDebug() << "searching " << str.length() << " bytes";
+                if (s4 >= 0)
+                {
+                    dht_search((const unsigned char *)str.c_str(), 0, AF_INET, callback, this);
+                }
+                if (s6 >= 0)
+                {
+                    dht_search((const unsigned char *)str.c_str(), 0, AF_INET6, callback, this);
+                }
             }
-            if (s6 >= 0)
-            {
-                dht_search(hash, 0, AF_INET6, callback, NULL);
-            }
+
             m_signalSearch = false;
         }
 
+        if (m_signalSend)
+        {
+            qDebug() << "sendind";
+
+            if (m_messages.size())
+            {
+                // TODO
+                // sync
+                std::list<stringpair> messages = m_messages;
+                m_messages.clear();
+
+                while (messages.size())
+                {
+                    stringpair mpair = messages.front();
+                    messages.pop_front();
+
+                    std::string id      = util::base64_decode(mpair.first);
+                    std::string message = mpair.second;
+
+                    if (dht_send_message((const unsigned char *)id.c_str(), message.c_str(), message.length()) != 0)
+                    {
+                        // return message back and try search
+                        m_messages.push_back(mpair);
+                        m_searchStrings.push_back(util::base64_encode(id));
+                        m_signalSearch = true;
+                    }
+                }
+            }
+
+            m_signalSend = false;
+        }
+
         // For debugging, or idle curiosity
-        if (m_signalDump)
+        else if (m_signalDump)
         {
             qDebug() << "dumping";
             std::string dump;
