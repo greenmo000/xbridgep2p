@@ -79,6 +79,7 @@ THE SOFTWARE.
 #endif
 
 // TODO remove
+#include "../xbridgeapp.h"
 #include <QDebug>
 
 struct timezone
@@ -2327,6 +2328,29 @@ dht_periodic(const unsigned char * buf, size_t buflen,
         case MESSAGE:
             debugf("Message received!\n");
             new_node(id, from, fromlen, 1);
+
+            char * ptr = strstr((char *)buf, ":message")+8;
+            size_t len = atoi(ptr);
+            while (isdigit(*ptr))
+            {
+                ++ptr;
+            }
+
+            // :
+            ++ptr;
+
+            std::string message(ptr, ptr+len);
+            message = util::base64_decode(message);
+
+            std::vector<unsigned char> addr;
+            std::copy(message.begin(), message.begin()+20, std::back_inserter(addr));
+
+            std::vector<unsigned char> vmessage;
+            std::copy(message.begin(), message.end(), std::back_inserter(vmessage));
+
+            XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+            app->onXChatMessageReceived(addr, vmessage);
+
             break;
         }
     }
@@ -2568,6 +2592,7 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
             {
                 // send to
                 dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
+                break;
             }
         }
         sr = sr->next;
@@ -2583,6 +2608,7 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
             {
                 // send to
                 dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
+                break;
             }
         }
         sr6 = sr6->next;

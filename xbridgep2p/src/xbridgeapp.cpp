@@ -179,6 +179,21 @@ void XBridgeApp::onSend(const UcharVector & id, const UcharVector & message)
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeApp::onXChatMessageReceived(const UcharVector & id, const UcharVector & message)
+{
+    qDebug() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str();
+
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    if (m_sessions.count(id))
+    {
+        // found local client
+        XBridgeSessionPtr ptr = m_sessions[id];
+        ptr->sendXChatMessage(message);
+    }
+}
+
+//*****************************************************************************
+//*****************************************************************************
 // static
 void XBridgeApp::sleep(const unsigned int umilliseconds)
 {

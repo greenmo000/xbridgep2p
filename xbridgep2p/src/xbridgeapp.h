@@ -47,6 +47,7 @@ public slots:
     void onDump();
     void onSearch(const std::string & id);
     void onSend(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
+    void onXChatMessageReceived(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
 
 public:
     static void sleep(const unsigned int umilliseconds);
