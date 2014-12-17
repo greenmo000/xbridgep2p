@@ -2551,25 +2551,26 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
         rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
     }
 
+    struct storage * st = find_storage(id);
+    if (st)
+    {
+        // found local
+        return 0;
+    }
+
     // find peer
     search * sr = searches;
     while (sr)
     {
         if(sr->af == AF_INET && id_cmp(sr->id, id) == 0)
         {
-            break;
+            if (sr && sr->numnodes)
+            {
+                // send to
+                dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
+            }
         }
         sr = sr->next;
-    }
-
-    if (sr && sr->numnodes)
-    {
-        // send to
-        dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
-    }
-    else
-    {
-        sr = 0;
     }
 
     // find peer
@@ -2578,19 +2579,13 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     {
         if(sr6->af == AF_INET6 && id_cmp(sr6->id, id) == 0)
         {
-            break;
+            if (sr6 && sr6->numnodes)
+            {
+                // send to
+                dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
+            }
         }
         sr6 = sr6->next;
-    }
-
-    if (sr6 && sr6->numnodes)
-    {
-        // send to
-        dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
-    }
-    else
-    {
-        sr6 = 0;
     }
 
     if (!sr && !sr6)
