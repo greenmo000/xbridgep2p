@@ -12,10 +12,16 @@
 
 //*****************************************************************************
 //*****************************************************************************
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 void logOutput(QtMsgType type,
                const QMessageLogContext & /*context*/,
                const QString &msg)
 {
+#else
+void logOutput(QtMsgType type, const char * _msg)
+{
+    QString msg(_msg);
+#endif
     static bool recursion = false;
     if (recursion)
     {
@@ -76,7 +82,11 @@ int main(int argc, char *argv[])
 {
     XBridgeApp a(argc, argv);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     qInstallMessageHandler(logOutput);
+#else
+    qInstallMsgHandler(logOutput);
+#endif
 
     a.initDht();
 
