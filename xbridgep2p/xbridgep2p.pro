@@ -11,13 +11,13 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = xbridgep2p
 TEMPLATE = app
 
+!include($$PWD/config.pri) {
+    error(Failed to include config.pri)
+}
+
 DEFINES += \
     _CRT_SECURE_NO_WARNINGS \
     _SCL_SECURE_NO_WARNINGS
-
-INCLUDEPATH += \
-    d:/work/openssl/include \
-    D:/work/boost/boost_1_57_0
 
 SOURCES += \
     src/main.cpp\
@@ -42,6 +42,5 @@ HEADERS += \
 
 LIBS += \
     -lws2_32 \
-    -Ld:/work/openssl/lib \
     -llibeay32 \
     -lssleay32
