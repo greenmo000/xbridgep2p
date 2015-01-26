@@ -31,6 +31,8 @@ THE SOFTWARE.
 /* For memmem. */
 #define _GNU_SOURCE
 
+#define _WIN32_WINNT 0x0600
+
 #include "../util.h"
 #include "../logger.h"
 
@@ -43,6 +45,11 @@ THE SOFTWARE.
 #include <fcntl.h>
 // #include <sys/time.h>
 
+#ifdef __MINGW32__
+#include <windef.h>
+#include<winsock2.h>
+#include <ws2tcpip.h>
+#else
 #ifndef WIN32
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -52,6 +59,7 @@ THE SOFTWARE.
 // #include <w32api.h>
 // #define WINVER WindowsXP
 #include <ws2tcpip.h>
+#endif
 #endif
 
 #include <sstream>
@@ -82,11 +90,11 @@ THE SOFTWARE.
 #include "../xbridgeapp.h"
 #include <QDebug>
 
-struct timezone
-{
-  int  tz_minuteswest; /* minutes W of Greenwich */
-  int  tz_dsttime;     /* type of dst correction */
-};
+//struct timezone
+//{
+//  int  tz_minuteswest; /* minutes W of Greenwich */
+//  int  tz_dsttime;     /* type of dst correction */
+//};
 
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
@@ -493,7 +501,7 @@ static int
 common_bits(const unsigned char *id1, const unsigned char *id2)
 {
     int i, j;
-    unsigned char xor;
+    unsigned char _xor;
     for(i = 0; i < 20; i++) {
         if(id1[i] != id2[i])
             break;
@@ -502,11 +510,11 @@ common_bits(const unsigned char *id1, const unsigned char *id2)
     if(i == 20)
         return 160;
 
-    xor = id1[i] ^ id2[i];
+    _xor = id1[i] ^ id2[i];
 
     j = 0;
-    while((xor & 0x80) == 0) {
-        xor <<= 1;
+    while((_xor & 0x80) == 0) {
+        _xor <<= 1;
         j++;
     }
 
@@ -1854,7 +1862,7 @@ dht_init(int s, int s6, const unsigned char *id, const unsigned char *v)
         have_v = 0;
     }
 
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, (struct timezone *)0);
 
     mybucket_grow_time = now.tv_sec;
     mybucket6_grow_time = now.tv_sec;
@@ -2086,7 +2094,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
              time_t *tosleep,
              dht_callback *callback, void *closure)
 {
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, (struct timezone *)0);
 
     if(buflen > 0) {
         int message;
@@ -2540,17 +2548,20 @@ dht_ping_node(struct sockaddr *sa, int salen)
 // We could use a proper bencoding printer and parser, but the format of
 // DHT messages is fairly stylised, so this seemed simpler
 //*****************************************************************************
-#define CHECK(offset, delta, size)                      \
-    if(delta < 0 || offset + delta > size) goto fail
-
-#define INC(offset, delta, size)                        \
-    CHECK(offset, delta, size);                         \
-    offset += delta
-
-#define COPY(buf, offset, src, delta, size)             \
-    CHECK(offset, delta, size);                         \
-    memcpy(buf + offset, src, delta);                   \
+bool INC(int & offset, const int delta, const int size)
+{
+    if(delta < 0 || offset + delta > size) return false;
     offset += delta;
+    return true;
+}
+
+bool COPY(char * buf, int & offset, const unsigned char * src, const int delta, const int size)
+{
+    if(delta < 0 || offset + delta > size) return false;
+    memcpy(buf + offset, src, delta);
+    offset += delta;
+    return true;
+}
 
 #define ADD_V(buf, offset, size)                        \
     if(have_v) {                                        \
@@ -2568,11 +2579,15 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     char buf[512];
     int i = 0;
     {
-        int rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:"); INC(i, rc, 512);
-        COPY(buf, i, myid, 20, 512);
-        rc = _snprintf(buf + i, 512 - i, "e1:q7:message%d:", msg.length()); INC(i, rc, 512);
-        rc = _snprintf(buf + i, 512 - i, "%s", msg.c_str()); INC(i, rc, 512);
-        rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
+        int rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
+        if (!INC(i, rc, 512)) return -1;
+        if (!COPY(buf, i, myid, 20, 512)) return -1;
+        rc = _snprintf(buf + i, 512 - i, "e1:q7:message%d:", msg.length());
+        if (!INC(i, rc, 512)) return -1;
+        rc = _snprintf(buf + i, 512 - i, "%s", msg.c_str());
+        if (!INC(i, rc, 512)) return -1;
+        rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
+        if (!INC(i, rc, 512)) return -1;
     }
 
     struct storage * st = find_storage(id);
@@ -2620,14 +2635,11 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     }
 
     return 0;
-
-fail:
-    return -1;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-static int
+int
 dht_send(const char * buf, size_t len, int flags,
          const struct sockaddr *sa, int salen)
 {
@@ -2665,13 +2677,15 @@ send_ping(const struct sockaddr *sa, int salen,
 {
     char buf[512];
     int i = 0, rc;
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:"); INC(i, rc, 512);
-    COPY(buf, i, myid, 20, 512);
+    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, myid, 20, 512)) goto fail;
     rc = _snprintf(buf + i, 512 - i, "e1:q4:ping1:t%d:", tid_len);
-    INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
+    if (!INC(i, rc, 512)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
@@ -2687,12 +2701,15 @@ send_pong(const struct sockaddr *sa, int salen,
 {
     char buf[512];
     int i = 0, rc;
-    rc = _snprintf(buf + i, 512 - i, "d1:rd2:id20:"); INC(i, rc, 512);
-    COPY(buf, i, myid, 20, 512);
-    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len); INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    rc = _snprintf(buf + i, 512 - i, "d1:rd2:id20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, myid, 20, 512)) goto fail;
+    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:re"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:re");
+    if (!INC(i, rc, 512)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
@@ -2709,21 +2726,24 @@ send_find_node(const struct sockaddr *sa, int salen,
 {
     char buf[512];
     int i = 0, rc;
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:"); INC(i, rc, 512);
-    COPY(buf, i, myid, 20, 512);
-    rc = _snprintf(buf + i, 512 - i, "6:target20:"); INC(i, rc, 512);
-    COPY(buf, i, target, 20, 512);
+    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, myid, 20, 512)) goto fail;
+    rc = _snprintf(buf + i, 512 - i, "6:target20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, target, 20, 512)) goto fail;
     if(want > 0) {
         rc = _snprintf(buf + i, 512 - i, "4:wantl%s%se",
                       (want & WANT4) ? "2:n4" : "",
                       (want & WANT6) ? "2:n6" : "");
-        INC(i, rc, 512);
+        if (!INC(i, rc, 512)) goto fail;
     }
     rc = _snprintf(buf + i, 512 - i, "e1:q9:find_node1:t%d:", tid_len);
-    INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
+    if (!INC(i, rc, 512)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
 
  fail:
@@ -2744,22 +2764,23 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
     char buf[2048];
     int i = 0, rc, j0, j, k, len;
 
-    rc = _snprintf(buf + i, 2048 - i, "d1:rd2:id20:"); INC(i, rc, 2048);
-    COPY(buf, i, myid, 20, 2048);
+    rc = _snprintf(buf + i, 2048 - i, "d1:rd2:id20:");
+    if (!INC(i, rc, 2048)) goto fail;
+    if (!COPY(buf, i, myid, 20, 2048)) goto fail;
     if(nodes_len > 0) {
         rc = _snprintf(buf + i, 2048 - i, "5:nodes%d:", nodes_len);
-        INC(i, rc, 2048);
-        COPY(buf, i, nodes, nodes_len, 2048);
+        if (!INC(i, rc, 2048)) goto fail;
+        if (!COPY(buf, i, nodes, nodes_len, 2048)) goto fail;
     }
     if(nodes6_len > 0) {
          rc = _snprintf(buf + i, 2048 - i, "6:nodes6%d:", nodes6_len);
-         INC(i, rc, 2048);
-         COPY(buf, i, nodes6, nodes6_len, 2048);
+         if (!INC(i, rc, 2048)) goto fail;
+         if (!COPY(buf, i, nodes6, nodes6_len, 2048)) goto fail;
     }
     if(token_len > 0) {
         rc = _snprintf(buf + i, 2048 - i, "5:token%d:", token_len);
-        INC(i, rc, 2048);
-        COPY(buf, i, token, token_len, 2048);
+        if (!INC(i, rc, 2048)) goto fail;
+        if (!COPY(buf, i, token, token_len, 2048)) goto fail;
     }
 
     if(st && st->numpeers > 0) {
@@ -2772,26 +2793,30 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
         j = j0;
         k = 0;
 
-        rc = _snprintf(buf + i, 2048 - i, "6:valuesl"); INC(i, rc, 2048);
+        rc = _snprintf(buf + i, 2048 - i, "6:valuesl");
+        if (!INC(i, rc, 2048)) goto fail;
         do {
             if(st->peers[j].len == len) {
                 unsigned short swapped;
                 swapped = htons(st->peers[j].port);
                 rc = _snprintf(buf + i, 2048 - i, "%d:", len + 2);
-                INC(i, rc, 2048);
-                COPY(buf, i, st->peers[j].ip, len, 2048);
-                COPY(buf, i, &swapped, 2, 2048);
+                if (!INC(i, rc, 2048)) goto fail;
+                if (!COPY(buf, i, st->peers[j].ip, len, 2048)) goto fail;
+                if (!COPY(buf, i, (unsigned char *)&swapped, 2, 2048)) goto fail;
                 k++;
             }
             j = (j + 1) % st->numpeers;
         } while(j != j0 && k < 50);
-        rc = _snprintf(buf + i, 2048 - i, "e"); INC(i, rc, 2048);
+        rc = _snprintf(buf + i, 2048 - i, "e");
+        if (!INC(i, rc, 2048)) goto fail;
     }
 
-    rc = _snprintf(buf + i, 2048 - i, "e1:t%d:", tid_len); INC(i, rc, 2048);
-    COPY(buf, i, tid, tid_len, 2048);
+    rc = _snprintf(buf + i, 2048 - i, "e1:t%d:", tid_len);
+    if (!INC(i, rc, 2048)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 2048)) goto fail;
     ADD_V(buf, i, 2048);
-    rc = _snprintf(buf + i, 2048 - i, "1:y1:re"); INC(i, rc, 2048);
+    rc = _snprintf(buf + i, 2048 - i, "1:y1:re");
+    if (!INC(i, rc, 2048)) goto fail;
 
     return dht_send(buf, i, 0, sa, salen);
 
@@ -2923,21 +2948,24 @@ send_get_peers(const struct sockaddr *sa, int salen,
     char buf[512];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:"); INC(i, rc, 512);
-    COPY(buf, i, myid, 20, 512);
-    rc = _snprintf(buf + i, 512 - i, "9:info_hash20:"); INC(i, rc, 512);
-    COPY(buf, i, infohash, 20, 512);
+    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, myid, 20, 512)) goto fail;
+    rc = _snprintf(buf + i, 512 - i, "9:info_hash20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, infohash, 20, 512)) goto fail;
     if(want > 0) {
         rc = _snprintf(buf + i, 512 - i, "4:wantl%s%se",
                       (want & WANT4) ? "2:n4" : "",
                       (want & WANT6) ? "2:n6" : "");
-        INC(i, rc, 512);
+        if (!INC(i, rc, 512)) goto fail;
     }
     rc = _snprintf(buf + i, 512 - i, "e1:q9:get_peers1:t%d:", tid_len);
-    INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
+    if (!INC(i, rc, 512)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
 
  fail:
@@ -2956,19 +2984,22 @@ send_announce_peer(const struct sockaddr *sa, int salen,
     char buf[512];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:"); INC(i, rc, 512);
-    COPY(buf, i, myid, 20, 512);
-    rc = _snprintf(buf + i, 512 - i, "9:info_hash20:"); INC(i, rc, 512);
-    COPY(buf, i, infohash, 20, 512);
+    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, myid, 20, 512)) goto fail;
+    rc = _snprintf(buf + i, 512 - i, "9:info_hash20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, infohash, 20, 512))
     rc = _snprintf(buf + i, 512 - i, "4:porti%ue5:token%d:", (unsigned)port,
                   token_len);
-    INC(i, rc, 512);
-    COPY(buf, i, token, token_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, token, token_len, 512)) goto fail;
     rc = _snprintf(buf + i, 512 - i, "e1:q13:announce_peer1:t%d:", tid_len);
-    INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
+    if (!INC(i, rc, 512)) goto fail;
 
     return dht_send(buf, i, confirm ? 0 : MSG_CONFIRM, sa, salen);
 
@@ -2986,13 +3017,15 @@ send_peer_announced(const struct sockaddr *sa, int salen,
     char buf[512];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:rd2:id20:"); INC(i, rc, 512);
-    COPY(buf, i, myid, 20, 512);
+    rc = _snprintf(buf + i, 512 - i, "d1:rd2:id20:");
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, myid, 20, 512)) goto fail;
     rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len);
-    INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:re"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:re");
+    if (!INC(i, rc, 512)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
@@ -3012,12 +3045,14 @@ send_error(const struct sockaddr *sa, int salen,
 
     rc = _snprintf(buf + i, 512 - i, "d1:eli%de%d:",
                   code, (int)strlen(message));
-    INC(i, rc, 512);
-    COPY(buf, i, message, (int)strlen(message), 512);
-    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len); INC(i, rc, 512);
-    COPY(buf, i, tid, tid_len, 512);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, (const unsigned char *)message, (int)strlen(message), 512)) goto fail;
+    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len);
+    if (!INC(i, rc, 512)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
     ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:ee"); INC(i, rc, 512);
+    rc = _snprintf(buf + i, 512 - i, "1:y1:ee");
+    if (!INC(i, rc, 512)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
@@ -3027,9 +3062,6 @@ send_error(const struct sockaddr *sa, int salen,
 
 //*****************************************************************************
 //*****************************************************************************
-#undef CHECK
-#undef INC
-#undef COPY
 #undef ADD_V
 
 #ifdef HAVE_MEMMEM
