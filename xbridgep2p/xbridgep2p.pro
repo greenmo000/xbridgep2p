@@ -49,8 +49,6 @@ LIBS += \
 win32-g++ {
 
 LIBS += \
-    -lboost_system-mgw48-mt-1_55 \
-    -lboost_thread-mgw48-mt-1_55 \
     -lwsock32 \
     -lws2_32
 }
