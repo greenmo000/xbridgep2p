@@ -2,6 +2,7 @@
 //*****************************************************************************
 
 #include "xbridgeapp.h"
+#include "xbridgeexchange.h"
 #include "util/util.h"
 #include "dht/dht.h"
 
@@ -10,6 +11,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <openssl/rand.h>
 #include <openssl/md5.h>
@@ -23,6 +25,7 @@
 //*****************************************************************************
 XBridgeApp::XBridgeApp(int argc, char *argv[])
     : QApplication(argc, argv)
+    , m_path(std::string(*argv))
     , m_signalGenerate(false)
     , m_signalDump(false)
     , m_signalSearch(false)
@@ -172,6 +175,25 @@ void XBridgeApp::onSearch(const std::string & id)
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeApp::onSend(const std::vector<unsigned char> & message)
+{
+    m_messages.push_back(std::make_pair(std::vector<unsigned char>(), message));
+    m_signalSend = true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::onSend(const XBridgePacketPtr packet)
+{
+    UcharVector v;
+    std::copy(packet->header(), packet->header()+packet->allSize(), std::back_inserter(v));
+    onSend(v);
+}
+
+//*****************************************************************************
+// send packet to xbridge network to specified id,
+// or broadcast, when id is empty
+//*****************************************************************************
 void XBridgeApp::onSend(const UcharVector & id, const UcharVector & message)
 {
     m_messages.push_back(std::make_pair(id, message));
@@ -206,9 +228,35 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
             // already processed
             return;
         }
+
+        // process message
+        XBridgePacketPtr packet(new XBridgePacket);
+        packet->copyFrom(message);
+
+        XBridgeSessionPtr ptr(new XBridgeSession);
+        ptr->processPacket(packet);
     }
 
+    // relay message
     dht_send_broadcast(&message[0], message.size());
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::onSendListOfWallets()
+{
+    XBridgeExchange & e = XBridgeExchange::instance();
+    std::vector<StringPair> wallets = e.listOfWallets();
+    std::vector<std::string> list;
+    for (std::vector<StringPair>::iterator i = wallets.begin(); i != wallets.end(); ++i)
+    {
+        list.push_back(i->first + '|' + i->second);
+    }
+
+    XBridgePacketPtr packet(new XBridgePacket(xbcExchangeWallets));
+    packet->setData(boost::algorithm::join(list, "|"));
+
+    onSend(packet);
 }
 
 //*****************************************************************************

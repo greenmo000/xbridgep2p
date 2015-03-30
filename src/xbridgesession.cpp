@@ -4,7 +4,7 @@
 #include "xbridgesession.h"
 #include "xbridgeapp.h"
 #include "xbridgeexchange.h"
-#include "logger.h"
+#include "util/logger.h"
 #include "dht/dht.h"
 
 #include <boost/asio.hpp>
@@ -163,12 +163,6 @@ void XBridgeSession::onReadBody(XBridgePacketPtr packet,
         return;
     }
 
-    if (!decryptPacket(packet))
-    {
-        ERR() << "packet decoding error " << __FUNCTION__;
-        return;
-    }
-
     if (!processPacket(packet))
     {
         ERR() << "packet processing error " << __FUNCTION__;
@@ -200,6 +194,12 @@ bool XBridgeSession::decryptPacket(XBridgePacketPtr /*packet*/)
 bool XBridgeSession::processPacket(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
+
+    if (!decryptPacket(packet))
+    {
+        ERR() << "packet decoding error " << __FUNCTION__;
+        return false;
+    }
 
     XBridgeCommand c = packet->command();
 
@@ -311,48 +311,48 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
+    // size must be > 20 bytes (160bit)
+    if (packet->size() <= 48)
+    {
+        ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
+        return false;
+    }
+
     // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
     {
-        // TODO serialize packet
-        if (e.createTransaction())
-        {
-            // send hold to this client
-            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
+        std::vector<unsigned char> saddr(packet->data(), packet->data() + 20);
+        std::vector<unsigned char> daddr(packet->data()+20, packet->data() + 40);
 
-            // TODO destination address
-            // TODO transaction hash?
-            XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-            app->onSend(std::vector<unsigned char>(),
-                        std::vector<unsigned char>(reply->header(),
-                                                   reply->header()+reply->allSize()));
+        boost::uint32_t samount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+40));
+        boost::uint32_t damount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+44));
+
+//      float rate = (float) destAmount / sourceAmount;
+
+        uint256 transactionId;
+        if (e.createTransaction(saddr, samount, daddr, damount, transactionId))
+        {
+            // check transaction state, if trNew - do nothing,
+            // if trJoined = send hold to client
+            if (e.transactionState(transactionId) == XBridgeTransaction::trJoined)
+            {
+                // send hold to this client
+    //            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
+    //            reply->setData(transactionId);
+
+                // TODO destination address
+                // TODO transaction hash?
+    //            XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+    //            app->onSend(std::vector<unsigned char>(),
+    //                        std::vector<unsigned char>(reply->header(),
+    //                                                   reply->header()+reply->allSize()));
+            }
         }
     }
 
     // ..and retranslate
     return processXBridgeBroadcastMessage(packet);
-
-//    // TODO serialize
-//    std::string hash;
-//    boost::uint32_t sourceAmount;
-//    std::string sourceWallet;
-//    boost::uint32_t destAmount;
-//    std::string destWallet;
-
-//    float rate = (float) destAmount / sourceAmount;
-
-//    XBridgeExchange & e = XBridgeExchange::instance();
-//    if (!e.haveConnectedWallet(sourceWallet) ||
-//        !e.haveConnectedWallet(destWallet))
-//    {
-//        LOG() << "no wallet for transaction";
-//        return false;
-//    }
-
-//    // if have complain transaction - send hold for client
-
-//    return false;
 }
 
 //*****************************************************************************
@@ -402,6 +402,7 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
 
     LOG() << "transaction " << hash.GetHex();
 
-    XBridgeExchange::instance().updateTransactions(hash);
+    // XBridgeExchange::instance().updateTransactions(hash);
+
     return true;
 }

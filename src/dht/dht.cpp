@@ -34,7 +34,7 @@ THE SOFTWARE.
 #define _WIN32_WINNT 0x0600
 
 #include "../util/util.h"
-#include "../logger.h"
+#include "../util/logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>

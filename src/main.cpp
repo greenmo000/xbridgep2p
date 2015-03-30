@@ -3,6 +3,8 @@
 
 #include "statdialog.h"
 #include "xbridgeapp.h"
+#include "xbridgeexchange.h"
+#include "util/settings.h"
 
 #include <QString>
 // #include <QDateTime>
@@ -80,6 +82,8 @@ void logOutput(QtMsgType type, const char * _msg)
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
+    Settings::instance().init(std::string(*argv) + ".conf");
+
     XBridgeApp a(argc, argv);
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -88,12 +92,16 @@ int main(int argc, char *argv[])
     qInstallMsgHandler(logOutput);
 #endif
 
-    a.initDht();
-
     StatDialog w;
     a.connect(&a, SIGNAL(showLogMessage(const QString &)),
               &w, SLOT(onLogMessage(const QString &)));
     w.show();
+
+    // init xbridge network
+    a.initDht();
+
+    // init exchange
+    XBridgeExchange::instance().init();
 
     int retcode = a.exec();
 

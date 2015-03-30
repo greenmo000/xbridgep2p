@@ -24,6 +24,8 @@ public:
 
     bool sendXBridgeMessage(const std::vector<unsigned char> & message);
 
+    bool processPacket(XBridgePacketPtr packet);
+
 private:
     void disconnect();
 
@@ -43,7 +45,6 @@ private:
 
     bool encryptPacket(XBridgePacketPtr packet);
     bool decryptPacket(XBridgePacketPtr packet);
-    bool processPacket(XBridgePacketPtr packet);
 
     bool processInvalid(XBridgePacketPtr packet);
     bool processAnnounceAddresses(XBridgePacketPtr packet);
