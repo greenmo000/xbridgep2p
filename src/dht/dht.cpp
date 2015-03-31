@@ -394,6 +394,8 @@ bool dht_debug = false;
 
 char buf[1024];
 
+//*****************************************************************************
+//*****************************************************************************
 static void debugf(const char *format, ...)
 {
     if (!dht_debug)
@@ -2619,6 +2621,17 @@ bool COPY(char * buf, int & offset, const unsigned char * src, const int delta, 
 //*****************************************************************************
 int dht_send_broadcast(const unsigned char * message, const int length)
 {
+//    if (!buckets || !buckets->nodes ||
+//        !buckets6 || !buckets6->nodes)
+//    {
+//        // no nodes
+//        return 0;
+//    }
+    if (!storage)
+    {
+        return 0;
+    }
+
     std::string msg((const char *)message, length);
     msg = util::base64_encode(msg);
 
@@ -2636,42 +2649,78 @@ int dht_send_broadcast(const unsigned char * message, const int length)
         if (!INC(i, rc, 512)) return -1;
     }
 
-    search * sr = searches;
-    while (sr)
+    struct storage * st = storage;
+    while (st)
     {
-        if (sr->af == AF_INET)
-        {
-            if (sr && sr->numnodes)
-            {
-                // send to
-                dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
-                break;
-            }
-        }
-        sr = sr->next;
+        st->id;
+        st = st->next;
     }
 
-    search * sr6 = searches;
-    while (sr6)
-    {
-        if (sr6->af == AF_INET6)
-        {
-            if (sr6 && sr6->numnodes)
-            {
-                // send to
-                dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
-                break;
-            }
-        }
-        sr6 = sr6->next;
-    }
+//    int count = 0;
+//    bucket * b = buckets;
+//    while (b)
+//    {
+//        node * n = b->nodes;
+//        while (n)
+//        {
+//            dht_send(buf, i, 0, (sockaddr *)&n->ss, sizeof(n->ss));
+//            ++count;
+//            n = n->next;
+//        }
+//        b = b->next;
+//    }
 
-    if (!sr && !sr6)
-    {
-        return -1;
-    }
+//    b = buckets6;
+//    while (b)
+//    {
+//        node * n = b->nodes;
+//        while (n)
+//        {
+//            dht_send(buf, i, 0, (sockaddr *)&n->ss, sizeof(n->ss));
+//            ++count;
+//            n = n->next;
+//        }
+//        b = b->next;
+//    }
 
-    return 0;
+//    return (count = 0);
+
+//    search * sr = searches;
+//    while (sr)
+//    {
+//        if (sr->af == AF_INET)
+//        {
+//            if (sr && sr->numnodes)
+//            {
+//                // send to
+//                dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
+//                break;
+//            }
+//        }
+//        sr = sr->next;
+//    }
+
+//    search * sr6 = searches;
+//    while (sr6)
+//    {
+//        if (sr6->af == AF_INET6)
+//        {
+//            if (sr6 && sr6->numnodes)
+//            {
+//                // send to
+//                dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
+//                break;
+//            }
+//        }
+//        sr6 = sr6->next;
+//    }
+
+//    if (!sr && !sr6)
+//    {
+//        return -1;
+//    }
+
+//    return 0;
 }
 
 //*****************************************************************************

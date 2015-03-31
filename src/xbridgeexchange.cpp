@@ -147,16 +147,17 @@ bool XBridgeExchange::updateTransaction(const uint256 & hash)
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeTransaction::State XBridgeExchange::transactionState(const uint256 & hash)
+const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
 
     if (!m_transactions.count(hash))
     {
-        return XBridgeTransaction::trInvalid;
+        // return XBridgeTransaction::trInvalid;
+        return XBridgeTransactionPtr(new XBridgeTransaction);
     }
 
-    return m_transactions[hash]->state();
+    return m_transactions[hash];
 }
 
 //*****************************************************************************

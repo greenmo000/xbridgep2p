@@ -46,10 +46,15 @@ public:
     {
         trInvalid = 0,
         trNew,
-        trJoined
+        trJoined,
+        trHold,
+        trPaid,
+        trFinished,
+        trDropped
     };
 
 public:
+    XBridgeTransaction();
     XBridgeTransaction(const std::vector<unsigned char> & sourceAddr,
                        const boost::uint32_t sourceAmount,
                        const std::vector<unsigned char> & destAddr,

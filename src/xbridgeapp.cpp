@@ -381,7 +381,7 @@ void XBridgeApp::dhtThreadProc()
         return;
     }
 
-    rc = dht_init(s4, s6, myid, (unsigned char*)"JC\0\0");
+    rc = dht_init(s4, s6, myid, (unsigned char*)"BT\0\0");
     if (rc < 0)
     {
         qDebug() << "dht_init error";
@@ -550,7 +550,17 @@ void XBridgeApp::dhtThreadProc()
                     // check broadcast
                     if (mpair.first.empty())
                     {
-                        dht_send_broadcast(&mpair.second[0], mpair.second.size());
+                        // send to all local clients
+                        {
+                            boost::mutex::scoped_lock l(m_sessionsLock);
+                            for (SessionMap::iterator i = m_sessions.begin(); i != m_sessions.end(); ++i)
+                            {
+                                i->second->sendXBridgeMessage(mpair.second);
+                            }
+                        }
+
+                        // TODO send to xbridge network
+                        // dht_send_broadcast(&mpair.second[0], mpair.second.size());
                     }
 
                     else

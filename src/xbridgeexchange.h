@@ -50,7 +50,7 @@ public:
                            uint256 & transactionId);
     bool updateTransaction(const uint256 & hash);
 
-    XBridgeTransaction::State transactionState(const uint256 & hash);
+    const XBridgeTransactionPtr transaction(const uint256 & hash);
 
     std::vector<StringPair> listOfWallets() const;
 

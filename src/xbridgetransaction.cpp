@@ -8,6 +8,14 @@
 
 //*****************************************************************************
 //*****************************************************************************
+XBridgeTransaction::XBridgeTransaction()
+    : m_state(trInvalid)
+{
+
+}
+
+//*****************************************************************************
+//*****************************************************************************
 XBridgeTransaction::XBridgeTransaction(const std::vector<unsigned char> & sourceAddr,
                                        const boost::uint32_t sourceAmount,
                                        const std::vector<unsigned char> & destAddr,
@@ -39,7 +47,7 @@ XBridgeTransaction::State XBridgeTransaction::state() const
 bool XBridgeTransaction::isValid() const
 {
     // TODO
-    return true;
+    return m_state != trInvalid;
 }
 
 //*****************************************************************************

@@ -335,11 +335,11 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
         {
             // check transaction state, if trNew - do nothing,
             // if trJoined = send hold to client
-            if (e.transactionState(transactionId) == XBridgeTransaction::trJoined)
+            if (e.transaction(transactionId)->state() == XBridgeTransaction::trJoined)
             {
-                // send hold to this client
-    //            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
-    //            reply->setData(transactionId);
+                // send hold to clients
+                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
+                reply->setData(transactionId.GetHex());
 
                 // TODO destination address
                 // TODO transaction hash?
