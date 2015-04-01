@@ -530,7 +530,7 @@ void XBridgeApp::dhtThreadProc()
 
         if (m_signalSend)
         {
-            qDebug() << "sendind";
+            // qDebug() << "sendind";
 
             if (m_messages.size())
             {

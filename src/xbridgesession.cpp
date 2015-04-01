@@ -66,7 +66,7 @@ void XBridgeSession::start(XBridge::SocketPtr socket)
 //*****************************************************************************
 void XBridgeSession::disconnect()
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     m_socket->close();
 
@@ -81,7 +81,7 @@ void XBridgeSession::disconnect()
 void XBridgeSession::doReadHeader(XBridgePacketPtr packet,
                                   const std::size_t offset)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     m_socket->async_read_some(
                 boost::asio::buffer(packet->header()+offset,
@@ -100,7 +100,7 @@ void XBridgeSession::onReadHeader(XBridgePacketPtr packet,
                                   const boost::system::error_code & error,
                                   std::size_t transferred)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     if (error)
     {
@@ -127,7 +127,7 @@ void XBridgeSession::onReadHeader(XBridgePacketPtr packet,
 void XBridgeSession::doReadBody(XBridgePacketPtr packet,
                 const std::size_t offset)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     m_socket->async_read_some(
                 boost::asio::buffer(packet->data()+offset,
@@ -146,7 +146,7 @@ void XBridgeSession::onReadBody(XBridgePacketPtr packet,
                                 const boost::system::error_code & error,
                                 std::size_t transferred = 0)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     if (error)
     {
@@ -176,7 +176,7 @@ void XBridgeSession::onReadBody(XBridgePacketPtr packet,
 //*****************************************************************************
 bool XBridgeSession::encryptPacket(XBridgePacketPtr /*packet*/)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
     // TODO implement this
     return true;
 }
@@ -185,7 +185,7 @@ bool XBridgeSession::encryptPacket(XBridgePacketPtr /*packet*/)
 //*****************************************************************************
 bool XBridgeSession::decryptPacket(XBridgePacketPtr /*packet*/)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
     // TODO implement this
     return true;
 }
@@ -194,7 +194,7 @@ bool XBridgeSession::decryptPacket(XBridgePacketPtr /*packet*/)
 //*****************************************************************************
 bool XBridgeSession::processPacket(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     if (!decryptPacket(packet))
     {
@@ -251,7 +251,7 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & message)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     XBridgePacketPtr packet(new XBridgePacket());
     // packet->setData(message);

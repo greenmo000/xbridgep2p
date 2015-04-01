@@ -107,7 +107,7 @@ void XBridge::accept(XBridge::SocketPtr socket,
 //******************************************************************************
 void XBridge::onTimer()
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
     if (app)
