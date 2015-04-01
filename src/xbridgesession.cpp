@@ -233,7 +233,7 @@ bool XBridgeSession::processInvalid(XBridgePacketPtr /*packet*/)
 //*****************************************************************************
 bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     // size must be 20 bytes (160bit)
     if (packet->size() != 20)

@@ -1526,8 +1526,8 @@ storage_store(const unsigned char *id,
 int dht_storage_store(const unsigned char * id, const sockaddr *sa, unsigned short port)
 {
     // TODO sizeof (id)
-    qDebug() << "new entity";
-    qDebug() << util::base64_encode(std::string((char *)id, 20)).c_str();
+    // qDebug() << "new entity";
+    // qDebug() << util::base64_encode(std::string((char *)id, 20)).c_str();
 
     return storage_store(id, sa, port);
 }
