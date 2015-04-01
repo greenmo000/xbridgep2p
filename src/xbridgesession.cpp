@@ -4,6 +4,7 @@
 #include "xbridgesession.h"
 #include "xbridgeapp.h"
 #include "xbridgeexchange.h"
+#include "util/util.h"
 #include "util/logger.h"
 #include "dht/dht.h"
 
@@ -311,8 +312,8 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
-    // size must be > 20 bytes (160bit)
-    if (packet->size() <= 48)
+    // size must be 84 bytes
+    if (packet->size() != 84)
     {
         ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
         return false;
@@ -322,31 +323,50 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
     {
-        std::vector<unsigned char> saddr(packet->data(), packet->data() + 20);
-        std::vector<unsigned char> daddr(packet->data()+20, packet->data() + 40);
+        // read packet data
+        uint256 id(packet->data());
 
-        boost::uint32_t samount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+40));
-        boost::uint32_t damount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+44));
+        // source
+        std::vector<unsigned char> saddr(packet->data()+20, packet->data()+40);
+        std::string scurrency((const char *)packet->data()+40);
+        boost::uint32_t samount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+48));
 
-//      float rate = (float) destAmount / sourceAmount;
+        // destination
+        std::vector<unsigned char> daddr(packet->data()+52, packet->data()+72);
+        std::string dcurrency((const char *)packet->data()+72);
+        boost::uint32_t damount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+80));
 
-        uint256 transactionId;
-        if (e.createTransaction(saddr, samount, daddr, damount, transactionId))
+        LOG() << "received transaction " << util::base64_encode(std::string((char *)id.begin(), 20)) << std::endl
+              << "    from" << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
+              << "            " << scurrency << " : " << samount << std::endl
+              << "    to  " << util::base64_encode(std::string((char *)&daddr[0], 20)) << std::endl
+              << "            " << dcurrency << " : " << damount << std::endl;
+
+        if (!e.haveConnectedWallet(scurrency) || !e.haveConnectedWallet(dcurrency))
         {
-            // check transaction state, if trNew - do nothing,
-            // if trJoined = send hold to client
-            if (e.transaction(transactionId)->state() == XBridgeTransaction::trJoined)
+            LOG() << "no active wallet for transaction " << util::base64_encode(std::string((char *)id.begin(), 20));
+        }
+        else
+        {
+            // float rate = (float) destAmount / sourceAmount;
+            uint256 transactionId;
+            if (e.createTransaction(saddr, scurrency, samount, daddr, dcurrency, damount, transactionId))
             {
-                // send hold to clients
-                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
-                reply->setData(transactionId.GetHex());
+                // check transaction state, if trNew - do nothing,
+                // if trJoined = send hold to client
+                if (e.transaction(transactionId)->state() == XBridgeTransaction::trJoined)
+                {
+                    // send hold to clients
+                    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
+                    reply->append(id.begin(), 20);
+                    reply->append(transactionId.begin(), 20);
 
-                // TODO destination address
-                // TODO transaction hash?
-    //            XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    //            app->onSend(std::vector<unsigned char>(),
-    //                        std::vector<unsigned char>(reply->header(),
-    //                                                   reply->header()+reply->allSize()));
+                    // TODO saddr ???
+                    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+                    app->onSend(saddr,
+                                std::vector<unsigned char>(reply->header(),
+                                                           reply->header()+reply->allSize()));
+                }
             }
         }
     }

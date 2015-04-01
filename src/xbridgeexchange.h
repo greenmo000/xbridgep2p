@@ -44,8 +44,10 @@ public:
     bool haveConnectedWallet(const std::string & walletName);
 
     bool createTransaction(const std::vector<unsigned char> & sourceAddr,
+                           const std::string & sourceCurrency,
                            const boost::uint32_t sourceAmount,
                            const std::vector<unsigned char> & destAddr,
+                           const std::string & destCurrency,
                            const boost::uint32_t destAmount,
                            uint256 & transactionId);
     bool updateTransaction(const uint256 & hash);

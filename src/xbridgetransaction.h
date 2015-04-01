@@ -56,8 +56,10 @@ public:
 public:
     XBridgeTransaction();
     XBridgeTransaction(const std::vector<unsigned char> & sourceAddr,
+                       const std::string & sourceCurrency,
                        const boost::uint32_t sourceAmount,
                        const std::vector<unsigned char> & destAddr,
+                       const std::string & destCurrency,
                        const boost::uint32_t destAmount);
     ~XBridgeTransaction();
 

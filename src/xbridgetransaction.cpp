@@ -17,10 +17,14 @@ XBridgeTransaction::XBridgeTransaction()
 //*****************************************************************************
 //*****************************************************************************
 XBridgeTransaction::XBridgeTransaction(const std::vector<unsigned char> & sourceAddr,
+                                       const std::string & sourceCurrency,
                                        const boost::uint32_t sourceAmount,
                                        const std::vector<unsigned char> & destAddr,
+                                       const std::string & destCurrency,
                                        const boost::uint32_t destAmount)
     : m_state(trNew)
+    , m_sourceCurrency(sourceCurrency)
+    , m_destCurrency(destCurrency)
     , m_sourceAmount(sourceAmount)
     , m_destAmount(destAmount)
 {

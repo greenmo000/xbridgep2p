@@ -588,6 +588,11 @@ public:
         else
             *this = 0;
     }
+
+    explicit uint256(const unsigned char * ch)
+    {
+        memcpy(pn, ch, sizeof(pn));
+    }
 };
 
 inline bool operator==(const uint256& a, uint64 b)                           { return (base_uint256)a == b; }

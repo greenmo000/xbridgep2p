@@ -77,8 +77,10 @@ bool XBridgeExchange::haveConnectedWallet(const std::string & walletName)
 //*****************************************************************************
 //*****************************************************************************
 bool XBridgeExchange::createTransaction(const std::vector<unsigned char> & sourceAddr,
+                                        const std::string & sourceCurrency,
                                         const boost::uint32_t sourceAmount,
                                         const std::vector<unsigned char> & destAddr,
+                                        const std::string & destCurrency,
                                         const boost::uint32_t destAmount,
                                         uint256 & transactionId)
 {
@@ -86,8 +88,10 @@ bool XBridgeExchange::createTransaction(const std::vector<unsigned char> & sourc
 
     transactionId = uint256();
 
-    XBridgeTransactionPtr tr(new XBridgeTransaction(sourceAddr, sourceAmount,
-                                                    destAddr, destAmount));
+    XBridgeTransactionPtr tr(new XBridgeTransaction(sourceAddr, sourceCurrency,
+                                                    sourceAmount,
+                                                    destAddr, destCurrency,
+                                                    destAmount));
     if (!tr->isValid())
     {
         return false;
