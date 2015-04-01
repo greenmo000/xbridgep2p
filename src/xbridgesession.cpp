@@ -53,7 +53,7 @@ XBridgeSession::XBridgeSession()
 //*****************************************************************************
 void XBridgeSession::start(XBridge::SocketPtr socket)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     LOG() << "client connected " << socket.get();
 
