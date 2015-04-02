@@ -47,7 +47,8 @@ enum XBridgeCommand
     xbcTransactionHoldCancel,
     xbcTransactionPay,
     xbcTransactionPayApply,
-    xbcTransactionFinish,
+    xbcTransactionFinished,
+    xbcTransactionDropped,
 
     // smart hub periodically send this message for invitations to trading
     // this message contains address of smart hub and
@@ -156,6 +157,13 @@ public:
     }
 
     void append(const boost::uint32_t data)
+    {
+        unsigned char * ptr = (unsigned char *)&data;
+        std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
+        sizeField() = m_body.size() - headerSize;
+    }
+
+    void append(const boost::uint64_t data)
     {
         unsigned char * ptr = (unsigned char *)&data;
         std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));

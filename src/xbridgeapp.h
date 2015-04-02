@@ -35,7 +35,9 @@ signals:
     void showLogMessage(const QString & msg);
 
 public:
-    std::string path() { return m_path; }
+    const unsigned char * myid() const { return m_myid; }
+    const std::string path() const     { return m_path; }
+
     bool initDht();
     bool stopDht();
 
@@ -57,6 +59,7 @@ public slots:
     void onSend(const std::vector<unsigned char> & message);
     void onSend(const XBridgePacketPtr packet);
     void onSend(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
+    void onSend(const std::vector<unsigned char> & id, const XBridgePacketPtr packet);
     // call when message from xbridge network received
     void onMessageReceived(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
     // broadcast message
@@ -72,6 +75,8 @@ private:
     void bridgeThreadProc();
 
 private:
+    unsigned char     m_myid[20];
+
     std::string       m_path;
 
     std::thread       m_dhtThread;

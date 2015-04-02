@@ -201,6 +201,14 @@ void XBridgeApp::onSend(const UcharVector & id, const UcharVector & message)
 }
 
 //*****************************************************************************
+void XBridgeApp::onSend(const std::vector<unsigned char> & id, const XBridgePacketPtr packet)
+{
+    UcharVector v;
+    std::copy(packet->header(), packet->header()+packet->allSize(), std::back_inserter(v));
+    onSend(id, v);
+}
+
+//*****************************************************************************
 //*****************************************************************************
 void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & message)
 {
@@ -311,10 +319,10 @@ void XBridgeApp::dhtThreadProc()
     qDebug() << "started";
 
     // generate random id
-    unsigned char myid[20];
-    dht_random_bytes(myid, sizeof(myid));
-    qDebug() << "generate my id";
-    qDebug() << util::base64_encode(std::string((char *)myid, sizeof(myid))).c_str();
+    dht_random_bytes(m_myid, sizeof(m_myid));
+    qDebug() << "generated id <"
+             << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
+             << ">";
 
     // init s4
     int s4 = m_ipv4 ? socket(PF_INET, SOCK_DGRAM, 0) : -1;
@@ -381,7 +389,7 @@ void XBridgeApp::dhtThreadProc()
         return;
     }
 
-    rc = dht_init(s4, s6, myid, (unsigned char*)"BT\0\0");
+    rc = dht_init(s4, s6, m_myid, (unsigned char*)"BT\0\0");
     if (rc < 0)
     {
         qDebug() << "dht_init error";

@@ -86,7 +86,7 @@ namespace util
     }
 
     template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-    inline uint256 Hash(const T1 p1begin, const T1 p1end,
+    inline uint256 hash(const T1 p1begin, const T1 p1end,
                         const T2 p2begin, const T2 p2end,
                         const T3 p3begin, const T3 p3end,
                         const T4 p4begin, const T4 p4end,

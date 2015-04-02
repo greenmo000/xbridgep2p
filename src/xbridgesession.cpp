@@ -312,8 +312,8 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
-    // size must be 84 bytes
-    if (packet->size() != 84)
+    // size must be 104 bytes
+    if (packet->size() != 104)
     {
         ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
         return false;
@@ -327,45 +327,60 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
         uint256 id(packet->data());
 
         // source
-        std::vector<unsigned char> saddr(packet->data()+20, packet->data()+40);
-        std::string scurrency((const char *)packet->data()+40);
-        boost::uint32_t samount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+48));
+        std::vector<unsigned char> saddr(packet->data()+32, packet->data()+52);
+        std::string scurrency((const char *)packet->data()+52);
+        boost::uint64_t samount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+60));
 
         // destination
-        std::vector<unsigned char> daddr(packet->data()+52, packet->data()+72);
-        std::string dcurrency((const char *)packet->data()+72);
-        boost::uint32_t damount = *static_cast<boost::uint32_t *>(static_cast<void *>(packet->data()+80));
+        std::vector<unsigned char> daddr(packet->data()+68, packet->data()+88);
+        std::string dcurrency((const char *)packet->data()+88);
+        boost::uint64_t damount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+96));
 
-        LOG() << "received transaction " << util::base64_encode(std::string((char *)id.begin(), 20)) << std::endl
-              << "    from" << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
-              << "            " << scurrency << " : " << samount << std::endl
-              << "    to  " << util::base64_encode(std::string((char *)&daddr[0], 20)) << std::endl
-              << "            " << dcurrency << " : " << damount << std::endl;
+        LOG() << "received transaction " << util::base64_encode(std::string((char *)id.begin(), 32)) << std::endl
+              << "    from " << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
+              << "             " << scurrency << " : " << samount << std::endl
+              << "    to   " << util::base64_encode(std::string((char *)&daddr[0], 20)) << std::endl
+              << "             " << dcurrency << " : " << damount << std::endl;
 
         if (!e.haveConnectedWallet(scurrency) || !e.haveConnectedWallet(dcurrency))
         {
-            LOG() << "no active wallet for transaction " << util::base64_encode(std::string((char *)id.begin(), 20));
+            LOG() << "no active wallet for transaction " << util::base64_encode(std::string((char *)id.begin(), 32));
         }
         else
         {
             // float rate = (float) destAmount / sourceAmount;
             uint256 transactionId;
-            if (e.createTransaction(saddr, scurrency, samount, daddr, dcurrency, damount, transactionId))
+            if (e.createTransaction(id, saddr, scurrency, samount, daddr, dcurrency, damount, transactionId))
             {
                 // check transaction state, if trNew - do nothing,
                 // if trJoined = send hold to client
-                if (e.transaction(transactionId)->state() == XBridgeTransaction::trJoined)
+                XBridgeTransactionPtr tr = e.transaction(transactionId);
+                if (tr->state() == XBridgeTransaction::trJoined)
                 {
                     // send hold to clients
-                    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHold));
-                    reply->append(id.begin(), 20);
-                    reply->append(transactionId.begin(), 20);
-
-                    // TODO saddr ???
                     XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                    app->onSend(saddr,
-                                std::vector<unsigned char>(reply->header(),
-                                                           reply->header()+reply->allSize()));
+
+                    // first
+                    XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
+                    reply1->append(tr->firstAddress());
+                    reply1->append(app->myid(), 20);
+                    reply1->append(id.begin(), 32);
+                    reply1->append(transactionId.begin(), 32);
+
+                    app->onSend(tr->firstAddress(),
+                                std::vector<unsigned char>(reply1->header(),
+                                                           reply1->header()+reply1->allSize()));
+
+                    // second
+                    XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
+                    reply2->append(tr->secondAddress());
+                    reply2->append(app->myid(), 20);
+                    reply2->append(id.begin(), 32);
+                    reply2->append(transactionId.begin(), 32);
+
+                    app->onSend(tr->firstAddress(),
+                                std::vector<unsigned char>(reply2->header(),
+                                                           reply2->header()+reply2->allSize()));
                 }
             }
         }
@@ -381,10 +396,61 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
-    XBridgeExchange & e = XBridgeExchange::instance();
+    // size must be 52 bytes
+    if (packet->size() != 52)
+    {
+        ERR() << "invalid packet size for xbcTransactionHoldApply " << __FUNCTION__;
+        return false;
+    }
 
-    // TODO send hold to first client
-    // TODO or send pay to both clients if hold apply from first client
+    // check address
+    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+    if (memcmp(packet->data(), app->myid(), 20) != 0)
+    {
+        // not for me, retranslate packet
+        std::vector<unsigned char> addr(packet->data(), packet->data() + 20);
+        app->onSend(addr, packet);
+        return true;
+    }
+
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
+    // transaction id
+    uint256 id(packet->data()+20);
+    if (e.updateTransactionWhenHoldApplyReceived(id))
+    {
+        XBridgeTransactionPtr tr = e.transaction(id);
+        if (tr->state() == XBridgeTransaction::trHold)
+        {
+            // send payment command to clients
+
+            // first
+            XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionPay));
+            reply1->append(tr->firstAddress());
+            reply1->append(app->myid(), 20);
+            reply1->append(id.begin(), 32);
+            reply1->append(e.walletAddress(tr->firstCurrency()));
+
+            app->onSend(tr->firstAddress(),
+                        std::vector<unsigned char>(reply1->header(),
+                                                   reply1->header()+reply1->allSize()));
+
+            // second
+            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionPay));
+            reply2->append(tr->secondAddress());
+            reply2->append(app->myid(), 20);
+            reply2->append(id.begin(), 32);
+            reply2->append(e.walletAddress(tr->secondCurrency()));
+
+            app->onSend(tr->firstAddress(),
+                        std::vector<unsigned char>(reply2->header(),
+                                                   reply2->header()+reply2->allSize()));
+        }
+    }
 
     return true;
 }
@@ -395,12 +461,58 @@ bool XBridgeSession::processTransactionPayApply(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
-    uint256 hash;
-    hash.SetHex((char *)packet->data());
+    // size must be 84 bytes
+    if (packet->size() != 84)
+    {
+        ERR() << "invalid packet size for xbcTransactionPayApply " << __FUNCTION__;
+        return false;
+    }
 
-    LOG() << "transaction " << hash.GetHex();
+    // check address
+    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+    if (memcmp(packet->data(), app->myid(), 20) != 0)
+    {
+        // not for me, retranslate packet
+        std::vector<unsigned char> addr(packet->data(), packet->data() + 20);
+        app->onSend(addr, packet);
+        return true;
+    }
 
-    XBridgeExchange::instance().updateTransaction(hash);
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
+    // transaction id
+    uint256 id(packet->data()+20);
+    uint256 paymentId(packet->data()+52);
+    if (e.updateTransactionWhenPayApplyReceived(id, paymentId))
+    {
+        XBridgeTransactionPtr tr = e.transaction(id);
+        if (tr->state() == XBridgeTransaction::trFinished)
+        {
+            // send transaction state to clients
+            // first
+            XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionFinished));
+            reply1->append(tr->firstAddress());
+            reply1->append(id.begin(), 32);
+
+            app->onSend(tr->firstAddress(),
+                        std::vector<unsigned char>(reply1->header(),
+                                                   reply1->header()+reply1->allSize()));
+
+            // second
+            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionFinished));
+            reply2->append(tr->secondAddress());
+            reply2->append(id.begin(), 32);
+
+            app->onSend(tr->firstAddress(),
+                        std::vector<unsigned char>(reply2->header(),
+                                                   reply2->header()+reply2->allSize()));
+        }
+    }
+
     return true;
 }
 
@@ -411,18 +523,20 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     DEBUG_TRACE();
 
     // size must be == 32 bytes (256bit)
-//    if (packet->size() <= 32)
-//    {
-//        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
-//        return false;
-//    }
+    if (packet->size() != 32)
+    {
+        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
+        return false;
+    }
 
-    uint256 hash;
-    hash.SetHex((char *)packet->data());
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
-    LOG() << "transaction " << hash.GetHex();
-
-    // XBridgeExchange::instance().updateTransactions(hash);
+    uint256 id(packet->data());
+    e.updateTransaction(id);
 
     return true;
 }

@@ -22,8 +22,8 @@ typedef std::pair<std::string, std::string> StringPair;
 //*****************************************************************************
 struct WalletParam
 {
-    std::string title;
-    std::string address;
+    std::string                title;
+    std::vector<unsigned char> address;
 };
 
 //*****************************************************************************
@@ -43,13 +43,20 @@ public:
     bool isEnabled();
     bool haveConnectedWallet(const std::string & walletName);
 
-    bool createTransaction(const std::vector<unsigned char> & sourceAddr,
+    std::vector<unsigned char> walletAddress(const std::string & walletName);
+
+    bool createTransaction(const uint256 & id,
+                           const std::vector<unsigned char> & sourceAddr,
                            const std::string & sourceCurrency,
-                           const boost::uint32_t sourceAmount,
+                           const boost::uint64_t sourceAmount,
                            const std::vector<unsigned char> & destAddr,
                            const std::string & destCurrency,
-                           const boost::uint32_t destAmount,
+                           const boost::uint64_t destAmount,
                            uint256 & transactionId);
+
+    bool updateTransactionWhenHoldApplyReceived(const uint256 & id);
+    bool updateTransactionWhenPayApplyReceived(const uint256 & id, const uint256 & paymentId);
+
     bool updateTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
@@ -60,6 +67,9 @@ private:
     // connected wallets
     typedef std::map<std::string, WalletParam> WalletList;
     WalletList                               m_wallets;
+
+    boost::mutex                             m_pendingTransactionsLock;
+    std::map<uint256, XBridgeTransactionPtr> m_pendingTransactions;
 
     boost::mutex                             m_transactionsLock;
     std::map<uint256, XBridgeTransactionPtr> m_transactions;

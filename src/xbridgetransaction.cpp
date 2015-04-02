@@ -10,23 +10,27 @@
 //*****************************************************************************
 XBridgeTransaction::XBridgeTransaction()
     : m_state(trInvalid)
+    , m_stateCounter(0)
 {
 
 }
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeTransaction::XBridgeTransaction(const std::vector<unsigned char> & sourceAddr,
+XBridgeTransaction::XBridgeTransaction(const uint256 & id,
+                                       const std::vector<unsigned char> & sourceAddr,
                                        const std::string & sourceCurrency,
-                                       const boost::uint32_t sourceAmount,
+                                       const boost::uint64_t sourceAmount,
                                        const std::vector<unsigned char> & destAddr,
                                        const std::string & destCurrency,
-                                       const boost::uint32_t destAmount)
-    : m_state(trNew)
+                                       const boost::uint64_t destAmount)
+    : m_id(id)
+    , m_state(trNew)
     , m_sourceCurrency(sourceCurrency)
     , m_destCurrency(destCurrency)
     , m_sourceAmount(sourceAmount)
     , m_destAmount(destAmount)
+    , m_first(id)
 {
     m_first.setSource(sourceAddr);
     m_first.setDest(destAddr);
@@ -39,11 +43,44 @@ XBridgeTransaction::~XBridgeTransaction()
 }
 
 //*****************************************************************************
+//*****************************************************************************
+uint256 XBridgeTransaction::id() const
+{
+    return m_id;
+}
+
+//*****************************************************************************
 // state of transaction
 //*****************************************************************************
 XBridgeTransaction::State XBridgeTransaction::state() const
 {
     return m_state;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransaction::State state)
+{
+    if (state == trJoined && m_state == state)
+    {
+        if (++m_stateCounter >= 2)
+        {
+            m_state = trHold;
+            m_stateCounter = 0;
+        }
+        return m_state;
+    }
+    else if (state == trHold && m_state == state)
+    {
+        if (++m_stateCounter >= 2)
+        {
+            m_state = trFinished;
+            m_stateCounter = 0;
+        }
+        return m_state;
+    }
+
+    return trInvalid;
 }
 
 //*****************************************************************************
@@ -62,6 +99,15 @@ bool XBridgeTransaction::isExpired() const
     return false;
 }
 
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeTransaction::drop()
+{
+    LOG() << "drop transaction <"
+          << util::base64_encode(std::string((char *)(m_id.begin()), 32))
+          << ">";
+    m_state = trDropped;
+}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -81,6 +127,34 @@ uint256 XBridgeTransaction::hash2() const
                       BEGIN(m_destAmount), END(m_destAmount),
                       m_sourceCurrency.begin(), m_sourceCurrency.end(),
                       BEGIN(m_sourceAmount), END(m_sourceAmount));
+}
+
+//*****************************************************************************
+//*****************************************************************************
+const std::vector<unsigned char> XBridgeTransaction::firstAddress() const
+{
+    return m_first.source();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+const std::string XBridgeTransaction::firstCurrency() const
+{
+    return m_sourceCurrency;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+const std::vector<unsigned char> XBridgeTransaction::secondAddress() const
+{
+    return m_second.source();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+const std::string XBridgeTransaction::secondCurrency() const
+{
+    return m_destCurrency;
 }
 
 //*****************************************************************************
@@ -114,8 +188,12 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     }
 
     // join second member
-    m_second.setDest(other->m_first.source());
-    m_second.setSource(other->m_first.dest());
+    m_second = other->m_second;
+//    m_second.setSource(other->m_first.source());
+//    m_second.setDest(other->m_first.dest());
+
+    // generate new id
+    m_id = util::hash(BEGIN(m_id), END(m_id), BEGIN(other->m_id), END(other->m_id));
 
     m_state = trJoined;
 
