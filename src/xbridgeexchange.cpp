@@ -47,14 +47,14 @@ bool XBridgeExchange::init()
             continue;
         }
 
-        address = util::base64_decode(address);
+        std::string decoded = util::base64_decode(address);
         if (address.empty())
         {
             LOG() << "incorrect wallet address for " << *i;
             continue;
         }
 
-        std::copy(address.begin(), address.end(), std::back_inserter(m_wallets[*i].address));
+        std::copy(decoded.begin(), decoded.end(), std::back_inserter(m_wallets[*i].address));
         if (m_wallets[*i].address.size() != 20)
         {
             LOG() << "incorrect wallet address size for " << *i;
@@ -129,6 +129,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
     }
 
     uint256 h = tr->hash2();
+
     XBridgeTransactionPtr tmp;
 
     {
@@ -136,16 +137,19 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 
         if (!m_pendingTransactions.count(h))
         {
-            // new transaction
+            // new transaction or update existing (update timestamp)
             h = tr->hash1();
             m_pendingTransactions[h] = tr;
         }
         else
         {
+            // found, check if expired
             if (m_pendingTransactions[h]->isExpired())
             {
                 // if expired - delete old transaction
                 m_pendingTransactions.erase(h);
+
+                // create new
                 h = tr->hash1();
                 m_pendingTransactions[h] = tr;
             }

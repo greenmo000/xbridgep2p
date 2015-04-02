@@ -42,32 +42,40 @@ std::string base64_encode(const std::string& s)
 //*****************************************************************************
 std::string base64_decode(const std::string& s)
 {
-    namespace bai = boost::archive::iterators;
-
-    std::stringstream os;
-
-    typedef bai::transform_width<bai::binary_from_base64<const char *>, 8, 6> base64_dec;
-
-    unsigned int size = s.size();
-
-    // Remove the padding characters, cf. https://svn.boost.org/trac/boost/ticket/5629
-    if (size && s[size - 1] == '=')
+    try
     {
-        --size;
+        namespace bai = boost::archive::iterators;
+
+        std::stringstream os;
+
+        typedef bai::transform_width<bai::binary_from_base64<const char *>, 8, 6> base64_dec;
+
+        unsigned int size = s.size();
+
+        // Remove the padding characters, cf. https://svn.boost.org/trac/boost/ticket/5629
         if (size && s[size - 1] == '=')
         {
             --size;
+            if (size && s[size - 1] == '=')
+            {
+                --size;
+            }
         }
+        if (size == 0)
+        {
+            return std::string();
+        }
+
+        std::copy(base64_dec(s.data()), base64_dec(s.data() + size),
+                std::ostream_iterator<char>(os));
+
+        return os.str();
     }
-    if (size == 0)
+    // catch (std::exception &)
+    catch (...)
     {
-        return std::string();
     }
-
-    std::copy(base64_dec(s.data()), base64_dec(s.data() + size),
-            std::ostream_iterator<char>(os));
-
-    return os.str();
+    return std::string();
 }
 
 } // namespace util

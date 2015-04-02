@@ -355,7 +355,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
                 // check transaction state, if trNew - do nothing,
                 // if trJoined = send hold to client
                 XBridgeTransactionPtr tr = e.transaction(transactionId);
-                if (tr->state() == XBridgeTransaction::trJoined)
+                if (tr && tr->state() == XBridgeTransaction::trJoined)
                 {
                     // send hold to clients
                     XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
