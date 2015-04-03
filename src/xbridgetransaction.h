@@ -28,6 +28,26 @@ public:
     const std::vector<unsigned char> & dest() const         { return m_destAddr; }
     void setDest(const std::vector<unsigned char> & addr)   { m_destAddr = addr; }
 
+//    XBridgeTransactionMember(const XBridgeTransactionMember & other)
+//        : m_id(other.m_id)
+//        , m_sourceAddr(other.m_sourceAddr)
+//        , m_destAddr(other.m_destAddr)
+//        , m_transactionHash(other.m_transactionHash)
+//    {
+//    }
+
+//    XBridgeTransactionMember & operator = (const XBridgeTransactionMember & other)
+//    {
+//        if (this != &other)
+//        {
+//            m_id              = other.m_id;
+//            m_sourceAddr      = other.m_sourceAddr;
+//            m_destAddr        = other.m_destAddr;
+//            m_transactionHash = other.m_transactionHash;
+//        }
+//        return *this;
+//    }
+
 private:
     uint256                    m_id;
     std::vector<unsigned char> m_sourceAddr;

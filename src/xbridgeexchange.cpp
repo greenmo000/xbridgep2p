@@ -116,7 +116,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 {
     DEBUG_TRACE();
 
-    transactionId = id;
+    // transactionId = id;
 
     XBridgeTransactionPtr tr(new XBridgeTransaction(id,
                                                     sourceAddr, sourceCurrency,
@@ -170,7 +170,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                     LOG() << "transactions joined, new id "
                           << util::base64_encode(std::string((char *)(tr->id().begin()), 32));
 
-                    tmp = tr;
+                    tmp = m_pendingTransactions[h];
                 }
             }
         }
@@ -178,12 +178,19 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 
     if (tmp)
     {
-        // move to transactions
-        boost::mutex::scoped_lock l(m_transactionsLock);
-        m_transactions[tmp->id()] = tmp;
-
         // new transaction id
         transactionId = tmp->id();
+
+        // move to transactions
+        {
+            boost::mutex::scoped_lock l(m_transactionsLock);
+            m_transactions[tmp->id()] = tmp;
+        }
+        {
+            boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+            m_pendingTransactions.erase(h);
+        }
+
     }
 
     return true;
@@ -255,20 +262,21 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
     {
         boost::mutex::scoped_lock l(m_transactionsLock);
 
-        if (!m_transactions.count(hash))
+        if (m_transactions.count(hash))
         {
             return m_transactions[hash];
         }
     }
 
-    {
-        boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+    // TODO not search in pending transactions
+//    {
+//        boost::mutex::scoped_lock l(m_pendingTransactionsLock);
 
-        if (!m_pendingTransactions.count(hash))
-        {
-            return m_pendingTransactions[hash];
-        }
-    }
+//        if (m_pendingTransactions.count(hash))
+//        {
+//            return m_pendingTransactions[hash];
+//        }
+//    }
 
     // return XBridgeTransaction::trInvalid;
     return XBridgeTransactionPtr(new XBridgeTransaction);

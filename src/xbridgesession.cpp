@@ -361,6 +361,9 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
                     XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
 
                     // first
+                    // TODO remove this log
+                    LOG() << "send xbcTransactionHold to " << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+
                     XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
                     reply1->append(tr->firstAddress());
                     reply1->append(app->myid(), 20);
@@ -372,13 +375,16 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
                                                            reply1->header()+reply1->allSize()));
 
                     // second
+                    // TODO remove this log
+                    LOG() << "send xbcTransactionHold to " << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
+
                     XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
                     reply2->append(tr->secondAddress());
                     reply2->append(app->myid(), 20);
                     reply2->append(id.begin(), 32);
                     reply2->append(transactionId.begin(), 32);
 
-                    app->onSend(tr->firstAddress(),
+                    app->onSend(tr->secondAddress(),
                                 std::vector<unsigned char>(reply2->header(),
                                                            reply2->header()+reply2->allSize()));
                 }
@@ -429,6 +435,9 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
             // send payment command to clients
 
             // first
+            // TODO remove this log
+            LOG() << "send xbcTransactionPay to " << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionPay));
             reply1->append(tr->firstAddress());
             reply1->append(app->myid(), 20);
@@ -440,13 +449,16 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
                                                    reply1->header()+reply1->allSize()));
 
             // second
+            // TODO remove this log
+            LOG() << "send xbcTransactionPay to " << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
+
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionPay));
             reply2->append(tr->secondAddress());
             reply2->append(app->myid(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(e.walletAddress(tr->secondCurrency()));
 
-            app->onSend(tr->firstAddress(),
+            app->onSend(tr->secondAddress(),
                         std::vector<unsigned char>(reply2->header(),
                                                    reply2->header()+reply2->allSize()));
         }
@@ -493,7 +505,11 @@ bool XBridgeSession::processTransactionPayApply(XBridgePacketPtr packet)
         if (tr->state() == XBridgeTransaction::trFinished)
         {
             // send transaction state to clients
+
             // first
+            // TODO remove this log
+            LOG() << "send xbcTransactionFinished to " << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionFinished));
             reply1->append(tr->firstAddress());
             reply1->append(id.begin(), 32);
@@ -503,11 +519,14 @@ bool XBridgeSession::processTransactionPayApply(XBridgePacketPtr packet)
                                                    reply1->header()+reply1->allSize()));
 
             // second
+            // TODO remove this log
+            LOG() << "send xbcTransactionFinished to " << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
+
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionFinished));
             reply2->append(tr->secondAddress());
             reply2->append(id.begin(), 32);
 
-            app->onSend(tr->firstAddress(),
+            app->onSend(tr->secondAddress(),
                         std::vector<unsigned char>(reply2->header(),
                                                    reply2->header()+reply2->allSize()));
         }

@@ -26,6 +26,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
                                        const boost::uint64_t destAmount)
     : m_id(id)
     , m_state(trNew)
+    , m_stateCounter(0)
     , m_sourceCurrency(sourceCurrency)
     , m_destCurrency(destCurrency)
     , m_sourceAmount(sourceAmount)
@@ -87,7 +88,7 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
 //*****************************************************************************
 bool XBridgeTransaction::isValid() const
 {
-    // TODO
+    // TODO implementation
     return m_state != trInvalid;
 }
 
@@ -95,7 +96,7 @@ bool XBridgeTransaction::isValid() const
 //*****************************************************************************
 bool XBridgeTransaction::isExpired() const
 {
-    // TODO
+    // TODO implementation
     return false;
 }
 
@@ -188,12 +189,13 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     }
 
     // join second member
-    m_second = other->m_second;
+    m_second = other->m_first;
 //    m_second.setSource(other->m_first.source());
 //    m_second.setDest(other->m_first.dest());
 
     // generate new id
-    m_id = util::hash(BEGIN(m_id), END(m_id), BEGIN(other->m_id), END(other->m_id));
+    m_id = util::hash(BEGIN(m_id), END(m_id),
+                      BEGIN(other->m_id), END(other->m_id));
 
     m_state = trJoined;
 
