@@ -473,6 +473,11 @@ public:
         else
             *this = 0;
     }
+
+    explicit uint160(const unsigned char * ch)
+    {
+        memcpy(pn, ch, sizeof(pn));
+    }
 };
 
 inline bool operator==(const uint160& a, uint64 b)                           { return (base_uint160)a == b; }

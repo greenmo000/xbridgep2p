@@ -132,30 +132,58 @@ uint256 XBridgeTransaction::hash2() const
 
 //*****************************************************************************
 //*****************************************************************************
-const std::vector<unsigned char> XBridgeTransaction::firstAddress() const
+std::vector<unsigned char> XBridgeTransaction::firstAddress() const
 {
     return m_first.source();
 }
 
 //*****************************************************************************
 //*****************************************************************************
-const std::string XBridgeTransaction::firstCurrency() const
+std::vector<unsigned char> XBridgeTransaction::firstDestination() const
+{
+    return m_first.dest();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::firstCurrency() const
 {
     return m_sourceCurrency;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-const std::vector<unsigned char> XBridgeTransaction::secondAddress() const
+boost::uint64_t XBridgeTransaction::firstAmount() const
+{
+    return m_sourceAmount;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::vector<unsigned char> XBridgeTransaction::secondAddress() const
 {
     return m_second.source();
 }
 
 //*****************************************************************************
 //*****************************************************************************
-const std::string XBridgeTransaction::secondCurrency() const
+std::vector<unsigned char> XBridgeTransaction::secondDestination() const
+{
+    return m_second.dest();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::secondCurrency() const
 {
     return m_destCurrency;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+boost::uint64_t XBridgeTransaction::secondAmount() const
+{
+    return m_destAmount;
 }
 
 //*****************************************************************************

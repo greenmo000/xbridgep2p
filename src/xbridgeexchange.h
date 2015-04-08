@@ -58,6 +58,7 @@ public:
     bool updateTransactionWhenPayApplyReceived(const uint256 & id, const uint256 & paymentId);
 
     bool updateTransaction(const uint256 & hash);
+    bool cancelTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
 

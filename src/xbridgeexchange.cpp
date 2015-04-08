@@ -257,6 +257,14 @@ bool XBridgeExchange::updateTransaction(const uint256 & hash)
 
 //*****************************************************************************
 //*****************************************************************************
+bool XBridgeExchange::cancelTransaction(const uint256 & /*hash*/)
+{
+    DEBUG_TRACE();
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
 {
     {

@@ -17,9 +17,16 @@ enum XBridgeCommand
     xbcInvalid = 0,
 
     // client use this message for announce your addresses for network
+    //
+    // xbcAnnounceAddresses
+    //     uint160 client address
     xbcAnnounceAddresses,
 
     // xchat message
+    //
+    // xbcXChatMessage
+    //     uint160 destination address
+    //     serialized p2p message from bitcoin network
     xbcXChatMessage,
 
     //      client1                  hub          client2
@@ -41,22 +48,67 @@ enum XBridgeCommand
 
 
     // exchange transaction
+    //
+    // xbcTransaction
+    //    uint256 client transaction id
+    //    uint160 source address
+    //    8 bytes source currency
+    //    uint64 source amount
+    //    uint160 destination address
+    //    8 bytes destination currency
+    //    uint64 destination amount
     xbcTransaction,
+    //
+    // xbcTransactionHold
+    //    uint160 client address
+    //    uint160 hub address
+    //    uint256 client transaction id
+    //    uint256 hub transaction id
     xbcTransactionHold,
+    //
+    // xbcTransactionHoldApply
+    //    uint160 hub address
+    //    uint256 hub transaction id
     xbcTransactionHoldApply,
-    xbcTransactionHoldCancel,
+    //
+    // xbcTransactionPay
+    //    uint160 client address
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    //    uint160 hub wallet address
     xbcTransactionPay,
+    //
+    // xbcTransactionPayApply
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    //    uint256 payment id (bitcoin transaction hash)
     xbcTransactionPayApply,
+    //
+    // xbcTransactionCancel
+    //
+    xbcTransactionCancel,
+    //
+    // xbcTransactionFinished
+    //
     xbcTransactionFinished,
+    //
+    // xbcTransactionDropped
+    //
     xbcTransactionDropped,
 
     // smart hub periodically send this message for invitations to trading
     // this message contains address of smart hub and
     // list of connected wallets (btc, xc, etc...)
     // broadcast message
+    //
+    // xbcExchangeWallets
+    //     {wallet id (string)}|{wallet title (string)}|{wallet id (string)}|{wallet title (string)}
     xbcExchangeWallets,
 
     // wallet send transaction hash when transaction received
+    //
+    // xbcReceivedTransaction
+    //     uint256 transaction id (bitcoin transaction hash)
     xbcReceivedTransaction
 };
 

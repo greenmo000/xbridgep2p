@@ -42,11 +42,10 @@ XBridgeSession::XBridgeSession()
     m_processors[xbcTransaction]         .bind(this, &XBridgeSession::processTransaction);
     m_processors[xbcTransactionHoldApply].bind(this, &XBridgeSession::processTransactionHoldApply);
     m_processors[xbcTransactionPayApply] .bind(this, &XBridgeSession::processTransactionPayApply);
+    m_processors[xbcTransactionCancel]   .bind(this, &XBridgeSession::processTransactionCancel);
 
     // retranslate messages to xbridge network
     m_processors[xbcXChatMessage]        .bind(this, &XBridgeSession::processXBridgeMessage);
-
-
 }
 
 //*****************************************************************************
@@ -504,31 +503,53 @@ bool XBridgeSession::processTransactionPayApply(XBridgePacketPtr packet)
         XBridgeTransactionPtr tr = e.transaction(id);
         if (tr->state() == XBridgeTransaction::trFinished)
         {
+            // TODO send payments from exchange wallets to client
+            {
+//                // second-currency second-amount to first member - destination
+//                std::vector<unsigned char> walletAddress = e.walletAddress(tr->secondCurrency());
+//                // TODO check address
+
+//                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionPay));
+//                reply->append(walletAddress);
+//                reply->append(app->myid(), 20);
+//                reply->append(id.begin(), 32);
+//                reply->append(tr->secondAddress());
+
+//                app->onSend(tr->secondAddress(),
+//                            std::vector<unsigned char>(reply->header(),
+//                                                       reply->header()+reply->allSize()));
+            }
+
+
             // send transaction state to clients
 
             // first
             // TODO remove this log
             LOG() << "send xbcTransactionFinished to " << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
 
-            XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionFinished));
-            reply1->append(tr->firstAddress());
-            reply1->append(id.begin(), 32);
+            {
+                XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionFinished));
+                reply1->append(tr->firstAddress());
+                reply1->append(id.begin(), 32);
 
-            app->onSend(tr->firstAddress(),
-                        std::vector<unsigned char>(reply1->header(),
-                                                   reply1->header()+reply1->allSize()));
+                app->onSend(tr->firstAddress(),
+                            std::vector<unsigned char>(reply1->header(),
+                                                       reply1->header()+reply1->allSize()));
+            }
 
             // second
             // TODO remove this log
             LOG() << "send xbcTransactionFinished to " << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
 
-            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionFinished));
-            reply2->append(tr->secondAddress());
-            reply2->append(id.begin(), 32);
+            {
+                XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionFinished));
+                reply2->append(tr->secondAddress());
+                reply2->append(id.begin(), 32);
 
-            app->onSend(tr->secondAddress(),
-                        std::vector<unsigned char>(reply2->header(),
-                                                   reply2->header()+reply2->allSize()));
+                app->onSend(tr->secondAddress(),
+                            std::vector<unsigned char>(reply2->header(),
+                                                       reply2->header()+reply2->allSize()));
+            }
         }
     }
 
@@ -537,9 +558,9 @@ bool XBridgeSession::processTransactionPayApply(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
+bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     // size must be == 32 bytes (256bit)
     if (packet->size() != 32)
@@ -555,6 +576,35 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     }
 
     uint256 id(packet->data());
+    LOG() << "cancel transaction <" << id.GetHex() << ">";
+
+    e.cancelTransaction(id);
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
+{
+    // DEBUG_TRACE();
+
+    // size must be == 32 bytes (256bit)
+    if (packet->size() != 32)
+    {
+        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
+        return false;
+    }
+
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
+    uint256 id(packet->data());
+    // LOG() << "received transaction <" << util::base64_encode(std::string((char *)id.begin(), 32)) << ">";
+    LOG() << "received transaction <" << id.GetHex() << ">";
+
     e.updateTransaction(id);
 
     return true;
