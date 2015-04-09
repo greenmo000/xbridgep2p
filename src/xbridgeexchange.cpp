@@ -219,9 +219,10 @@ bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(const uint256 & id)
 }
 
 //*****************************************************************************
+// TODO store payments id
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenPayApplyReceived(const uint256 & id,
-                                                            const uint256 & paymentId)
+                                                            const uint256 & /*paymentId*/)
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
     if (!m_transactions.count(id))
@@ -236,7 +237,7 @@ bool XBridgeExchange::updateTransactionWhenPayApplyReceived(const uint256 & id,
     // TODO process paymentId
 
     // update transaction state
-    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trHold) == XBridgeTransaction::trFinished)
+    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trHold) == XBridgeTransaction::trPaid)
     {
         return true;
     }

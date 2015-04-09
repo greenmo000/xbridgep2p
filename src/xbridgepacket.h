@@ -84,15 +84,34 @@ enum XBridgeCommand
     //    uint256 payment id (bitcoin transaction hash)
     xbcTransactionPayApply,
     //
+    // xbcTransactionCommit
+    //    uint160 hub wallet address
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    //    uint160 client address
+    //    uint64 amount
+    xbcTransactionCommit,
+    //
+    // xbcTransactionCommitApply
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    xbcTransactionCommitApply,
+    //
     // xbcTransactionCancel
+    //    uint160 hub address
+    //    uint256 hub transaction id
     //
     xbcTransactionCancel,
     //
     // xbcTransactionFinished
+    //    uint160 client address
+    //    uint256 hub transaction id
     //
     xbcTransactionFinished,
     //
     // xbcTransactionDropped
+    //    uint160 address
+    //    uint256 hub transaction id
     //
     xbcTransactionDropped,
 

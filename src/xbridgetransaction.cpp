@@ -75,11 +75,21 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     {
         if (++m_stateCounter >= 2)
         {
+            m_state = trPaid;
+            m_stateCounter = 0;
+        }
+        return m_state;
+    }
+    else if (state == trPaid && m_state == state)
+    {
+        if (++m_stateCounter >= 2)
+        {
             m_state = trFinished;
             m_stateCounter = 0;
         }
         return m_state;
     }
+
 
     return trInvalid;
 }

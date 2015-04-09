@@ -12,7 +12,9 @@
 #define TRACE() LOG('T')
 
 #define DEBUG_TRACE() (TRACE() << __FUNCTION__)
+#define DEBUG_TRACE_TODO() (TRACE() << "TODO " << __FUNCTION__)
 // #define DEBUG_TRACE()
+// #define DEBUG_TRACE_TODO()
 
 //******************************************************************************
 //******************************************************************************

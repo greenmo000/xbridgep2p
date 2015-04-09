@@ -54,6 +54,7 @@ private:
     bool processTransaction(XBridgePacketPtr packet);
     bool processTransactionHoldApply(XBridgePacketPtr packet);
     bool processTransactionPayApply(XBridgePacketPtr packet);
+    bool processTransactionCommitApply(XBridgePacketPtr packet);
     bool processTransactionCancel(XBridgePacketPtr packet);
 
     bool processBitcoinTransactionHash(XBridgePacketPtr packet);
