@@ -247,12 +247,33 @@ bool XBridgeExchange::updateTransactionWhenPayApplyReceived(const uint256 & id,
 
 //*****************************************************************************
 //*****************************************************************************
+bool XBridgeExchange::updateTransactionWhenCommitApplyReceived(const uint256 & id)
+{
+    boost::mutex::scoped_lock l(m_transactionsLock);
+    if (!m_transactions.count(id))
+    {
+        // unknown transaction
+        LOG() << "unknown transaction, id <"
+              << util::base64_encode(std::string((char *)(id.begin()), 32))
+              << ">";
+        return false;
+    }
+
+    // update transaction state
+    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trPaid) == XBridgeTransaction::trFinished)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool XBridgeExchange::updateTransaction(const uint256 & hash)
 {
-    DEBUG_TRACE();
-
+    // DEBUG_TRACE();
     m_walletTransactions.insert(hash);
-
     return true;
 }
 

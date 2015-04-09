@@ -142,6 +142,13 @@ uint256 XBridgeTransaction::hash2() const
 
 //*****************************************************************************
 //*****************************************************************************
+uint256 XBridgeTransaction::firstId() const
+{
+    return m_first.id();
+}
+
+//*****************************************************************************
+//*****************************************************************************
 std::vector<unsigned char> XBridgeTransaction::firstAddress() const
 {
     return m_first.source();
@@ -166,6 +173,13 @@ std::string XBridgeTransaction::firstCurrency() const
 boost::uint64_t XBridgeTransaction::firstAmount() const
 {
     return m_sourceAmount;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+uint256 XBridgeTransaction::secondId() const
+{
+    return m_second.id();
 }
 
 //*****************************************************************************

@@ -82,11 +82,13 @@ public:
     uint256 hash1() const;
     uint256 hash2() const;
 
+    uint256                    firstId() const;
     std::vector<unsigned char> firstAddress() const;
     std::vector<unsigned char> firstDestination() const;
     std::string                firstCurrency() const;
     boost::uint64_t            firstAmount() const;
 
+    uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
     std::vector<unsigned char> secondDestination() const;
     std::string                secondCurrency() const;
