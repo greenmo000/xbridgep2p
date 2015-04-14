@@ -48,7 +48,10 @@ std::vector<std::string> Settings::exchangeWallets() const
     TRY(list = m_pt.get<std::string>("Main.ExchangeWallets"));
 
     std::vector<std::string> strs;
-    boost::split(strs, list, boost::is_any_of(",;:"));
+    if (list.size() > 0)
+    {
+        boost::split(strs, list, boost::is_any_of(",;:"));
+    }
 
     return strs;
 }
