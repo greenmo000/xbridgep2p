@@ -31,8 +31,7 @@ SOURCES += \
     src/xbridgeexchange.cpp \
     src/xbridgetransaction.cpp \
     src/util/settings.cpp \
-    src/xbridgetransactionmember.cpp \
-    src/xbridgesessionlowlevel.cpp
+    src/xbridgetransactionmember.cpp
 
 HEADERS += \
     src/statdialog.h \
@@ -47,8 +46,7 @@ HEADERS += \
     src/xbridgeexchange.h \
     src/xbridgetransaction.h \
     src/util/settings.h \
-    src/xbridgetransactionmember.h \
-    src/xbridgesessionlowlevel.h
+    src/xbridgetransactionmember.h
 
 LIBS += \
     -llibeay32 \
