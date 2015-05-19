@@ -30,21 +30,31 @@ enum XBridgeCommand
     xbcXChatMessage,
 
     //      client1                  hub          client2
-    // xbcTransaction          -->    |
-    // xbcTransaction          -->    |
-    // xbcTransaction          -->    |
-    // xbcTransaction          -->    |     <-- xbcTransaction
-    //                                |     --> xbcTransactionHold
-    //                                |     <-- xbcTransactionHoldApply
-    // xbcTransactionHold      <--    |
-    // xbcTransactionHoldApply -->    |
-    // xbcTransactionPay       <--    |     --> xbcTransactionPay
-    // xbcTransactionPayApply  -->    |     <-- xbcTransactionPayApply
+    // xbcTransaction           -->    |
+    // xbcTransaction           -->    |
+    // xbcTransaction           -->    |
+    // xbcTransaction           -->    |     <-- xbcTransaction
+    //                                 |
+    // xbcTransactionTr1        <--    |
+    // xbcTransactionTr1Created -->    |     --> xbcTransactionTr1Sign
+    //                                 |     <-- xbcTransactionTr1Signed
+    // xbcTransactionTr2        <--    |
+    // xbcTransactionTr2Created -->    |     --> xbcTransactionTr2Sign
+    //                                 |     <-- xbcTransactionTr2Signed
+    //                                 |
+    //                                 |     --> xbcTransactionTr3
+    //                                 |     --> xbcTransactionTr3Created
+    // xbcTransactionTr3Sign    <--    |
+    // xbcTransactionTr3Signed  -->    |
+    //                                 |     --> xbcTransactionTr4
+    //                                 |     --> xbcTransactionTr4Created
+    // xbcTransactionTr4Sign    <--    |
+    // xbcTransactionTr4Signed  -->    |
+
     //
-    //
-    //      hub wallet 1              |           hub wallet 2
-    // xbcReceivedTransaction  -->    |     <-- xbcReceivedTransaction
-    // xbcTransactionFinish    <--    |     --> xbcTransactionFinish
+    //      hub wallet 1               |           hub wallet 2
+    // xbcReceivedTransaction   -->    |     <-- xbcReceivedTransaction
+    // xbcTransactionFinish     <--    |     --> xbcTransactionFinish
 
 
     // exchange transaction
@@ -71,31 +81,43 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     xbcTransactionHoldApply,
     //
-    // xbcTransactionPay
+    // xbcTransactionTrX
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    uint160 hub wallet address
-    xbcTransactionPay,
+    xbcTransactionTr1,
+    xbcTransactionTr2,
+    xbcTransactionTr3,
+    xbcTransactionTr4,
     //
-    // xbcTransactionPayApply
+    // xbcTransactionTrXCreated
     //    uint160 hub address
-    //    uint256 hub transaction id
-    //    uint256 payment id (bitcoin transaction hash)
-    xbcTransactionPayApply,
-    //
-    // xbcTransactionCommit
-    //    uint160 hub wallet address
-    //    uint160 hub address
-    //    uint256 hub transaction id
     //    uint160 client address
-    //    uint64 amount
-    xbcTransactionCommit,
+    //    uint256 hub transaction id
+    //    string  raw transaction
+    xbcTransactionTr1Created,
+    xbcTransactionTr2Created,
+    xbcTransactionTr3Created,
+    xbcTransactionTr4Created,
     //
-    // xbcTransactionCommitApply
+    // xbcTransactionTrXSign
+    //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionCommitApply,
+    xbcTransactionTr1Sign,
+    xbcTransactionTr2Sign,
+    xbcTransactionTr3Sign,
+    xbcTransactionTr4Sign,
+    //
+    // xbcTransactionTrXSigned
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    string  raw transaction
+    xbcTransactionTr1Signed,
+    xbcTransactionTr2Signed,
+    xbcTransactionTr3Signed,
+    xbcTransactionTr4Signed,
     //
     // xbcTransactionCancel
     //    uint160 hub address
@@ -229,6 +251,7 @@ public:
 
     void append(const boost::uint32_t data)
     {
+        m_body.reserve(m_body.size() + sizeof(data));
         unsigned char * ptr = (unsigned char *)&data;
         std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
         sizeField() = m_body.size() - headerSize;
@@ -236,6 +259,7 @@ public:
 
     void append(const boost::uint64_t data)
     {
+        m_body.reserve(m_body.size() + sizeof(data));
         unsigned char * ptr = (unsigned char *)&data;
         std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
         sizeField() = m_body.size() - headerSize;
@@ -243,12 +267,21 @@ public:
 
     void append(const unsigned char * data, const int size)
     {
+        m_body.reserve(m_body.size() + size);
         std::copy(data, data+size, std::back_inserter(m_body));
+        sizeField() = m_body.size() - headerSize;
+    }
+
+    void append(const std::string & data)
+    {
+        m_body.reserve(m_body.size() + data.size());
+        std::copy(data.begin(), data.end(), std::back_inserter(m_body));
         sizeField() = m_body.size() - headerSize;
     }
 
     void append(const std::vector<unsigned char> & data)
     {
+        m_body.reserve(m_body.size() + data.size());
         std::copy(data.begin(), data.end(), std::back_inserter(m_body));
         sizeField() = m_body.size() - headerSize;
     }

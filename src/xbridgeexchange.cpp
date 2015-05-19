@@ -210,7 +210,8 @@ bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(const uint256 & id)
         return false;
     }
 
-    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trJoined) == XBridgeTransaction::trHold)
+    XBridgeTransactionPtr tx = m_transactions[id];
+    if (tx->increaseStateCounter(XBridgeTransaction::trJoined) == XBridgeTransaction::trHold)
     {
         return true;
     }

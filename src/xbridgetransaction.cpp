@@ -253,3 +253,23 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 
     return true;
 }
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeTransaction::setRawTx(const std::vector<unsigned char> & addr,
+                                  const std::string & rawtx)
+{
+    if (m_first == addr)
+    {
+        m_rawtx1 = rawtx;
+        return true;
+    }
+    else if (m_second == addr)
+    {
+        m_rawtx2 = rawtx;
+        return true;
+    }
+
+    // wtf?
+    return false;
+}

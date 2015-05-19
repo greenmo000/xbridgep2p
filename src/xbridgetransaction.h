@@ -5,35 +5,13 @@
 #define XBRIDGETRANSACTION_H
 
 #include "util/uint256.h"
+#include "xbridgetransactionmember.h"
 
 #include <vector>
 #include <string>
 
 #include <boost/cstdint.hpp>
 #include <boost/shared_ptr.hpp>
-
-//*****************************************************************************
-//*****************************************************************************
-class XBridgeTransactionMember
-{
-public:
-    XBridgeTransactionMember()                              {}
-    XBridgeTransactionMember(const uint256 & id) : m_id(id) {}
-
-    bool isEmpty() const { return m_sourceAddr.empty() || m_destAddr.empty(); }
-
-    const uint256 id() const                                { return m_id; }
-    const std::vector<unsigned char> & source() const       { return m_sourceAddr; }
-    void setSource(const std::vector<unsigned char> & addr) { m_sourceAddr = addr; }
-    const std::vector<unsigned char> & dest() const         { return m_destAddr; }
-    void setDest(const std::vector<unsigned char> & addr)   { m_destAddr = addr; }
-
-private:
-    uint256                    m_id;
-    std::vector<unsigned char> m_sourceAddr;
-    std::vector<unsigned char> m_destAddr;
-    uint256                    m_transactionHash;
-};
 
 //*****************************************************************************
 //*****************************************************************************
@@ -50,6 +28,7 @@ public:
         trInvalid = 0,
         trNew,
         trJoined,
+        trPartially,
         trHold,
         trPaid,
         trFinished,
@@ -96,6 +75,9 @@ public:
 
     bool tryJoin(const XBridgeTransactionPtr other);
 
+    bool                       setRawTx(const std::vector<unsigned char> & addr,
+                                        const std::string & rawtx);
+
 private:
     uint256                    m_id;
 
@@ -107,6 +89,9 @@ private:
 
     boost::uint64_t            m_sourceAmount;
     boost::uint64_t            m_destAmount;
+
+    std::string                m_rawtx1;
+    std::string                m_rawtx2;
 
     XBridgeTransactionMember   m_first;
     XBridgeTransactionMember   m_second;

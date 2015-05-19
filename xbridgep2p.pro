@@ -30,7 +30,9 @@ SOURCES += \
     src/xbridgesession.cpp \
     src/xbridgeexchange.cpp \
     src/xbridgetransaction.cpp \
-    src/util/settings.cpp
+    src/util/settings.cpp \
+    src/xbridgetransactionmember.cpp \
+    src/xbridgesessionlowlevel.cpp
 
 HEADERS += \
     src/statdialog.h \
@@ -44,7 +46,9 @@ HEADERS += \
     src/xbridgepacket.h \
     src/xbridgeexchange.h \
     src/xbridgetransaction.h \
-    src/util/settings.h
+    src/util/settings.h \
+    src/xbridgetransactionmember.h \
+    src/xbridgesessionlowlevel.h
 
 LIBS += \
     -llibeay32 \
@@ -53,6 +57,7 @@ LIBS += \
 win32-g++ {
 
 LIBS += \
+#    -L$$PWD/lib \
     -lwsock32 \
     -lws2_32
 #    -lcrypto \
