@@ -41,8 +41,9 @@ XBridgeSession::XBridgeSession()
     // process transaction from client wallet
     m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
     m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processTransactionHoldApply);
-    // m_processors[xbcTransactionPayApply]   .bind(this, &XBridgeSession::processTransactionPayApply);
-    // m_processors[xbcTransactionCommitApply].bind(this, &XBridgeSession::processTransactionCommitApply);
+    m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processTransactionCreated);
+    m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::processTransactionSigned);
+    m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::processTransactionCommited);
     m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::processTransactionCancel);
 
     // retranslate messages to xbridge network
@@ -310,7 +311,7 @@ bool XBridgeSession::processXBridgeBroadcastMessage(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
-    // DEBUG_TRACE();
+    DEBUG_TRACE();
 
     // size must be 104 bytes
     if (packet->size() != 104)
@@ -400,7 +401,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 {
-    // DEBUG_TRACE();
+    DEBUG_TRACE();
 
     // size must be eq 52 bytes
     if (packet->size() != 52)
@@ -433,39 +434,55 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
         XBridgeTransactionPtr tr = e.transaction(id);
         if (tr->state() == XBridgeTransaction::trHold)
         {
-//            // send payment command to clients
+            // send create transaction command to clients
 
-//            // first
-//            // TODO remove this log
-//            LOG() << "send xbcTransactionPay to " << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+            // first
+            // TODO remove this log
+            LOG() << "send xbcTransactionCreate to " << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
 
-//            XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionPay));
-//            reply1->append(tr->firstAddress());
-//            reply1->append(app->myid(), 20);
-//            reply1->append(id.begin(), 32);
-//            reply1->append(e.walletAddress(tr->firstCurrency()));
+            XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionCreate));
+            reply1->append(tr->firstAddress());
+            reply1->append(app->myid(), 20);
+            reply1->append(id.begin(), 32);
+            reply1->append(tr->secondDestination());
+            reply1->append((boost::uint32_t)48);
 
-//            app->onSend(tr->firstAddress(),
-//                        std::vector<unsigned char>(reply1->header(),
-//                                                   reply1->header()+reply1->allSize()));
+            app->onSend(tr->firstAddress(),
+                        std::vector<unsigned char>(reply1->header(),
+                                                   reply1->header()+reply1->allSize()));
 
-//            // second
-//            // TODO remove this log
-//            LOG() << "send xbcTransactionPay to " << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
+            // second
+            // TODO remove this log
+            LOG() << "send xbcTransactionPay to " << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
 
-//            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionPay));
-//            reply2->append(tr->secondAddress());
-//            reply2->append(app->myid(), 20);
-//            reply2->append(id.begin(), 32);
-//            reply2->append(e.walletAddress(tr->secondCurrency()));
+            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionCreate));
+            reply2->append(tr->secondAddress());
+            reply2->append(app->myid(), 20);
+            reply2->append(id.begin(), 32);
+            reply2->append(tr->firstDestination());
+            reply1->append((boost::uint32_t)24);
 
-//            app->onSend(tr->secondAddress(),
-//                        std::vector<unsigned char>(reply2->header(),
-//                                                   reply2->header()+reply2->allSize()));
+            app->onSend(tr->secondAddress(),
+                        std::vector<unsigned char>(reply2->header(),
+                                                   reply2->header()+reply2->allSize()));
         }
     }
 
     return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
+{
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
+{
+    return false;
 }
 
 //*****************************************************************************
@@ -554,8 +571,10 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
-//bool XBridgeSession::processTransactionCommitApply(XBridgePacketPtr packet)
-//{
+bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
+{
+    return false;
+
 //    // size must be 52 bytes
 //    if (packet->size() != 52)
 //    {
@@ -617,7 +636,7 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 //    }
 
 //    return true;
-//}
+}
 
 //*****************************************************************************
 //*****************************************************************************

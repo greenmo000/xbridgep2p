@@ -29,29 +29,24 @@ enum XBridgeCommand
     //     serialized p2p message from bitcoin network
     xbcXChatMessage,
 
-    //      client1                  hub          client2
+    //      client1                   hub          client2
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |     <-- xbcTransaction
     //                                 |
-    // xbcTransactionTr1        <--    |
-    // xbcTransactionTr1Created -->    |     --> xbcTransactionTr1Sign
-    //                                 |     <-- xbcTransactionTr1Signed
-    // xbcTransactionTr2        <--    |
-    // xbcTransactionTr2Created -->    |     --> xbcTransactionTr2Sign
-    //                                 |     <-- xbcTransactionTr2Signed
+    // xbcTransactionHold       <--    |     --> xbcTransactionHold
+    // xbcTransactionHoldApply  -->    |     <-- xbcTransactionHoldApply
     //                                 |
-    //                                 |     --> xbcTransactionTr3
-    //                                 |     --> xbcTransactionTr3Created
-    // xbcTransactionTr3Sign    <--    |
-    // xbcTransactionTr3Signed  -->    |
-    //                                 |     --> xbcTransactionTr4
-    //                                 |     --> xbcTransactionTr4Created
-    // xbcTransactionTr4Sign    <--    |
-    // xbcTransactionTr4Signed  -->    |
-
-    //
+    // xbcTransactionCreate     <--    |     --> xbcTransactionCreate
+    // xbcTransactionCreated    -->    |     <-- xbcTransactionCreated
+    //                                 |
+    // xbcTransactionSign       <--    |     --> xbcTransactionSign
+    // xbcTransactionSigned     -->    |     <-- xbcTransactionSigned
+    //                                 |
+    // xbcTransactionCommit     <--    |     --> xbcTransactionCommit
+    // xbcTransactionCommited   -->    |     <-- xbcTransactionCommited
+    //                                 |
     //      hub wallet 1               |           hub wallet 2
     // xbcReceivedTransaction   -->    |     <-- xbcReceivedTransaction
     // xbcTransactionFinish     <--    |     --> xbcTransactionFinish
@@ -81,43 +76,37 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     xbcTransactionHoldApply,
     //
-    // xbcTransactionTrX
+    // xbcTransactionCreate
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionTr1,
-    xbcTransactionTr2,
-    xbcTransactionTr3,
-    xbcTransactionTr4,
+    xbcTransactionCreate,
     //
-    // xbcTransactionTrXCreated
+    // xbcTransactionCreated
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    string  raw transaction
-    xbcTransactionTr1Created,
-    xbcTransactionTr2Created,
-    xbcTransactionTr3Created,
-    xbcTransactionTr4Created,
+    xbcTransactionCreated,
     //
-    // xbcTransactionTrXSign
+    // xbcTransactionSign
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionTr1Sign,
-    xbcTransactionTr2Sign,
-    xbcTransactionTr3Sign,
-    xbcTransactionTr4Sign,
+    xbcTransactionSign,
     //
-    // xbcTransactionTrXSigned
+    // xbcTransactionSigned
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    string  raw transaction
-    xbcTransactionTr1Signed,
-    xbcTransactionTr2Signed,
-    xbcTransactionTr3Signed,
-    xbcTransactionTr4Signed,
+    xbcTransactionSigned,
+    //
+    // xbcTransactionCommit
+    xbcTransactionCommit,
+    //
+    // xbcTransactionCommited
+    xbcTransactionCommited,
     //
     // xbcTransactionCancel
     //    uint160 hub address
