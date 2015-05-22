@@ -55,9 +55,8 @@ public:
                            uint256 & transactionId);
 
     bool updateTransactionWhenHoldApplyReceived(const uint256 & id);
-    bool updateTransactionWhenPayApplyReceived(const uint256 & id,
-                                               const uint256 & paymentId);
-    bool updateTransactionWhenCommitApplyReceived(const uint256 & id);
+    bool updateTransactionWhenInitializedReceived(const uint256 & id);
+    bool updateTransactionWhenCommitedReceived(const uint256 & id);
 
     bool updateTransaction(const uint256 & hash);
     bool cancelTransaction(const uint256 & hash);

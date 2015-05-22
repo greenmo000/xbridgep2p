@@ -220,10 +220,8 @@ bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(const uint256 & id)
 }
 
 //*****************************************************************************
-// TODO store payments id
 //*****************************************************************************
-bool XBridgeExchange::updateTransactionWhenPayApplyReceived(const uint256 & id,
-                                                            const uint256 & /*paymentId*/)
+bool XBridgeExchange::updateTransactionWhenInitializedReceived(const uint256 & id)
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
     if (!m_transactions.count(id))
@@ -235,10 +233,8 @@ bool XBridgeExchange::updateTransactionWhenPayApplyReceived(const uint256 & id,
         return false;
     }
 
-    // TODO process paymentId
-
-    // update transaction state
-    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trHold) == XBridgeTransaction::trPaid)
+    XBridgeTransactionPtr tx = m_transactions[id];
+    if (tx->increaseStateCounter(XBridgeTransaction::trHold) == XBridgeTransaction::trInitialized)
     {
         return true;
     }
@@ -248,7 +244,7 @@ bool XBridgeExchange::updateTransactionWhenPayApplyReceived(const uint256 & id,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::updateTransactionWhenCommitApplyReceived(const uint256 & id)
+bool XBridgeExchange::updateTransactionWhenCommitedReceived(const uint256 & id)
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
     if (!m_transactions.count(id))
@@ -261,13 +257,36 @@ bool XBridgeExchange::updateTransactionWhenCommitApplyReceived(const uint256 & i
     }
 
     // update transaction state
-    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trPaid) == XBridgeTransaction::trFinished)
+    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trInitialized) == XBridgeTransaction::trFinished)
     {
         return true;
     }
 
     return false;
 }
+
+//*****************************************************************************
+//*****************************************************************************
+//bool XBridgeExchange::updateTransactionWhenCommitApplyReceived(const uint256 & id)
+//{
+//    boost::mutex::scoped_lock l(m_transactionsLock);
+//    if (!m_transactions.count(id))
+//    {
+//        // unknown transaction
+//        LOG() << "unknown transaction, id <"
+//              << util::base64_encode(std::string((char *)(id.begin()), 32))
+//              << ">";
+//        return false;
+//    }
+
+//    // update transaction state
+//    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trPaid) == XBridgeTransaction::trFinished)
+//    {
+//        return true;
+//    }
+
+//    return false;
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -296,6 +315,10 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
         if (m_transactions.count(hash))
         {
             return m_transactions[hash];
+        }
+        else
+        {
+            assert(false || "cannot find transaction");
         }
     }
 

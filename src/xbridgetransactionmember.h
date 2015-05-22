@@ -27,8 +27,6 @@ public:
     const std::vector<unsigned char> & dest() const         { return m_destAddr; }
     void setDest(const std::vector<unsigned char> & addr)   { m_destAddr = addr; }
 
-    bool operator == (const std::vector<unsigned char> & addr);
-
 private:
     uint256                    m_id;
     std::vector<unsigned char> m_sourceAddr;

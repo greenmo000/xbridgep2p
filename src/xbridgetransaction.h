@@ -28,9 +28,9 @@ public:
         trInvalid = 0,
         trNew,
         trJoined,
-        trPartially,
         trHold,
-        trPaid,
+        trInitialized,
+        // trPaid,
         trFinished,
         trDropped
     };
@@ -75,8 +75,7 @@ public:
 
     bool tryJoin(const XBridgeTransactionPtr other);
 
-    bool                       setRawTx(const std::vector<unsigned char> & addr,
-                                        const std::string & rawtx);
+    std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
 
 private:
     uint256                    m_id;

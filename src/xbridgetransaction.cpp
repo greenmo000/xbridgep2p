@@ -75,12 +75,12 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     {
         if (++m_stateCounter >= 2)
         {
-            m_state = trPaid;
+            m_state = trInitialized;
             m_stateCounter = 0;
         }
         return m_state;
     }
-    else if (state == trPaid && m_state == state)
+    else if (state == trInitialized && m_state == state)
     {
         if (++m_stateCounter >= 2)
         {
@@ -89,7 +89,6 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
         }
         return m_state;
     }
-
 
     return trInvalid;
 }
@@ -256,20 +255,27 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::setRawTx(const std::vector<unsigned char> & addr,
-                                  const std::string & rawtx)
+std::vector<unsigned char> XBridgeTransaction::opponentAddress(const std::vector<unsigned char> & addr)
 {
-    if (m_first == addr)
+    if (m_first.source() == addr)
     {
-        m_rawtx1 = rawtx;
-        return true;
+        return m_second.dest();
     }
-    else if (m_second == addr)
+    else if (m_first.dest() == addr)
     {
-        m_rawtx2 = rawtx;
-        return true;
+        return m_second.source();
+    }
+    else if (m_second.source() == addr)
+    {
+        return m_first.dest();
+    }
+    else if (m_second.dest() == addr)
+    {
+        return m_first.source();
     }
 
     // wtf?
-    return false;
+    assert(false || "unknown address for this transaction");
+    ERR() << "unknown address for this transaction " << __FUNCTION__;
+    return std::vector<unsigned char>();
 }

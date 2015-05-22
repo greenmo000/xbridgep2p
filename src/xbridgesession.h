@@ -43,9 +43,17 @@ private:
                     const boost::system::error_code & error,
                     std::size_t transferred);
 
+    const unsigned char * myaddr() const;
+
     bool encryptPacket(XBridgePacketPtr packet);
     bool decryptPacket(XBridgePacketPtr packet);
 
+    void sendPacket(const std::vector<unsigned char> & to, XBridgePacketPtr packet);
+
+    // return true if packet not for me, relayed
+    bool relayPacket(XBridgePacketPtr packet);
+
+private:
     bool processInvalid(XBridgePacketPtr packet);
     bool processAnnounceAddresses(XBridgePacketPtr packet);
     bool processXBridgeMessage(XBridgePacketPtr packet);
@@ -53,6 +61,7 @@ private:
 
     bool processTransaction(XBridgePacketPtr packet);
     bool processTransactionHoldApply(XBridgePacketPtr packet);
+    bool processTransactionInitialized(XBridgePacketPtr packet);
     bool processTransactionCreated(XBridgePacketPtr packet);
     bool processTransactionSigned(XBridgePacketPtr packet);
     bool processTransactionCommited(XBridgePacketPtr packet);
