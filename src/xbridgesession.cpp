@@ -583,7 +583,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(myaddr(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(tr->firstDestination());
-            reply1->append((boost::uint32_t)24);
+            reply2->append((boost::uint32_t)24);
 
             sendPacket(tr->secondAddress(), reply2);
         }
@@ -624,32 +624,38 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
     // TODO revert tx
     // std::string rawreverttx;
 
-    XBridgeTransactionPtr tr = e.transaction(txid);
-    if (tr->state() != XBridgeTransaction::trInitialized)
+    if (e.updateTransactionWhenCreatedReceived(txid, from, rawpaytx))
     {
-        ERR() << "invalid transaction state for xbcTransactionCreated " << __FUNCTION__;
-        return false;
+        XBridgeTransactionPtr tr = e.transaction(txid);
+        if (tr->state() == XBridgeTransaction::trCreated)
+        {
+            // send packets for sign transaction
+
+            // TODO remove this log
+            LOG() << "send xbcTransactionSign to "
+                  << util::base64_encode(std::string((char *)&tr->firstDestination()[0], 20));
+
+            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSign));
+            reply->append(tr->firstDestination());
+            reply->append(myaddr(), 20);
+            reply->append(txid.begin(), 32);
+            reply->append(tr->secondRawPayTx());
+
+            sendPacket(tr->firstDestination(), reply);
+
+            // TODO remove this log
+            LOG() << "send xbcTransactionSign to "
+                  << util::base64_encode(std::string((char *)&tr->secondDestination()[0], 20));
+
+            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionSign));
+            reply2->append(tr->secondDestination());
+            reply2->append(myaddr(), 20);
+            reply2->append(txid.begin(), 32);
+            reply2->append(tr->firstRawPayTx());
+
+            sendPacket(tr->secondDestination(), reply2);
+        }
     }
-
-    // send packet for sign transaction
-    std::vector<unsigned char> to = tr->opponentAddress(from);
-    if (to.size() != 20)
-    {
-        ERR() << "unknown destination address for xbcTransactionCreated " << __FUNCTION__;
-        return false;
-    }
-
-    // TODO remove this log
-    LOG() << "send xbcTransactionSign to "
-          << util::base64_encode(std::string((char *)&to[0], 20));
-
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSign));
-    reply->append(to);
-    reply->append(myaddr(), 20);
-    reply->append(txid.begin(), 32);
-    reply->append(rawpaytx);
-
-    sendPacket(to, reply);
 
     return true;
 }
@@ -684,32 +690,38 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
 
     // std::string rawtx(reinterpret_cast<const char *>(packet->data()+72));
 
-    XBridgeTransactionPtr tr = e.transaction(txid);
-    if (tr->state() != XBridgeTransaction::trInitialized)
+    if (e.updateTransactionWhenSignedReceived(txid))
     {
-        ERR() << "invalid transaction state for xbcTransactionSigned " << __FUNCTION__;
-        return false;
+        XBridgeTransactionPtr tr = e.transaction(txid);
+        if (tr->state() == XBridgeTransaction::trSigned)
+        {
+            // send signed transactions to clients
+
+            // TODO remove this log
+            LOG() << "send xbcTransactionCommit to "
+                  << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+
+            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommit));
+            reply->append(tr->firstAddress());
+            reply->append(myaddr(), 20);
+            reply->append(txid.begin(), 32);
+            // reply->append(rawtx);
+
+            sendPacket(tr->firstAddress(), reply);
+
+            // TODO remove this log
+            LOG() << "send xbcTransactionCommit to "
+                  << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
+
+            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionCommit));
+            reply2->append(tr->secondAddress());
+            reply2->append(myaddr(), 20);
+            reply2->append(txid.begin(), 32);
+            // reply2->append(rawtx);
+
+            sendPacket(tr->secondAddress(), reply2);
+        }
     }
-
-    // send signed transaction
-    std::vector<unsigned char> to = tr->opponentAddress(from);
-    if (to.size() != 20)
-    {
-        ERR() << "unknown destination address for xbcTransactionSigned " << __FUNCTION__;
-        return false;
-    }
-
-    // TODO remove this log
-    LOG() << "send xbcTransactionCommit to "
-          << util::base64_encode(std::string((char *)&to[0], 20));
-
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommit));
-    reply->append(to);
-    reply->append(myaddr(), 20);
-    reply->append(txid.begin(), 32);
-    // reply->append(rawtx);
-
-    sendPacket(to, reply);
 
     return true;
 }

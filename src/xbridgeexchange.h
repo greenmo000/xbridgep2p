@@ -56,6 +56,10 @@ public:
 
     bool updateTransactionWhenHoldApplyReceived(const uint256 & id);
     bool updateTransactionWhenInitializedReceived(const uint256 & id);
+    bool updateTransactionWhenCreatedReceived(const uint256 & id,
+                                              const std::vector<unsigned char> & from,
+                                              const std::string & rawpaytx);
+    bool updateTransactionWhenSignedReceived(const uint256 & id);
     bool updateTransactionWhenCommitedReceived(const uint256 & id);
 
     bool updateTransaction(const uint256 & hash);

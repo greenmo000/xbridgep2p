@@ -84,6 +84,24 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     {
         if (++m_stateCounter >= 2)
         {
+            m_state = trCreated;
+            m_stateCounter = 0;
+        }
+        return m_state;
+    }
+    else if (state == trCreated && m_state == state)
+    {
+        if (++m_stateCounter >= 2)
+        {
+            m_state = trSigned;
+            m_stateCounter = 0;
+        }
+        return m_state;
+    }
+    else if (state == trSigned && m_state == state)
+    {
+        if (++m_stateCounter >= 2)
+        {
             m_state = trFinished;
             m_stateCounter = 0;
         }
@@ -176,6 +194,13 @@ boost::uint64_t XBridgeTransaction::firstAmount() const
 
 //*****************************************************************************
 //*****************************************************************************
+std::string XBridgeTransaction::firstRawPayTx() const
+{
+    return m_rawpaytx1;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 uint256 XBridgeTransaction::secondId() const
 {
     return m_second.id();
@@ -207,6 +232,13 @@ std::string XBridgeTransaction::secondCurrency() const
 boost::uint64_t XBridgeTransaction::secondAmount() const
 {
     return m_destAmount;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::secondRawPayTx() const
+{
+    return m_rawpaytx2;
 }
 
 //*****************************************************************************
@@ -255,27 +287,45 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::opponentAddress(const std::vector<unsigned char> & addr)
-{
-    if (m_first.source() == addr)
-    {
-        return m_second.dest();
-    }
-    else if (m_first.dest() == addr)
-    {
-        return m_second.source();
-    }
-    else if (m_second.source() == addr)
-    {
-        return m_first.dest();
-    }
-    else if (m_second.dest() == addr)
-    {
-        return m_first.source();
-    }
+//std::vector<unsigned char> XBridgeTransaction::opponentAddress(const std::vector<unsigned char> & addr)
+//{
+//    if (m_first.source() == addr)
+//    {
+//        return m_second.dest();
+//    }
+//    else if (m_first.dest() == addr)
+//    {
+//        return m_second.source();
+//    }
+//    else if (m_second.source() == addr)
+//    {
+//        return m_first.dest();
+//    }
+//    else if (m_second.dest() == addr)
+//    {
+//        return m_first.source();
+//    }
 
-    // wtf?
-    assert(false || "unknown address for this transaction");
-    ERR() << "unknown address for this transaction " << __FUNCTION__;
-    return std::vector<unsigned char>();
+//    // wtf?
+//    assert(false || "unknown address for this transaction");
+//    ERR() << "unknown address for this transaction " << __FUNCTION__;
+//    return std::vector<unsigned char>();
+//}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeTransaction::setRawPayTx(const std::vector<unsigned char> & addr,
+                                     const std::string & tx)
+{
+    if (m_second.source() == addr)
+    {
+        m_rawpaytx2 = tx;
+        return true;
+    }
+    else if (m_first.source() == addr)
+    {
+        m_rawpaytx1 = tx;
+        return true;
+    }
+    return false;
 }

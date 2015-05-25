@@ -30,7 +30,8 @@ public:
         trJoined,
         trHold,
         trInitialized,
-        // trPaid,
+        trCreated,
+        trSigned,
         trFinished,
         trDropped
     };
@@ -66,17 +67,21 @@ public:
     std::vector<unsigned char> firstDestination() const;
     std::string                firstCurrency() const;
     boost::uint64_t            firstAmount() const;
+    std::string                firstRawPayTx() const;
 
     uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
     std::vector<unsigned char> secondDestination() const;
     std::string                secondCurrency() const;
     boost::uint64_t            secondAmount() const;
+    std::string                secondRawPayTx() const;
 
     bool tryJoin(const XBridgeTransactionPtr other);
 
-    std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
+    // std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
 
+    bool                       setRawPayTx(const std::vector<unsigned char> & addr,
+                                           const std::string & tx);
 private:
     uint256                    m_id;
 
@@ -89,8 +94,8 @@ private:
     boost::uint64_t            m_sourceAmount;
     boost::uint64_t            m_destAmount;
 
-    std::string                m_rawtx1;
-    std::string                m_rawtx2;
+    std::string                m_rawpaytx1;
+    std::string                m_rawpaytx2;
 
     XBridgeTransactionMember   m_first;
     XBridgeTransactionMember   m_second;
