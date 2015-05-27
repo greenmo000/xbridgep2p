@@ -48,18 +48,21 @@ public:
     bool createTransaction(const uint256 & id,
                            const std::vector<unsigned char> & sourceAddr,
                            const std::string & sourceCurrency,
-                           const boost::uint64_t sourceAmount,
+                           const boost::uint64_t & sourceAmount,
                            const std::vector<unsigned char> & destAddr,
                            const std::string & destCurrency,
-                           const boost::uint64_t destAmount,
+                           const boost::uint64_t & destAmount,
                            uint256 & transactionId);
 
     bool updateTransactionWhenHoldApplyReceived(const uint256 & id);
     bool updateTransactionWhenInitializedReceived(const uint256 & id);
     bool updateTransactionWhenCreatedReceived(const uint256 & id,
                                               const std::vector<unsigned char> & from,
-                                              const std::string & rawpaytx);
-    bool updateTransactionWhenSignedReceived(const uint256 & id);
+                                              const std::string & rawpaytx,
+                                              const std::string & rawrevtx);
+    bool updateTransactionWhenSignedReceived(const uint256 & id,
+                                             const std::vector<unsigned char> & from,
+                                             const std::string & tx);
     bool updateTransactionWhenCommitedReceived(const uint256 & id);
 
     bool updateTransaction(const uint256 & hash);

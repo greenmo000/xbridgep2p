@@ -2,6 +2,7 @@
 //*****************************************************************************
 
 #include "xbridgeexchange.h"
+#include "xbridgeapp.h"
 #include "util/logger.h"
 #include "util/settings.h"
 #include "util/util.h"
@@ -33,6 +34,13 @@ XBridgeExchange & XBridgeExchange::instance()
 //*****************************************************************************
 bool XBridgeExchange::init()
 {
+    QStringList args = qApp->arguments();
+    if (args.contains("-enable-exchange"))
+    {
+        // disabled
+        return true;
+    }
+
     Settings & s = Settings::instance();
 
     std::vector<std::string> wallets = s.exchangeWallets();
@@ -108,10 +116,10 @@ std::vector<unsigned char> XBridgeExchange::walletAddress(const std::string & wa
 bool XBridgeExchange::createTransaction(const uint256 & id,
                                         const std::vector<unsigned char> & sourceAddr,
                                         const std::string & sourceCurrency,
-                                        const boost::uint64_t sourceAmount,
+                                        const boost::uint64_t & sourceAmount,
                                         const std::vector<unsigned char> & destAddr,
                                         const std::string & destCurrency,
-                                        const boost::uint64_t destAmount,
+                                        const boost::uint64_t & destAmount,
                                         uint256 & transactionId)
 {
     DEBUG_TRACE();
@@ -246,7 +254,8 @@ bool XBridgeExchange::updateTransactionWhenInitializedReceived(const uint256 & i
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenCreatedReceived(const uint256 & id,
                                                            const std::vector<unsigned char> & from,
-                                                           const std::string & rawpaytx)
+                                                           const std::string & rawpaytx,
+                                                           const std::string & rawrevtx)
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
     if (!m_transactions.count(id))
@@ -260,7 +269,7 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(const uint256 & id,
 
     XBridgeTransactionPtr tx = m_transactions[id];
 
-    if (!tx->setRawPayTx(from, rawpaytx))
+    if (!tx->setRawPayTx(from, rawpaytx, rawrevtx))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <"
@@ -279,7 +288,9 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(const uint256 & id,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::updateTransactionWhenSignedReceived(const uint256 & id)
+bool XBridgeExchange::updateTransactionWhenSignedReceived(const uint256 & id,
+                                                          const std::vector<unsigned char> & from,
+                                                          const std::string & rawtx)
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
     if (!m_transactions.count(id))
@@ -291,8 +302,19 @@ bool XBridgeExchange::updateTransactionWhenSignedReceived(const uint256 & id)
         return false;
     }
 
+    XBridgeTransactionPtr tx = m_transactions[id];
+
+    if (!tx->updateRawRevTx(from, rawtx))
+    {
+        // wtf?
+        LOG() << "unknown sender address for transaction, id <"
+              << util::base64_encode(std::string((char *)(id.begin()), 32))
+              << ">";
+        return false;
+    }
+
     // update transaction state
-    if (m_transactions[id]->increaseStateCounter(XBridgeTransaction::trCreated) == XBridgeTransaction::trSigned)
+    if (tx->increaseStateCounter(XBridgeTransaction::trCreated) == XBridgeTransaction::trSigned)
     {
         return true;
     }
@@ -357,9 +379,16 @@ bool XBridgeExchange::updateTransaction(const uint256 & hash)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::cancelTransaction(const uint256 & /*hash*/)
+bool XBridgeExchange::cancelTransaction(const uint256 & hash)
 {
-    DEBUG_TRACE();
+    {
+        boost::mutex::scoped_lock l(m_transactionsLock);
+        if (m_transactions.count(hash))
+        {
+            m_transactions[hash]->cancel();
+        }
+    }
+
     return true;
 }
 

@@ -20,10 +20,10 @@ XBridgeTransaction::XBridgeTransaction()
 XBridgeTransaction::XBridgeTransaction(const uint256 & id,
                                        const std::vector<unsigned char> & sourceAddr,
                                        const std::string & sourceCurrency,
-                                       const boost::uint64_t sourceAmount,
+                                       const boost::uint64_t & sourceAmount,
                                        const std::vector<unsigned char> & destAddr,
                                        const std::string & destCurrency,
-                                       const boost::uint64_t destAmount)
+                                       const boost::uint64_t & destAmount)
     : m_id(id)
     , m_state(trNew)
     , m_stateCounter(0)
@@ -129,6 +129,16 @@ bool XBridgeTransaction::isExpired() const
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeTransaction::cancel()
+{
+    LOG() << "cancel transaction <"
+          << util::base64_encode(std::string((char *)(m_id.begin()), 32))
+          << ">";
+    m_state = trCancelled;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeTransaction::drop()
 {
     LOG() << "drop transaction <"
@@ -201,6 +211,13 @@ std::string XBridgeTransaction::firstRawPayTx() const
 
 //*****************************************************************************
 //*****************************************************************************
+std::string XBridgeTransaction::firstRawRevTx() const
+{
+    return m_rawrevtx1;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 uint256 XBridgeTransaction::secondId() const
 {
     return m_second.id();
@@ -239,6 +256,13 @@ boost::uint64_t XBridgeTransaction::secondAmount() const
 std::string XBridgeTransaction::secondRawPayTx() const
 {
     return m_rawpaytx2;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::secondRawRevTx() const
+{
+    return m_rawrevtx2;
 }
 
 //*****************************************************************************
@@ -315,16 +339,37 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 //*****************************************************************************
 //*****************************************************************************
 bool XBridgeTransaction::setRawPayTx(const std::vector<unsigned char> & addr,
-                                     const std::string & tx)
+                                     const std::string & rawpaytx,
+                                     const std::string & rawrevtx)
 {
     if (m_second.source() == addr)
     {
-        m_rawpaytx2 = tx;
+        m_rawpaytx2 = rawpaytx;
+        m_rawrevtx2 = rawrevtx;
         return true;
     }
     else if (m_first.source() == addr)
     {
-        m_rawpaytx1 = tx;
+        m_rawpaytx1 = rawpaytx;
+        m_rawrevtx1 = rawrevtx;
+        return true;
+    }
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeTransaction::updateRawRevTx(const std::vector<unsigned char> & addr,
+                                        const std::string & rawrevtx)
+{
+    if (m_second.dest() == addr)
+    {
+        m_rawrevtx1 = rawrevtx;
+        return true;
+    }
+    else if (m_first.dest() == addr)
+    {
+        m_rawrevtx2 = rawrevtx;
         return true;
     }
     return false;

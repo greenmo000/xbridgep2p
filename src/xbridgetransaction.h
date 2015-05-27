@@ -33,6 +33,7 @@ public:
         trCreated,
         trSigned,
         trFinished,
+        trCancelled,
         trDropped
     };
 
@@ -41,10 +42,10 @@ public:
     XBridgeTransaction(const uint256 & id,
                        const std::vector<unsigned char> & sourceAddr,
                        const std::string & sourceCurrency,
-                       const boost::uint64_t sourceAmount,
+                       const boost::uint64_t & sourceAmount,
                        const std::vector<unsigned char> & destAddr,
                        const std::string & destCurrency,
-                       const boost::uint64_t destAmount);
+                       const boost::uint64_t & destAmount);
     ~XBridgeTransaction();
 
     uint256 id() const;
@@ -56,6 +57,7 @@ public:
     bool isValid() const;
     bool isExpired() const;
 
+    void cancel();
     void drop();
 
     // hash of transaction
@@ -68,6 +70,7 @@ public:
     std::string                firstCurrency() const;
     boost::uint64_t            firstAmount() const;
     std::string                firstRawPayTx() const;
+    std::string                firstRawRevTx() const;
 
     uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
@@ -75,13 +78,18 @@ public:
     std::string                secondCurrency() const;
     boost::uint64_t            secondAmount() const;
     std::string                secondRawPayTx() const;
+    std::string                secondRawRevTx() const;
 
     bool tryJoin(const XBridgeTransactionPtr other);
 
     // std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
 
     bool                       setRawPayTx(const std::vector<unsigned char> & addr,
-                                           const std::string & tx);
+                                           const std::string & rawpaytx,
+                                           const std::string & rawrevtx);
+    bool                       updateRawRevTx(const std::vector<unsigned char> & addr,
+                                              const std::string & rawrevytx);
+
 private:
     uint256                    m_id;
 
@@ -95,7 +103,9 @@ private:
     boost::uint64_t            m_destAmount;
 
     std::string                m_rawpaytx1;
+    std::string                m_rawrevtx1;
     std::string                m_rawpaytx2;
+    std::string                m_rawrevtx2;
 
     XBridgeTransactionMember   m_first;
     XBridgeTransactionMember   m_second;

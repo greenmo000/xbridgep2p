@@ -29,23 +29,27 @@ struct PrintErrorCode
 //*****************************************************************************
 XBridgeSession::XBridgeSession()
 {
-    // process this messages
+    // process invalid
     m_processors[xbcInvalid]               .bind(this, &XBridgeSession::processInvalid);
 
-    // xchat message from wallet
     m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSession::processAnnounceAddresses);
-
-    // wallet received transaction
-    m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processBitcoinTransactionHash);
 
     // process transaction from client wallet
     m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
-    m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processTransactionHoldApply);
-    m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processTransactionInitialized);
-    m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processTransactionCreated);
-    m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::processTransactionSigned);
-    m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::processTransactionCommited);
-    m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::processTransactionCancel);
+
+    // transaction processing
+    if (XBridgeExchange::instance().isEnabled())
+    {
+        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processTransactionHoldApply);
+        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processTransactionInitialized);
+        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processTransactionCreated);
+        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::processTransactionSigned);
+        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::processTransactionCommited);
+        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::processTransactionCancel);
+
+        // wallet received transaction
+        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processBitcoinTransactionHash);
+    }
 
     // retranslate messages to xbridge network
     m_processors[xbcXChatMessage]          .bind(this, &XBridgeSession::processXBridgeMessage);
@@ -460,10 +464,6 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
 
     // transaction id
     uint256 id(packet->data()+20);
@@ -544,10 +544,6 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
 
     // transaction id
     uint256 id(packet->data()+40);
@@ -612,19 +608,21 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
 
-    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
-    uint256 txid(packet->data()+40);
+    size_t offset = 20;
 
-    std::string rawpaytx(reinterpret_cast<const char *>(packet->data()+72));
-    // TODO revert tx
-    // std::string rawreverttx;
+    std::vector<unsigned char> from(packet->data()+offset, packet->data()+offset+20);
+    offset += 20;
 
-    if (e.updateTransactionWhenCreatedReceived(txid, from, rawpaytx))
+    uint256 txid(packet->data()+offset);
+    offset += 32;
+
+    std::string rawpaytx(reinterpret_cast<const char *>(packet->data()+offset));
+    offset += rawpaytx.size()+1;
+
+    std::string rawrevtx(reinterpret_cast<const char *>(packet->data()+offset));
+
+    if (e.updateTransactionWhenCreatedReceived(txid, from, rawpaytx, rawrevtx))
     {
         XBridgeTransactionPtr tr = e.transaction(txid);
         if (tr->state() == XBridgeTransaction::trCreated)
@@ -640,6 +638,7 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
             reply->append(myaddr(), 20);
             reply->append(txid.begin(), 32);
             reply->append(tr->secondRawPayTx());
+            reply->append(tr->secondRawRevTx());
 
             sendPacket(tr->firstDestination(), reply);
 
@@ -652,6 +651,7 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
             reply2->append(myaddr(), 20);
             reply2->append(txid.begin(), 32);
             reply2->append(tr->firstRawPayTx());
+            reply2->append(tr->firstRawRevTx());
 
             sendPacket(tr->secondDestination(), reply2);
         }
@@ -680,17 +680,13 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
 
     std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
     uint256 txid(packet->data()+40);
 
-    // std::string rawtx(reinterpret_cast<const char *>(packet->data()+72));
+    std::string rawtx(reinterpret_cast<const char *>(packet->data()+72));
 
-    if (e.updateTransactionWhenSignedReceived(txid))
+    if (e.updateTransactionWhenSignedReceived(txid, from, rawtx))
     {
         XBridgeTransactionPtr tr = e.transaction(txid);
         if (tr->state() == XBridgeTransaction::trSigned)
@@ -705,7 +701,7 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
             reply->append(tr->firstAddress());
             reply->append(myaddr(), 20);
             reply->append(txid.begin(), 32);
-            // reply->append(rawtx);
+            reply->append(tr->firstRawRevTx());
 
             sendPacket(tr->firstAddress(), reply);
 
@@ -717,7 +713,7 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
             reply2->append(tr->secondAddress());
             reply2->append(myaddr(), 20);
             reply2->append(txid.begin(), 32);
-            // reply2->append(rawtx);
+            reply2->append(tr->secondRawRevTx());
 
             sendPacket(tr->secondAddress(), reply2);
         }
@@ -746,10 +742,6 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
 
     uint256 txid(packet->data()+40);
 
@@ -780,7 +772,7 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
         }
     }
 
-    return false;
+    return true;
 }
 
 //*****************************************************************************
@@ -797,15 +789,36 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
+
+    uint256 txid(packet->data()+20);
+    LOG() << "cancel transaction <" << txid.GetHex() << ">";
+
+    e.cancelTransaction(txid);
+
+    // send cancel to clients
+    XBridgeTransactionPtr tr = e.transaction(txid);
+    if (tr)
     {
-        return true;
+        std::vector<std::vector<unsigned char> > rcpts;
+        rcpts.push_back(tr->firstAddress());
+        rcpts.push_back(tr->firstDestination());
+        rcpts.push_back(tr->secondAddress());
+        rcpts.push_back(tr->secondDestination());
+
+        foreach (const std::vector<unsigned char> & to, rcpts)
+        {
+            // TODO remove this log
+            LOG() << "send xbcTransactionFinished to "
+                  << util::base64_encode(std::string((char *)&to[0], 20));
+
+            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
+            reply->append(to);
+            reply->append(txid.begin(), 32);
+
+            sendPacket(to, reply);
+        }
     }
 
-    uint256 id(packet->data()+20);
-    LOG() << "cancel transaction <" << id.GetHex() << ">";
-
-    e.cancelTransaction(id);
     return true;
 }
 
@@ -823,10 +836,6 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
 
     uint256 id(packet->data());
     // LOG() << "received transaction <" << id.GetHex() << ">";
