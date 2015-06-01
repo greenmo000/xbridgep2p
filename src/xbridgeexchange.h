@@ -75,7 +75,7 @@ public:
     bool cancelTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
-    std::list<XBridgeTransactionPtr> expiredTransactions() const;
+    std::list<XBridgeTransactionPtr> finishedTransactions() const;
 
     std::vector<StringPair> listOfWallets() const;
 

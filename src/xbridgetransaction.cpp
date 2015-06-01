@@ -124,9 +124,30 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
 
 //*****************************************************************************
 //*****************************************************************************
+std::string XBridgeTransaction::strState() const
+{
+    static std::string states[] = {
+        "trInvalid", "trNew", "trJoined", "trHold", "trInitialized", "trCreated",
+        "trSigned", "trCommited", "trConfirmed", "trFinished", "trCancelled", "trDropped"
+    };
+
+    return states[m_state];
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeTransaction::updateTimestamp()
 {
     m_created = boost::posix_time::second_clock::universal_time();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeTransaction::isFinished() const
+{
+    return m_state == trCancelled ||
+           m_state == trFinished ||
+           m_state == trDropped;
 }
 
 //*****************************************************************************
@@ -140,7 +161,8 @@ bool XBridgeTransaction::isValid() const
 //*****************************************************************************
 bool XBridgeTransaction::isExpired() const
 {
-    if ((boost::posix_time::second_clock::universal_time() - m_created).seconds() > TTL)
+    boost::posix_time::time_duration td = boost::posix_time::second_clock::universal_time() - m_created;
+    if (td.total_seconds() > TTL)
     {
         return true;
     }
@@ -169,7 +191,7 @@ void XBridgeTransaction::drop()
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeTransaction::confirm(const uint256 & hash)
+bool XBridgeTransaction::confirm(const uint256 & hash)
 {
     if (m_txhash1 == hash || m_txhash2 == hash)
     {

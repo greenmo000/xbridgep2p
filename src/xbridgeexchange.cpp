@@ -344,8 +344,10 @@ bool XBridgeExchange::updateTransaction(const uint256 & hash)
 
     if (txid != uint256())
     {
-        XBridgeTransactionPtr tr = e.transaction(txid);
+        XBridgeTransactionPtr tr = transaction(txid);
         boost::mutex::scoped_lock l(tr->m_lock);
+
+        tr->confirm(hash);
     }
 
     return true;
@@ -404,7 +406,7 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
 
 //*****************************************************************************
 //*****************************************************************************
-std::list<XBridgeTransactionPtr> XBridgeExchange::expiredTransactions() const
+std::list<XBridgeTransactionPtr> XBridgeExchange::finishedTransactions() const
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
 
@@ -412,7 +414,10 @@ std::list<XBridgeTransactionPtr> XBridgeExchange::expiredTransactions() const
 
     for (std::map<uint256, XBridgeTransactionPtr>::const_iterator i = m_transactions.begin(); i != m_transactions.end(); ++i)
     {
-        if (i->second->isExpired())
+        if (i->second->isExpired() ||
+            !i->second->isValid() ||
+            i->second->isFinished() ||
+            i->second->state() == XBridgeTransaction::trConfirmed)
         {
             list.push_back(i->second);
         }

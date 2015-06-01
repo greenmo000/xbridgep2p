@@ -26,7 +26,7 @@ public:
 
     bool processPacket(XBridgePacketPtr packet);
 
-    void checkExpiredTransactions();
+    void checkFinishedTransactions();
 
 private:
     void disconnect();

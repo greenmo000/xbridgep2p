@@ -776,10 +776,30 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
     {
         if (tr->state() == XBridgeTransaction::trCommited)
         {
+            // send transaction state to clients
+            std::vector<std::vector<unsigned char> > rcpts;
+            rcpts.push_back(tr->firstAddress());
+            rcpts.push_back(tr->firstDestination());
+            rcpts.push_back(tr->secondAddress());
+            rcpts.push_back(tr->secondDestination());
+
+            foreach (const std::vector<unsigned char> & to, rcpts)
+            {
+                // TODO remove this log
+                LOG() << "send xbcTransactionFinished to "
+                      << util::base64_encode(std::string((char *)&to[0], 20));
+
+                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
+                reply->append(to);
+                reply->append(txid.begin(), 32);
+
+                sendPacket(to, reply);
+            }
+
             // transaction commited, wait for confirm
-            LOG() << "commit transaction, id <"
-                  << util::base64_encode(std::string((char *)(txid.begin()), 32))
-                  << ">";
+//            LOG() << "commit transaction, id <"
+//                  << util::base64_encode(std::string((char *)(txid.begin()), 32))
+//                  << ">";
 
             // send confirm request to clients
 
@@ -931,19 +951,19 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
         return false;
     }
 
-    XBridgeExchange & e = XBridgeExchange::instance();
+//    XBridgeExchange & e = XBridgeExchange::instance();
 
-    uint256 id(packet->data());
-    // LOG() << "received transaction <" << id.GetHex() << ">";
+//    uint256 id(packet->data());
+//    // LOG() << "received transaction <" << id.GetHex() << ">";
 
-    e.updateTransaction(id);
+//    e.updateTransaction(id);
 
     return true;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeSession::checkExpiredTransactions()
+void XBridgeSession::checkFinishedTransactions()
 {
     XBridgeExchange & e = XBridgeExchange::instance();
     if (!e.isEnabled())
@@ -951,7 +971,7 @@ void XBridgeSession::checkExpiredTransactions()
         return;
     }
 
-    std::list<XBridgeTransactionPtr> list = e.expiredTransactions();
+    std::list<XBridgeTransactionPtr> list = e.finishedTransactions();
     foreach (XBridgeTransactionPtr ptr, list)
     {
         boost::mutex::scoped_lock l(ptr->m_lock);
@@ -983,7 +1003,8 @@ void XBridgeSession::checkExpiredTransactions()
         }
         else
         {
-            LOG() << "timeout transaction <" << ptr->id().GetHex() << ">";
+            LOG() << "timeout transaction <" << ptr->id().GetHex() << ">"
+                  << " state " << ptr->strState();
         }
     }
 }

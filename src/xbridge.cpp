@@ -126,7 +126,7 @@ void XBridge::onTimer()
         XBridgeSessionPtr session(new XBridgeSession);
 
         IoServicePtr io = m_services.front();
-        io->post(boost::bind(&XBridgeSession::checkExpiredTransactions, session));
+        io->post(boost::bind(&XBridgeSession::checkFinishedTransactions, session));
     }
 
     m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(TIMER_INTERVAL));

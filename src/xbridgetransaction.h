@@ -64,8 +64,11 @@ public:
     // update state counter and update state
     State increaseStateCounter(State state);
 
+    std::string strState() const;
+
     void updateTimestamp();
 
+    bool isFinished() const;
     bool isValid() const;
     bool isExpired() const;
 
