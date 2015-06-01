@@ -45,6 +45,7 @@ XBridgeSession::XBridgeSession()
         m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processTransactionCreated);
         m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::processTransactionSigned);
         m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::processTransactionCommited);
+        // m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSession::processTransactionConfirmed);
         m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::processTransactionCancel);
 
         // wallet received transaction
@@ -401,6 +402,9 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
                 // check transaction state, if trNew - do nothing,
                 // if trJoined = send hold to client
                 XBridgeTransactionPtr tr = e.transaction(transactionId);
+
+                boost::mutex::scoped_lock l(tr->m_lock);
+
                 if (tr && tr->state() == XBridgeTransaction::trJoined)
                 {
                     // send hold to clients
@@ -468,9 +472,13 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
     // transaction id
     uint256 id(packet->data()+20);
 
-    if (e.updateTransactionWhenHoldApplyReceived(id))
+    XBridgeTransactionPtr tr = e.transaction(id);
+    boost::mutex::scoped_lock l(tr->m_lock);
+
+    tr->updateTimestamp();
+
+    if (e.updateTransactionWhenHoldApplyReceived(tr))
     {
-        XBridgeTransactionPtr tr = e.transaction(id);
         if (tr->state() == XBridgeTransaction::trHold)
         {
             // send initialize transaction command to clients
@@ -548,9 +556,13 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
     // transaction id
     uint256 id(packet->data()+40);
 
-    if (e.updateTransactionWhenInitializedReceived(id))
+    XBridgeTransactionPtr tr = e.transaction(id);
+    boost::mutex::scoped_lock l(tr->m_lock);
+
+    tr->updateTimestamp();
+
+    if (e.updateTransactionWhenInitializedReceived(tr))
     {
-        XBridgeTransactionPtr tr = e.transaction(id);
         if (tr->state() == XBridgeTransaction::trInitialized)
         {
             // send create transaction command to clients
@@ -622,9 +634,13 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
 
     std::string rawrevtx(reinterpret_cast<const char *>(packet->data()+offset));
 
-    if (e.updateTransactionWhenCreatedReceived(txid, from, rawpaytx, rawrevtx))
+    XBridgeTransactionPtr tr = e.transaction(txid);
+    boost::mutex::scoped_lock l(tr->m_lock);
+
+    tr->updateTimestamp();
+
+    if (e.updateTransactionWhenCreatedReceived(tr, from, rawpaytx, rawrevtx))
     {
-        XBridgeTransactionPtr tr = e.transaction(txid);
         if (tr->state() == XBridgeTransaction::trCreated)
         {
             // send packets for sign transaction
@@ -686,9 +702,13 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
 
     std::string rawtx(reinterpret_cast<const char *>(packet->data()+72));
 
-    if (e.updateTransactionWhenSignedReceived(txid, from, rawtx))
+    XBridgeTransactionPtr tr = e.transaction(txid);
+    boost::mutex::scoped_lock l(tr->m_lock);
+
+    tr->updateTimestamp();
+
+    if (e.updateTransactionWhenSignedReceived(tr, from, rawtx))
     {
-        XBridgeTransactionPtr tr = e.transaction(txid);
         if (tr->state() == XBridgeTransaction::trSigned)
         {
             // send signed transactions to clients
@@ -728,8 +748,8 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
-    // size must be == 72 bytes
-    if (packet->size() != 72)
+    // size must be == 104 bytes
+    if (packet->size() != 104)
     {
         ERR() << "invalid packet size for xbcTransactionCommited " << __FUNCTION__;
         return false;
@@ -743,37 +763,111 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
 
     XBridgeExchange & e = XBridgeExchange::instance();
 
+    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
     uint256 txid(packet->data()+40);
+    uint256 txhash(packet->data()+72);
 
-    if (e.updateTransactionWhenCommitedReceived(txid))
+    XBridgeTransactionPtr tr = e.transaction(txid);
+    boost::mutex::scoped_lock l(tr->m_lock);
+
+    tr->updateTimestamp();
+
+    if (e.updateTransactionWhenCommitedReceived(tr, from, txhash))
     {
-        XBridgeTransactionPtr tr = e.transaction(txid);
-        if (tr->state() == XBridgeTransaction::trFinished)
+        if (tr->state() == XBridgeTransaction::trCommited)
         {
-            // send transaction state to clients
-            std::vector<std::vector<unsigned char> > rcpts;
-            rcpts.push_back(tr->firstAddress());
-            rcpts.push_back(tr->firstDestination());
-            rcpts.push_back(tr->secondAddress());
-            rcpts.push_back(tr->secondDestination());
+            // transaction commited, wait for confirm
+            LOG() << "commit transaction, id <"
+                  << util::base64_encode(std::string((char *)(txid.begin()), 32))
+                  << ">";
 
-            foreach (const std::vector<unsigned char> & to, rcpts)
-            {
-                // TODO remove this log
-                LOG() << "send xbcTransactionFinished to "
-                      << util::base64_encode(std::string((char *)&to[0], 20));
+            // send confirm request to clients
 
-                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
-                reply->append(to);
-                reply->append(txid.begin(), 32);
+//            // TODO remove this log
+//            LOG() << "send xbcTransactionCommit to "
+//                  << util::base64_encode(std::string((char *)&tr->firstDestination()[0], 20));
 
-                sendPacket(to, reply);
-            }
+//            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionConfirm));
+//            reply->append(tr->firstDestination());
+//            reply->append(myaddr(), 20);
+//            reply->append(txid.begin(), 32);
+//            reply->append(tr->secondTxHash().begin(), 32);
+
+//            sendPacket(tr->firstDestination(), reply);
+
+//            // TODO remove this log
+//            LOG() << "send xbcTransactionCommit to "
+//                  << util::base64_encode(std::string((char *)&tr->secondDestination()[0], 20));
+
+//            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionConfirm));
+//            reply2->append(tr->secondDestination());
+//            reply2->append(myaddr(), 20);
+//            reply2->append(txid.begin(), 32);
+//            reply2->append(tr->firstTxHash().begin(), 32);
+
+//            sendPacket(tr->secondDestination(), reply2);
         }
     }
 
     return true;
 }
+
+//*****************************************************************************
+//*****************************************************************************
+//bool XBridgeSession::processTransactionConfirmed(XBridgePacketPtr packet)
+//{
+//    DEBUG_TRACE();
+
+//    // size must be == 72 bytes
+//    if (packet->size() != 72)
+//    {
+//        ERR() << "invalid packet size for xbcTransactionCommited " << __FUNCTION__;
+//        return false;
+//    }
+
+//    // check is for me
+//    if (relayPacket(packet))
+//    {
+//        return true;
+//    }
+
+//    XBridgeExchange & e = XBridgeExchange::instance();
+
+//    uint256 txid(packet->data()+40);
+
+//    XBridgeTransactionPtr tr = e.transaction(txid);
+//    boost::mutex::scoped_lock l(tr->m_lock);
+
+//    tr->updateTimestamp();
+
+//    if (e.updateTransactionWhenConfirmedReceived(tr))
+//    {
+//        if (tr->state() == XBridgeTransaction::trFinished)
+//        {
+//            // send transaction state to clients
+//            std::vector<std::vector<unsigned char> > rcpts;
+//            rcpts.push_back(tr->firstAddress());
+//            rcpts.push_back(tr->firstDestination());
+//            rcpts.push_back(tr->secondAddress());
+//            rcpts.push_back(tr->secondDestination());
+
+//            foreach (const std::vector<unsigned char> & to, rcpts)
+//            {
+//                // TODO remove this log
+//                LOG() << "send xbcTransactionFinished to "
+//                      << util::base64_encode(std::string((char *)&to[0], 20));
+
+//                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
+//                reply->append(to);
+//                reply->append(txid.begin(), 32);
+
+//                sendPacket(to, reply);
+//            }
+//        }
+//    }
+
+//    return true;
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -797,7 +891,9 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 
     // send cancel to clients
     XBridgeTransactionPtr tr = e.transaction(txid);
-    if (tr)
+    boost::mutex::scoped_lock l(tr->m_lock);
+
+    if (tr->state() != XBridgeTransaction::trNew)
     {
         std::vector<std::vector<unsigned char> > rcpts;
         rcpts.push_back(tr->firstAddress());
@@ -843,4 +939,51 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     e.updateTransaction(id);
 
     return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeSession::checkExpiredTransactions()
+{
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return;
+    }
+
+    std::list<XBridgeTransactionPtr> list = e.expiredTransactions();
+    foreach (XBridgeTransactionPtr ptr, list)
+    {
+        boost::mutex::scoped_lock l(ptr->m_lock);
+
+        if (ptr->state() == XBridgeTransaction::trConfirmed)
+        {
+            // TODO send finished
+            LOG() << "confirmed transaction <" << ptr->id().GetHex() << ">";
+        }
+        else if (ptr->state() == XBridgeTransaction::trCancelled)
+        {
+            // TODO drop cancelled tx
+            LOG() << "drop cancelled transaction <" << ptr->id().GetHex() << ">";
+        }
+        else if (ptr->state() == XBridgeTransaction::trFinished)
+        {
+            // TODO delete finished tx
+            LOG() << "delete finished transaction <" << ptr->id().GetHex() << ">";
+        }
+        else if (ptr->state() == XBridgeTransaction::trDropped)
+        {
+            // TODO delete dropped tx
+            LOG() << "delete dropped transaction <" << ptr->id().GetHex() << ">";
+        }
+        else if (!ptr->isValid())
+        {
+            // TODO delete invalid tx
+            LOG() << "delete invalid transaction <" << ptr->id().GetHex() << ">";
+        }
+        else
+        {
+            LOG() << "timeout transaction <" << ptr->id().GetHex() << ">";
+        }
+    }
 }

@@ -26,6 +26,8 @@ public:
 
     bool processPacket(XBridgePacketPtr packet);
 
+    void checkExpiredTransactions();
+
 private:
     void disconnect();
 
@@ -65,6 +67,7 @@ private:
     bool processTransactionCreated(XBridgePacketPtr packet);
     bool processTransactionSigned(XBridgePacketPtr packet);
     bool processTransactionCommited(XBridgePacketPtr packet);
+    // bool processTransactionConfirmed(XBridgePacketPtr packet);
     bool processTransactionCancel(XBridgePacketPtr packet);
 
     bool processBitcoinTransactionHash(XBridgePacketPtr packet);

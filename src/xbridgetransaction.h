@@ -12,6 +12,8 @@
 
 #include <boost/cstdint.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 
 //*****************************************************************************
 //*****************************************************************************
@@ -32,9 +34,17 @@ public:
         trInitialized,
         trCreated,
         trSigned,
+        trCommited,
+        trConfirmed,
         trFinished,
         trCancelled,
         trDropped
+    };
+
+    enum
+    {
+        // ttl in seconds
+        TTL = 600
     };
 
 public:
@@ -54,11 +64,15 @@ public:
     // update state counter and update state
     State increaseStateCounter(State state);
 
+    void updateTimestamp();
+
     bool isValid() const;
     bool isExpired() const;
 
     void cancel();
     void drop();
+
+    bool confirm(const uint256 & hash);
 
     // hash of transaction
     uint256 hash1() const;
@@ -71,6 +85,7 @@ public:
     boost::uint64_t            firstAmount() const;
     std::string                firstRawPayTx() const;
     std::string                firstRawRevTx() const;
+    uint256                    firstTxHash() const;
 
     uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
@@ -79,6 +94,7 @@ public:
     boost::uint64_t            secondAmount() const;
     std::string                secondRawPayTx() const;
     std::string                secondRawRevTx() const;
+    uint256                    secondTxHash() const;
 
     bool tryJoin(const XBridgeTransactionPtr other);
 
@@ -89,12 +105,20 @@ public:
                                            const std::string & rawrevtx);
     bool                       updateRawRevTx(const std::vector<unsigned char> & addr,
                                               const std::string & rawrevytx);
+    bool                       setTxHash(const std::vector<unsigned char> & addr,
+                                         const uint256 & hash);
+
+public:
+    boost::mutex               m_lock;
 
 private:
     uint256                    m_id;
 
+    boost::posix_time::ptime   m_created;
+
     State                      m_state;
     unsigned int               m_stateCounter;
+    unsigned int               m_confirmationCounter;
 
     std::string                m_sourceCurrency;
     std::string                m_destCurrency;
@@ -106,6 +130,9 @@ private:
     std::string                m_rawrevtx1;
     std::string                m_rawpaytx2;
     std::string                m_rawrevtx2;
+
+    uint256                    m_txhash1;
+    uint256                    m_txhash2;
 
     XBridgeTransactionMember   m_first;
     XBridgeTransactionMember   m_second;

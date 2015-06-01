@@ -48,16 +48,17 @@ HEADERS += \
     src/util/settings.h \
     src/xbridgetransactionmember.h
 
-LIBS += \
-    -llibeay32 \
-    -lssleay32
+#LIBS += \
+#    -llibeay32 \
+#    -lssleay32
+
 
 win32-g++ {
 
 LIBS += \
-#    -L$$PWD/lib \
     -lwsock32 \
-    -lws2_32
-#    -lcrypto \
-#    -lssl
+    -lws2_32 \
+    -lcrypto \
+    -lssl \
+    -lgdi32
 }

@@ -109,10 +109,24 @@ void XBridge::onTimer()
 {
     // DEBUG_TRACE();
 
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    if (app)
+    // send list of wallets (broadcast)
     {
-        app->onSendListOfWallets();
+        XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+        if (app)
+        {
+            app->onSendListOfWallets();
+        }
+    }
+
+    // call check expired transactions
+    {
+        m_services.push_back(m_services.front());
+        m_services.pop_front();
+
+        XBridgeSessionPtr session(new XBridgeSession);
+
+        IoServicePtr io = m_services.front();
+        io->post(boost::bind(&XBridgeSession::checkExpiredTransactions, session));
     }
 
     m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(TIMER_INTERVAL));

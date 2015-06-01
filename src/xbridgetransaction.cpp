@@ -11,6 +11,7 @@
 XBridgeTransaction::XBridgeTransaction()
     : m_state(trInvalid)
     , m_stateCounter(0)
+    , m_confirmationCounter(0)
 {
 
 }
@@ -25,6 +26,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
                                        const std::string & destCurrency,
                                        const boost::uint64_t & destAmount)
     : m_id(id)
+    , m_created(boost::posix_time::second_clock::universal_time())
     , m_state(trNew)
     , m_stateCounter(0)
     , m_sourceCurrency(sourceCurrency)
@@ -102,6 +104,15 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     {
         if (++m_stateCounter >= 2)
         {
+            m_state = trCommited;
+            m_stateCounter = 0;
+        }
+        return m_state;
+    }
+    else if (state == trCommited && m_state == state)
+    {
+        if (++m_stateCounter >= 2)
+        {
             m_state = trFinished;
             m_stateCounter = 0;
         }
@@ -113,9 +124,15 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeTransaction::updateTimestamp()
+{
+    m_created = boost::posix_time::second_clock::universal_time();
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool XBridgeTransaction::isValid() const
 {
-    // TODO implementation
     return m_state != trInvalid;
 }
 
@@ -123,7 +140,10 @@ bool XBridgeTransaction::isValid() const
 //*****************************************************************************
 bool XBridgeTransaction::isExpired() const
 {
-    // TODO implementation
+    if ((boost::posix_time::second_clock::universal_time() - m_created).seconds() > TTL)
+    {
+        return true;
+    }
     return false;
 }
 
@@ -145,6 +165,21 @@ void XBridgeTransaction::drop()
           << util::base64_encode(std::string((char *)(m_id.begin()), 32))
           << ">";
     m_state = trDropped;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeTransaction::confirm(const uint256 & hash)
+{
+    if (m_txhash1 == hash || m_txhash2 == hash)
+    {
+        if (++m_confirmationCounter >= 2)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 //*****************************************************************************
@@ -218,6 +253,13 @@ std::string XBridgeTransaction::firstRawRevTx() const
 
 //*****************************************************************************
 //*****************************************************************************
+uint256 XBridgeTransaction::firstTxHash() const
+{
+    return m_txhash1;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 uint256 XBridgeTransaction::secondId() const
 {
     return m_second.id();
@@ -263,6 +305,13 @@ std::string XBridgeTransaction::secondRawPayTx() const
 std::string XBridgeTransaction::secondRawRevTx() const
 {
     return m_rawrevtx2;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+uint256 XBridgeTransaction::secondTxHash() const
+{
+    return m_txhash2;
 }
 
 //*****************************************************************************
@@ -370,6 +419,24 @@ bool XBridgeTransaction::updateRawRevTx(const std::vector<unsigned char> & addr,
     else if (m_first.dest() == addr)
     {
         m_rawrevtx2 = rawrevtx;
+        return true;
+    }
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeTransaction::setTxHash(const std::vector<unsigned char> & addr,
+                                   const uint256 & hash)
+{
+    if (m_second.source() == addr)
+    {
+        m_txhash1 = hash;
+        return true;
+    }
+    else if (m_first.source() == addr)
+    {
+        m_txhash2 = hash;
         return true;
     }
     return false;

@@ -10,6 +10,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <list>
 
 #include <boost/cstdint.hpp>
 #include <boost/thread/mutex.hpp>
@@ -40,6 +41,8 @@ protected:
 public:
     bool init();
 
+    void onTimer();
+
     bool isEnabled();
     bool haveConnectedWallet(const std::string & walletName);
 
@@ -54,21 +57,25 @@ public:
                            const boost::uint64_t & destAmount,
                            uint256 & transactionId);
 
-    bool updateTransactionWhenHoldApplyReceived(const uint256 & id);
-    bool updateTransactionWhenInitializedReceived(const uint256 & id);
-    bool updateTransactionWhenCreatedReceived(const uint256 & id,
+    bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx);
+    bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx);
+    bool updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
                                               const std::vector<unsigned char> & from,
                                               const std::string & rawpaytx,
                                               const std::string & rawrevtx);
-    bool updateTransactionWhenSignedReceived(const uint256 & id,
+    bool updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
                                              const std::vector<unsigned char> & from,
-                                             const std::string & tx);
-    bool updateTransactionWhenCommitedReceived(const uint256 & id);
+                                             const std::string & rawrevtx);
+    bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
+                                               const std::vector<unsigned char> & from,
+                                               const uint256 & txhash);
+    // bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx);
 
     bool updateTransaction(const uint256 & hash);
     bool cancelTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
+    std::list<XBridgeTransactionPtr> expiredTransactions() const;
 
     std::vector<StringPair> listOfWallets() const;
 
@@ -77,13 +84,16 @@ private:
     typedef std::map<std::string, WalletParam> WalletList;
     WalletList                               m_wallets;
 
-    boost::mutex                             m_pendingTransactionsLock;
+    mutable boost::mutex                     m_pendingTransactionsLock;
     std::map<uint256, XBridgeTransactionPtr> m_pendingTransactions;
 
-    boost::mutex                             m_transactionsLock;
+    mutable boost::mutex                     m_transactionsLock;
     std::map<uint256, XBridgeTransactionPtr> m_transactions;
 
-    std::set<uint256>                        m_walletTransactions;
+    mutable boost::mutex                     m_unconfirmedLock;
+    std::map<uint256, uint256>               m_unconfirmed;
+
+    // std::set<uint256>                        m_walletTransactions;
 };
 
 #endif // XBRIDGEEXCHANGE_H
