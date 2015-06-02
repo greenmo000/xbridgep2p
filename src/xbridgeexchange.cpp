@@ -35,7 +35,7 @@ XBridgeExchange & XBridgeExchange::instance()
 bool XBridgeExchange::init()
 {
     QStringList args = qApp->arguments();
-    if (args.contains("-enable-exchange"))
+    if (!args.contains("-enable-exchange"))
     {
         // disabled
         return true;
