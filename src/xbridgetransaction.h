@@ -74,6 +74,7 @@ public:
 
     void cancel();
     void drop();
+    void finish();
 
     bool confirm(const uint256 & hash);
 

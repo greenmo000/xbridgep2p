@@ -29,6 +29,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
     , m_created(boost::posix_time::second_clock::universal_time())
     , m_state(trNew)
     , m_stateCounter(0)
+    , m_confirmationCounter(0)
     , m_sourceCurrency(sourceCurrency)
     , m_destCurrency(destCurrency)
     , m_sourceAmount(sourceAmount)
@@ -173,9 +174,7 @@ bool XBridgeTransaction::isExpired() const
 //*****************************************************************************
 void XBridgeTransaction::cancel()
 {
-    LOG() << "cancel transaction <"
-          << util::base64_encode(std::string((char *)(m_id.begin()), 32))
-          << ">";
+    LOG() << "cancel transaction <" << m_id.GetHex() << ">";
     m_state = trCancelled;
 }
 
@@ -183,10 +182,16 @@ void XBridgeTransaction::cancel()
 //*****************************************************************************
 void XBridgeTransaction::drop()
 {
-    LOG() << "drop transaction <"
-          << util::base64_encode(std::string((char *)(m_id.begin()), 32))
-          << ">";
+    LOG() << "drop transaction <" << m_id.GetHex() << ">";
     m_state = trDropped;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeTransaction::finish()
+{
+    LOG() << "finish transaction <" << m_id.GetHex() << ">";
+    m_state = trFinished;
 }
 
 //*****************************************************************************
@@ -197,6 +202,7 @@ bool XBridgeTransaction::confirm(const uint256 & hash)
     {
         if (++m_confirmationCounter >= 2)
         {
+            m_state = trConfirmed;
             return true;
         }
     }

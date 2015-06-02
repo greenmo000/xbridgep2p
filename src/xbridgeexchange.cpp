@@ -182,8 +182,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                 }
                 else
                 {
-                    LOG() << "transactions joined, new id "
-                          << util::base64_encode(std::string((char *)(tr->id().begin()), 32));
+                    LOG() << "transactions joined, new id <" << tr->id().GetHex() << ">";
 
                     tmp = m_pendingTransactions[h];
                 }
@@ -208,6 +207,18 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 
     }
 
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeExchange::deleteTransaction(const uint256 & id)
+{
+    boost::mutex::scoped_lock l(m_transactionsLock);
+
+    LOG() << "delete transaction <" << id.GetHex() << ">";
+
+    m_transactions.erase(id);
     return true;
 }
 
@@ -245,9 +256,7 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr
     if (!tx->setRawPayTx(from, rawpaytx, rawrevtx))
     {
         // wtf?
-        LOG() << "unknown sender address for transaction, id <"
-              << util::base64_encode(std::string((char *)(tx->id().begin()), 32))
-              << ">";
+        LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
         return false;
     }
 
@@ -268,9 +277,7 @@ bool XBridgeExchange::updateTransactionWhenSignedReceived(XBridgeTransactionPtr 
     if (!tx->updateRawRevTx(from, rawrevtx))
     {
         // wtf?
-        LOG() << "unknown sender address for transaction, id <"
-              << util::base64_encode(std::string((char *)(tx->id().begin()), 32))
-              << ">";
+        LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
         return false;
     }
 
@@ -292,10 +299,13 @@ bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPt
     if (!tx->setTxHash(from, txhash))
     {
         // wtf?
-        LOG() << "unknown sender address for transaction, id <"
-              << util::base64_encode(std::string((char *)(tx->id().begin()), 32))
-              << ">";
+        LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
         return false;
+    }
+
+    {
+        boost::mutex::scoped_lock l (m_unconfirmedLock);
+        m_unconfirmed[txhash] = tx->id();
     }
 
     // update transaction state
@@ -326,44 +336,58 @@ bool XBridgeExchange::updateTransaction(const uint256 & hash)
 {
     // DEBUG_TRACE();
 
-    uint256 txid;
+    // store
+    m_walletTransactions.insert(hash);
 
+    // check unconfirmed
     boost::mutex::scoped_lock l (m_unconfirmedLock);
-    if (m_unconfirmed.count(hash))
+    if (m_unconfirmed.size())
     {
-        txid = m_unconfirmed[hash];
-
-        LOG() << "confirm transaction, id <"
-              << util::base64_encode(std::string((char *)(txid.begin()), 32))
-              << "> hash <"
-              << util::base64_encode(std::string((char *)(hash.begin()), 32))
-              << ">";
-
-        m_unconfirmed.erase(hash);
-    }
-
-    if (txid != uint256())
-    {
-        XBridgeTransactionPtr tr = transaction(txid);
-        boost::mutex::scoped_lock l(tr->m_lock);
-
-        tr->confirm(hash);
-    }
-
-    return true;
-}
-
-//*****************************************************************************
-//*****************************************************************************
-bool XBridgeExchange::cancelTransaction(const uint256 & hash)
-{
-    {
-        boost::mutex::scoped_lock l(m_transactionsLock);
-        if (m_transactions.count(hash))
+        for (std::map<uint256, uint256>::iterator i = m_unconfirmed.begin(); i != m_unconfirmed.end();)
         {
-            m_transactions[hash]->cancel();
+            if (m_walletTransactions.count(i->first))
+            {
+                LOG() << "confirm transaction, id <" << i->second.GetHex()
+                      << "> hash <" << i->first.GetHex() << ">";
+
+                XBridgeTransactionPtr tr = transaction(i->second);
+                boost::mutex::scoped_lock l(tr->m_lock);
+
+                tr->confirm(i->first);
+
+                i = m_unconfirmed.erase(i);
+            }
+            else
+            {
+                ++i;
+            }
         }
     }
+
+
+//    uint256 txid;
+
+//    boost::mutex::scoped_lock l (m_unconfirmedLock);
+//    if (m_unconfirmed.count(hash))
+//    {
+//        txid = m_unconfirmed[hash];
+
+//        LOG() << "confirm transaction, id <"
+//              << util::base64_encode(std::string((char *)(txid.begin()), 32))
+//              << "> hash <"
+//              << util::base64_encode(std::string((char *)(hash.begin()), 32))
+//              << ">";
+
+//        m_unconfirmed.erase(hash);
+//    }
+
+//    if (txid != uint256())
+//    {
+//        XBridgeTransactionPtr tr = transaction(txid);
+//        boost::mutex::scoped_lock l(tr->m_lock);
+
+//        tr->confirm(hash);
+//    }
 
     return true;
 }
@@ -384,9 +408,7 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
             assert(false || "cannot find transaction");
 
             // unknown transaction
-            LOG() << "unknown transaction, id <"
-                  << util::base64_encode(std::string((char *)(hash.begin()), 32))
-                  << ">";
+            LOG() << "unknown transaction, id <" << hash.GetHex() << ">";
         }
     }
 

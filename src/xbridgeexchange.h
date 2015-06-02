@@ -56,6 +56,7 @@ public:
                            const std::string & destCurrency,
                            const boost::uint64_t & destAmount,
                            uint256 & transactionId);
+    bool deleteTransaction(const uint256 & id);
 
     bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx);
     bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx);
@@ -72,7 +73,6 @@ public:
     // bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx);
 
     bool updateTransaction(const uint256 & hash);
-    bool cancelTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
     std::list<XBridgeTransactionPtr> finishedTransactions() const;
@@ -93,7 +93,8 @@ private:
     mutable boost::mutex                     m_unconfirmedLock;
     std::map<uint256, uint256>               m_unconfirmed;
 
-    // std::set<uint256>                        m_walletTransactions;
+    // TODO use deque and limit size
+    std::set<uint256>                        m_walletTransactions;
 };
 
 #endif // XBRIDGEEXCHANGE_H

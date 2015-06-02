@@ -6,7 +6,9 @@
 
 #include "xbridge.h"
 #include "xbridgepacket.h"
+#include "xbridgetransaction.h"
 #include "FastDelegate.h"
+#include "util/uint256.h"
 
 #include <memory>
 #include <boost/noncopyable.hpp>
@@ -69,6 +71,10 @@ private:
     bool processTransactionCommited(XBridgePacketPtr packet);
     // bool processTransactionConfirmed(XBridgePacketPtr packet);
     bool processTransactionCancel(XBridgePacketPtr packet);
+
+    bool finishTransaction(XBridgeTransactionPtr tr);
+    bool cancelTransaction(XBridgeTransactionPtr tr);
+    bool rollbackTransaction(XBridgeTransactionPtr tr);
 
     bool processBitcoinTransactionHash(XBridgePacketPtr packet);
 
