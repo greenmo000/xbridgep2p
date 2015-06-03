@@ -41,8 +41,6 @@ protected:
 public:
     bool init();
 
-    void onTimer();
-
     bool isEnabled();
     bool haveConnectedWallet(const std::string & walletName);
 
