@@ -10,6 +10,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/algorithm/string.hpp>
 
 //******************************************************************************
 //******************************************************************************
@@ -1037,6 +1038,69 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     e.updateTransaction(id);
 
     return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeSession::sendListOfWallets()
+{
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return;
+    }
+
+    std::vector<StringPair> wallets = e.listOfWallets();
+    std::vector<std::string> list;
+    for (std::vector<StringPair>::iterator i = wallets.begin(); i != wallets.end(); ++i)
+    {
+        list.push_back(i->first + '|' + i->second);
+    }
+
+    XBridgePacketPtr packet(new XBridgePacket(xbcExchangeWallets));
+    packet->setData(boost::algorithm::join(list, "|"));
+
+    sendPacket(std::vector<unsigned char>(), packet);
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeSession::sendListOfTransactions()
+{
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return;
+    }
+
+    std::list<XBridgeTransactionPtr> list = e.pendingTransactions();
+    foreach (XBridgeTransactionPtr ptr, list)
+    {
+        boost::mutex::scoped_lock l(ptr->m_lock);
+
+        XBridgePacketPtr packet(new XBridgePacket(xbcPendingTransaction));
+
+        // field length must be 8 bytes
+        std::vector<unsigned char> fc(8, 0);
+        std::string tmp = ptr->firstCurrency();
+        std::copy(tmp.begin(), tmp.end(), fc.begin());
+
+        // field length must be 8 bytes
+        std::vector<unsigned char> tc(8, 0);
+        tmp = ptr->secondCurrency();
+        std::copy(tmp.begin(), tmp.end(), tc.begin());
+
+        packet->append(ptr->id().begin(), 32);
+        // packet->append(ptr->firstAddress());
+        packet->append(fc);
+        packet->append(ptr->firstAmount());
+        // packet->append(ptr->firstDestination());
+        packet->append(tc);
+        packet->append(ptr->secondAmount());
+        // packet->append(static_cast<boost::uint32_t>(ptr->state()));
+
+        sendPacket(std::vector<unsigned char>(), packet);
+    }
 }
 
 //*****************************************************************************

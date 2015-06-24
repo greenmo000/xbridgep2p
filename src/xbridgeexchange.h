@@ -73,9 +73,14 @@ public:
     bool updateTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
+    std::list<XBridgeTransactionPtr> pendingTransactions() const;
+    std::list<XBridgeTransactionPtr> transactions() const;
     std::list<XBridgeTransactionPtr> finishedTransactions() const;
 
     std::vector<StringPair> listOfWallets() const;
+
+private:
+    std::list<XBridgeTransactionPtr> transactions(bool onlyFinished) const;
 
 private:
     // connected wallets

@@ -151,6 +151,8 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
         }
         else
         {
+            boost::mutex::scoped_lock l2(m_pendingTransactions[h]->m_lock);
+
             // found, check if expired
             if (m_pendingTransactions[h]->isExpired())
             {
@@ -421,7 +423,24 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
 
 //*****************************************************************************
 //*****************************************************************************
-std::list<XBridgeTransactionPtr> XBridgeExchange::finishedTransactions() const
+std::list<XBridgeTransactionPtr> XBridgeExchange::pendingTransactions() const
+{
+    boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+
+    std::list<XBridgeTransactionPtr> list;
+
+    for (std::map<uint256, XBridgeTransactionPtr>::const_iterator i = m_pendingTransactions.begin();
+         i != m_pendingTransactions.end(); ++i)
+    {
+        list.push_back(i->second);
+    }
+
+    return list;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::list<XBridgeTransactionPtr> XBridgeExchange::transactions(bool onlyFinished) const
 {
     boost::mutex::scoped_lock l(m_transactionsLock);
 
@@ -429,16 +448,34 @@ std::list<XBridgeTransactionPtr> XBridgeExchange::finishedTransactions() const
 
     for (std::map<uint256, XBridgeTransactionPtr>::const_iterator i = m_transactions.begin(); i != m_transactions.end(); ++i)
     {
-        if (i->second->isExpired() ||
-            !i->second->isValid() ||
-            i->second->isFinished() ||
-            i->second->state() == XBridgeTransaction::trConfirmed)
+        if (!onlyFinished)
+        {
+            list.push_back(i->second);
+        }
+        else if (i->second->isExpired() ||
+                 !i->second->isValid() ||
+                 i->second->isFinished() ||
+                 i->second->state() == XBridgeTransaction::trConfirmed)
         {
             list.push_back(i->second);
         }
     }
 
     return list;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::list<XBridgeTransactionPtr> XBridgeExchange::transactions() const
+{
+    return transactions(false);
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::list<XBridgeTransactionPtr> XBridgeExchange::finishedTransactions() const
+{
+    return transactions(true);
 }
 
 //*****************************************************************************

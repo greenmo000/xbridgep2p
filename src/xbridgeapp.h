@@ -64,8 +64,6 @@ public slots:
     void onMessageReceived(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
     // broadcast message
     void onBroadcastReceived(const std::vector<unsigned char> & message);
-    // broadcast send list of wallets
-    void onSendListOfWallets();
 
 public:
     static void sleep(const unsigned int umilliseconds);

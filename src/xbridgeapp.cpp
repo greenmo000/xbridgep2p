@@ -11,7 +11,6 @@
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include <openssl/rand.h>
 #include <openssl/md5.h>
@@ -247,24 +246,6 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
 
     // relay message
     dht_send_broadcast(&message[0], message.size());
-}
-
-//*****************************************************************************
-//*****************************************************************************
-void XBridgeApp::onSendListOfWallets()
-{
-    XBridgeExchange & e = XBridgeExchange::instance();
-    std::vector<StringPair> wallets = e.listOfWallets();
-    std::vector<std::string> list;
-    for (std::vector<StringPair>::iterator i = wallets.begin(); i != wallets.end(); ++i)
-    {
-        list.push_back(i->first + '|' + i->second);
-    }
-
-    XBridgePacketPtr packet(new XBridgePacket(xbcExchangeWallets));
-    packet->setData(boost::algorithm::join(list, "|"));
-
-    onSend(packet);
 }
 
 //*****************************************************************************

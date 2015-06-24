@@ -28,6 +28,8 @@ public:
 
     bool processPacket(XBridgePacketPtr packet);
 
+    void sendListOfWallets();
+    void sendListOfTransactions();
     void checkFinishedTransactions();
 
 private:

@@ -17,7 +17,7 @@ class XBridge
     {
         THREAD_COUNT = 2,
         LISTEN_PORT = 30330,
-        TIMER_INTERVAL = 5
+        TIMER_INTERVAL = 20
     };
 
     typedef std::shared_ptr<boost::asio::io_service>      IoServicePtr;
