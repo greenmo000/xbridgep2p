@@ -55,15 +55,16 @@ private:
     bool decryptPacket(XBridgePacketPtr packet);
 
     void sendPacket(const std::vector<unsigned char> & to, XBridgePacketPtr packet);
+    void sendPacketBroadcast(XBridgePacketPtr packet);
 
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
 
 private:
     bool processInvalid(XBridgePacketPtr packet);
+    bool processZero(XBridgePacketPtr packet);
     bool processAnnounceAddresses(XBridgePacketPtr packet);
-    bool processXBridgeMessage(XBridgePacketPtr packet);
-    bool processXBridgeBroadcastMessage(XBridgePacketPtr packet);
+    bool processXChatMessage(XBridgePacketPtr packet);
 
     bool processTransaction(XBridgePacketPtr packet);
     bool processTransactionHoldApply(XBridgePacketPtr packet);

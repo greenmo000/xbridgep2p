@@ -10,7 +10,7 @@
 
 //*****************************************************************************
 //*****************************************************************************
-XBridge::XBridge()
+XBridge::XBridge(const unsigned short port)
     : m_timerIoWork(m_timerIo)
     , m_timerThread(boost::bind(&boost::asio::io_service::run, &m_timerIo))
     , m_timer(m_timerIo, boost::posix_time::seconds(TIMER_INTERVAL))
@@ -29,12 +29,15 @@ XBridge::XBridge()
         }
 
         // listener
-        boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), LISTEN_PORT);
-        m_acceptor = std::shared_ptr<boost::asio::ip::tcp::acceptor>
-                        (new boost::asio::ip::tcp::acceptor
-                                (*m_services.front(), ep));
+        if (port)
+        {
+            boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), port);
+            m_acceptor = std::shared_ptr<boost::asio::ip::tcp::acceptor>
+                            (new boost::asio::ip::tcp::acceptor
+                                    (*m_services.front(), ep));
 
-        LOG() << "xbridge service listen at port " << LISTEN_PORT;
+            LOG() << "xbridge service listen at port " << port;
+        }
 
         m_timer.async_wait(boost::bind(&XBridge::onTimer, this));
 

@@ -16,7 +16,6 @@ class XBridge
     enum
     {
         THREAD_COUNT = 2,
-        LISTEN_PORT = 30330,
         TIMER_INTERVAL = 20
     };
 
@@ -27,7 +26,7 @@ public:
     typedef std::shared_ptr<boost::asio::ip::tcp::socket> SocketPtr;
 
 public:
-    XBridge();
+    XBridge(const unsigned short port);
 
     void run();
     void stop();
@@ -51,5 +50,7 @@ private:
     boost::thread                                   m_timerThread;
     boost::asio::deadline_timer                     m_timer;
 };
+
+typedef std::shared_ptr<XBridge> XBridgePtr;
 
 #endif // XBRIDGE_H

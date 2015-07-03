@@ -101,7 +101,13 @@ int main(int argc, char *argv[])
     a.initDht();
 
     // init exchange
-    XBridgeExchange::instance().init();
+    XBridgeExchange & e = XBridgeExchange::instance();
+    e.init();
+
+    if (e.isEnabled())
+    {
+        w.setWindowTitle("xbridgep2p - [exchange]");
+    }
 
     int retcode = a.exec();
 

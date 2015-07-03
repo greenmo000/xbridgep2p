@@ -1438,14 +1438,16 @@ dht_search(const unsigned char *id, int port, int af,
 // A struct storage stores all the stored peer addresses for a given info
 // hash
 //*****************************************************************************
-static struct storage *
-find_storage(const unsigned char *id)
+static struct storage * find_storage(const unsigned char *id)
 {
     struct storage *st = storage;
 
-    while(st) {
+    while(st)
+    {
         if(id_cmp(id, st->id) == 0)
+        {
             break;
+        }
         st = st->next;
     }
     return st;
@@ -2621,16 +2623,17 @@ bool COPY(char * buf, int & offset, const unsigned char * src, const int delta, 
 //*****************************************************************************
 int dht_send_broadcast(const unsigned char * message, const int length)
 {
-//    if (!buckets || !buckets->nodes ||
-//        !buckets6 || !buckets6->nodes)
+//    if ((!buckets || !buckets->nodes) &&
+//        (!buckets6 || !buckets6->nodes))
 //    {
 //        // no nodes
 //        return 0;
 //    }
-    if (!storage)
-    {
-        return 0;
-    }
+
+//    if (!storage)
+//    {
+//        return 0;
+//    }
 
     std::string msg((const char *)message, length);
     msg = util::base64_encode(msg);
@@ -2649,41 +2652,34 @@ int dht_send_broadcast(const unsigned char * message, const int length)
         if (!INC(i, rc, 512)) return -1;
     }
 
-    struct storage * st = storage;
-    while (st)
+    int count = 0;
+    bucket * b = buckets;
+    while (b)
     {
-        st->id;
-        st = st->next;
+        node * n = b->nodes;
+        while (n)
+        {
+            dht_send(buf, i, 0, (sockaddr *)&n->ss, sizeof(n->ss));
+            ++count;
+            n = n->next;
+        }
+        b = b->next;
     }
 
-//    int count = 0;
-//    bucket * b = buckets;
-//    while (b)
-//    {
-//        node * n = b->nodes;
-//        while (n)
-//        {
-//            dht_send(buf, i, 0, (sockaddr *)&n->ss, sizeof(n->ss));
-//            ++count;
-//            n = n->next;
-//        }
-//        b = b->next;
-//    }
+    b = buckets6;
+    while (b)
+    {
+        node * n = b->nodes;
+        while (n)
+        {
+            dht_send(buf, i, 0, (sockaddr *)&n->ss, sizeof(n->ss));
+            ++count;
+            n = n->next;
+        }
+        b = b->next;
+    }
 
-//    b = buckets6;
-//    while (b)
-//    {
-//        node * n = b->nodes;
-//        while (n)
-//        {
-//            dht_send(buf, i, 0, (sockaddr *)&n->ss, sizeof(n->ss));
-//            ++count;
-//            n = n->next;
-//        }
-//        b = b->next;
-//    }
-
-//    return (count = 0);
+    return (count = 0);
 
 //    search * sr = searches;
 //    while (sr)
@@ -2745,8 +2741,7 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
         if (!INC(i, rc, 512)) return -1;
     }
 
-    struct storage * st = find_storage(id);
-    if (st)
+    if (find_storage(id))
     {
         // found local
         return 0;

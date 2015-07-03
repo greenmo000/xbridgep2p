@@ -52,9 +52,23 @@ XBridgeSession::XBridgeSession()
         // wallet received transaction
         m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processBitcoinTransactionHash);
     }
+    else
+    {
+        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processZero);
+        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processZero);
+        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processZero);
+        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::processZero);
+        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::processZero);
+        // m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSession::processZero);
+        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::processZero);
+
+        // wallet received transaction
+        // TODO make broadcast or run wallet for exchange node?
+        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processZero);
+    }
 
     // retranslate messages to xbridge network
-    m_processors[xbcXChatMessage]          .bind(this, &XBridgeSession::processXBridgeMessage);
+    m_processors[xbcXChatMessage]          .bind(this, &XBridgeSession::processXChatMessage);
 }
 
 //*****************************************************************************
@@ -271,8 +285,15 @@ bool XBridgeSession::processPacket(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processInvalid(XBridgePacketPtr /*packet*/)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
     LOG() << "xbcInvalid command processed";
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::processZero(XBridgePacketPtr /*packe*/t)
+{
     return true;
 }
 
@@ -318,7 +339,7 @@ bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & messa
 //*****************************************************************************
 // retranslate packets from wallet to xbridge network
 //*****************************************************************************
-bool XBridgeSession::processXBridgeMessage(XBridgePacketPtr packet)
+bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
@@ -341,16 +362,12 @@ bool XBridgeSession::processXBridgeMessage(XBridgePacketPtr packet)
 //*****************************************************************************
 // retranslate packets from wallet to xbridge network
 //*****************************************************************************
-bool XBridgeSession::processXBridgeBroadcastMessage(XBridgePacketPtr packet)
+void XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
     XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    app->onSend(std::vector<unsigned char>(),
-                std::vector<unsigned char>(packet->header(),
-                                           packet->header()+packet->allSize()));
-
-    return true;
+    app->onSend(packet);
 }
 
 //*****************************************************************************
@@ -446,7 +463,8 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     }
 
     // ..and retranslate
-    return processXBridgeBroadcastMessage(packet);
+    sendPacketBroadcast(packet);
+    return true;
 }
 
 //*****************************************************************************

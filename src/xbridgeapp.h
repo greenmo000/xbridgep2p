@@ -25,7 +25,14 @@ class XBridgeApp : public QApplication
                          const unsigned char * info_hash,
                          const void * data, size_t data_len);
 
-    Q_OBJECT;
+    Q_OBJECT
+
+public:
+    enum
+    {
+        BRIDGE_PORT = 30330,
+        DHT_PORT    = 33330
+    };
 
 public:
     XBridgeApp(int argc, char *argv[]);
@@ -102,7 +109,8 @@ private:
     std::vector<sockaddr_storage> m_nodes;
 
     std::thread       m_bridgeThread;
-    XBridge m_bridge;
+    unsigned short    m_bridgePort;
+    XBridgePtr        m_bridge;
 
     boost::mutex m_sessionsLock;
     typedef std::map<std::vector<unsigned char>, XBridgeSessionPtr> SessionMap;

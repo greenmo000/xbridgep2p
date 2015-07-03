@@ -31,7 +31,8 @@ XBridgeApp::XBridgeApp(int argc, char *argv[])
     , m_signalSend(false)
     , m_ipv4(true)
     , m_ipv6(true)
-    , m_dhtPort(33330)
+    , m_dhtPort(DHT_PORT)
+    , m_bridgePort(BRIDGE_PORT)
 {
 }
 
@@ -67,10 +68,15 @@ bool XBridgeApp::initDht()
     for (QStringList::iterator i = args.begin(); i != args.end(); ++i)
     {
         QString arg = *i;
-        if (arg.startsWith("-port="))
+        if (arg.startsWith("-dhtport="))
         {
-            m_dhtPort = arg.mid(6).toInt();
-            qDebug() << "-port -> " << m_dhtPort;
+            m_dhtPort = arg.mid(9).toInt();
+            qDebug() << "-dhtport -> " << m_dhtPort;
+        }
+        else if (arg.startsWith("-bridgeport="))
+        {
+            m_bridgePort = arg.mid(12).toInt();
+            qDebug() << "-bridgeport -> " << m_bridgePort;
         }
         else if (arg.startsWith("-peer="))
         {
@@ -107,6 +113,10 @@ bool XBridgeApp::initDht()
         }
     }
 
+    // start xbrige
+    m_bridge = XBridgePtr(new XBridge(m_bridgePort));
+
+    // start dht
     memset(&m_sin, 0, sizeof(m_sin));
     m_sin.sin_family = AF_INET;
     m_sin.sin_port = htons(static_cast<unsigned short>(m_dhtPort));
@@ -137,7 +147,7 @@ bool XBridgeApp::stopDht()
     m_dhtThread.join();
 
     qDebug() << "stoppeng bridge thread";
-    m_bridge.stop();
+    m_bridge->stop();
     m_bridgeThread.join();
 
     return true;
@@ -233,6 +243,7 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
         if (!m_processedMessages.insert(util::hash(message.begin(), message.end())).second)
         {
             // already processed
+            qDebug() << "already processed message, skipped";
             return;
         }
 
@@ -245,7 +256,7 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     }
 
     // relay message
-    dht_send_broadcast(&message[0], message.size());
+    onSend(message);
 }
 
 //*****************************************************************************
@@ -442,8 +453,8 @@ void XBridgeApp::dhtThreadProc()
                 break;
             }
 
-            qDebug() << "read";
-            qDebug() << buf;
+            // qDebug() << "read";
+            // qDebug() << buf;
         }
 
         if (rc > 0)
@@ -549,7 +560,7 @@ void XBridgeApp::dhtThreadProc()
                         }
 
                         // TODO send to xbridge network
-                        // dht_send_broadcast(&mpair.second[0], mpair.second.size());
+                        dht_send_broadcast(&mpair.second[0], mpair.second.size());
                     }
 
                     else
@@ -685,7 +696,7 @@ int dht_random_bytes(unsigned char * buf, size_t size)
 //*****************************************************************************
 void XBridgeApp::bridgeThreadProc()
 {
-    m_bridge.run();
+    m_bridge->run();
 }
 
 //*****************************************************************************
