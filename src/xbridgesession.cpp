@@ -39,7 +39,7 @@ XBridgeSession::XBridgeSession()
     m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
 
     // transaction processing
-    if (XBridgeExchange::instance().isEnabled())
+    // if (XBridgeExchange::instance().isEnabled())
     {
         m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processTransactionHoldApply);
         m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processTransactionInitialized);
@@ -52,20 +52,20 @@ XBridgeSession::XBridgeSession()
         // wallet received transaction
         m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processBitcoinTransactionHash);
     }
-    else
-    {
-        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processZero);
-        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processZero);
-        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processZero);
-        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::processZero);
-        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::processZero);
-        // m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSession::processZero);
-        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::processZero);
+//    else
+//    {
+//        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::relayPacket);
+//        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::relayPacket);
+//        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::relayPacket);
+//        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::relayPacket);
+//        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::relayPacket);
+//        // m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSession::relayPacket);
+//        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::relayPacket);
 
-        // wallet received transaction
-        // TODO make broadcast or run wallet for exchange node?
-        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processZero);
-    }
+//        // wallet received transaction
+//        // TODO make broadcast or run wallet for exchange node?
+//        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processZero);
+//    }
 
     // retranslate messages to xbridge network
     m_processors[xbcXChatMessage]          .bind(this, &XBridgeSession::processXChatMessage);
@@ -268,7 +268,7 @@ bool XBridgeSession::processPacket(XBridgePacketPtr packet)
     if (m_processors.count(c) == 0)
     {
         m_processors[xbcInvalid](packet);
-        ERR() << "incorrect command code <" << c << "> " << __FUNCTION__;
+        // ERR() << "incorrect command code <" << c << "> " << __FUNCTION__;
         return false;
     }
 
@@ -283,16 +283,16 @@ bool XBridgeSession::processPacket(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::processInvalid(XBridgePacketPtr /*packet*/)
+bool XBridgeSession::processInvalid(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
-    LOG() << "xbcInvalid command processed";
+    LOG() << "xbcInvalid instead of " << packet->command();
     return true;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::processZero(XBridgePacketPtr /*packe*/t)
+bool XBridgeSession::processZero(XBridgePacketPtr /*packet*/)
 {
     return true;
 }
@@ -364,7 +364,7 @@ bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
 //*****************************************************************************
 void XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
 
     XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
     app->onSend(packet);
@@ -487,6 +487,10 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
     // transaction id
     uint256 id(packet->data()+20);
@@ -571,6 +575,10 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
     // transaction id
     uint256 id(packet->data()+40);
@@ -639,6 +647,10 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
     size_t offset = 20;
 
@@ -715,6 +727,10 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
     std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
     uint256 txid(packet->data()+40);
@@ -781,6 +797,10 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
     }
 
     XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
     std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
     uint256 txid(packet->data()+40);
@@ -901,9 +921,19 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
         return false;
     }
 
-    uint256 txid(packet->data()+20);
+    // check is for me
+    if (relayPacket(packet))
+    {
+        return true;
+    }
 
     XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
+    uint256 txid(packet->data()+20);
 
     // send cancel to clients
     XBridgeTransactionPtr tr = e.transaction(txid);
@@ -1049,6 +1079,10 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     }
 
     static XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
 
     uint256 id(packet->data());
 //    // LOG() << "received transaction <" << id.GetHex() << ">";

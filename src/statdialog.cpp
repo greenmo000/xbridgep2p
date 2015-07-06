@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QScreen>
 
 //*****************************************************************************
 //*****************************************************************************
@@ -40,6 +41,9 @@ void StatDialog::onLogMessage(const QString & msg)
 //*****************************************************************************
 void StatDialog::setupUi()
 {
+    QRect r = qApp->primaryScreen()->geometry();
+    setGeometry(r.width()/2-400, r.height()/2-200, 800, 400);
+
     QHBoxLayout * hbox = new QHBoxLayout;
     QVBoxLayout * vbox = new QVBoxLayout;
 

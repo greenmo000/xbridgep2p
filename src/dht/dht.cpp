@@ -1695,20 +1695,20 @@ void dump_bucket(std::stringstream & stream, struct bucket *b)
            <<  (b->cached.ss_family ? " (cached)" : "") << std::endl;
 
     while(n) {
-        char buf[512];
+        char buf[DHT_NETWORK_BUFFER_LENGTH];
         unsigned short port;
         stream << "    Node ";
         print_hex(stream, n->id, 20);
         if(n->ss.ss_family == AF_INET) {
             struct sockaddr_in *sin = (struct sockaddr_in*)&n->ss;
-            inet_ntop(AF_INET, &sin->sin_addr, buf, 512);
+            inet_ntop(AF_INET, &sin->sin_addr, buf, DHT_NETWORK_BUFFER_LENGTH);
             port = ntohs(sin->sin_port);
         } else if(n->ss.ss_family == AF_INET6) {
             struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&n->ss;
-            inet_ntop(AF_INET6, &sin6->sin6_addr, buf, 512);
+            inet_ntop(AF_INET6, &sin6->sin6_addr, buf, DHT_NETWORK_BUFFER_LENGTH);
             port = ntohs(sin6->sin6_port);
         } else {
-            _snprintf(buf, 512, "unknown(%d)", n->ss.ss_family);
+            _snprintf(buf, DHT_NETWORK_BUFFER_LENGTH, "unknown(%d)", n->ss.ss_family);
             port = 0;
         }
 
@@ -2026,7 +2026,8 @@ bucket_maintenance(int af)
 
     while(b) {
         struct bucket *q;
-        if(b->time < now.tv_sec - 600) {
+        // if(b->time < now.tv_sec - 600) {
+        if(b->time < now.tv_sec - 30) {
             /* This bucket hasn't seen any positive confirmation for a long
                time.  Pick a random id in this bucket's range, and send
                a request to a random node. */
@@ -2357,7 +2358,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
 
             case MESSAGE:
             {
-                debugf("Message received!\n");
+                // debugf("Message received!\n");
                 new_node(id, from, fromlen, 1);
 
                 char * ptr = strstr((char *)buf, ":message")+8;
@@ -2377,7 +2378,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::copy(message.begin(), message.begin()+20, std::back_inserter(addr));
 
                 std::vector<unsigned char> vmessage;
-                std::copy(message.begin(), message.end(), std::back_inserter(vmessage));
+                std::copy(message.begin()+20, message.end(), std::back_inserter(vmessage));
 
                 XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
                 app->onMessageReceived(addr, vmessage);
@@ -2387,7 +2388,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
 
             case BROADCAST:
             {
-                debugf("Broadcast Message received!\n");
+                // debugf("Broadcast Message received!\n");
                 new_node(id, from, fromlen, 1);
 
                 char * ptr = strstr((char *)buf, ":broadcast")+10;
@@ -2448,7 +2449,9 @@ dht_periodic(const unsigned char * buf, size_t buflen,
         }
     }
 
-    if(now.tv_sec >= confirm_nodes_time) {
+    if(now.tv_sec >= confirm_nodes_time)
+    // if (true)
+    {
         int soon = 0;
 
         soon |= bucket_maintenance(AF_INET);
@@ -2638,18 +2641,18 @@ int dht_send_broadcast(const unsigned char * message, const int length)
     std::string msg((const char *)message, length);
     msg = util::base64_encode(msg);
 
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0;
     {
-        int rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
-        if (!INC(i, rc, 512)) return -1;
-        if (!COPY(buf, i, myid, 20, 512)) return -1;
-        rc = _snprintf(buf + i, 512 - i, "e1:q9:broadcast%d:", msg.length());
-        if (!INC(i, rc, 512)) return -1;
-        rc = _snprintf(buf + i, 512 - i, "%s", msg.c_str());
-        if (!INC(i, rc, 512)) return -1;
-        rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
-        if (!INC(i, rc, 512)) return -1;
+        int rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return -1;
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:broadcast%d:", msg.length());
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
     }
 
     int count = 0;
@@ -2724,21 +2727,22 @@ int dht_send_broadcast(const unsigned char * message, const int length)
 int dht_send_message(const unsigned char * id, const unsigned char * message, const int length)
 {
     // make message
-    std::string msg((const char *)message, length);
+    std::string msg = std::string(reinterpret_cast<const char *>(id), 20) +
+                      std::string(reinterpret_cast<const char *>(message), length);
     msg = util::base64_encode(msg);
 
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0;
     {
-        int rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
-        if (!INC(i, rc, 512)) return -1;
-        if (!COPY(buf, i, myid, 20, 512)) return -1;
-        rc = _snprintf(buf + i, 512 - i, "e1:q7:message%d:", msg.length());
-        if (!INC(i, rc, 512)) return -1;
-        rc = _snprintf(buf + i, 512 - i, "%s", msg.c_str());
-        if (!INC(i, rc, 512)) return -1;
-        rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
-        if (!INC(i, rc, 512)) return -1;
+        int rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return -1;
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q7:message%d:", msg.length());
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
     }
 
     if (find_storage(id))
@@ -2825,22 +2829,22 @@ int
 send_ping(const struct sockaddr *sa, int salen,
           const unsigned char *tid, int tid_len)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, myid, 20, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "e1:q4:ping1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
-    if (!INC(i, rc, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q4:ping1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************
@@ -2849,22 +2853,22 @@ int
 send_pong(const struct sockaddr *sa, int salen,
           const unsigned char *tid, int tid_len)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
-    rc = _snprintf(buf + i, 512 - i, "d1:rd2:id20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, myid, 20, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:re");
-    if (!INC(i, rc, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************
@@ -2874,31 +2878,31 @@ send_find_node(const struct sockaddr *sa, int salen,
                const unsigned char *tid, int tid_len,
                const unsigned char *target, int want, int confirm)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, myid, 20, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "6:target20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, target, 20, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "6:target20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, target, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if(want > 0) {
-        rc = _snprintf(buf + i, 512 - i, "4:wantl%s%se",
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:wantl%s%se",
                       (want & WANT4) ? "2:n4" : "",
                       (want & WANT6) ? "2:n6" : "");
-        if (!INC(i, rc, 512)) goto fail;
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     }
-    rc = _snprintf(buf + i, 512 - i, "e1:q9:find_node1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
-    if (!INC(i, rc, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:find_node1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************
@@ -3095,32 +3099,32 @@ send_get_peers(const struct sockaddr *sa, int salen,
                unsigned char *tid, int tid_len, unsigned char *infohash,
                int want, int confirm)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, myid, 20, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "9:info_hash20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, infohash, 20, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "9:info_hash20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, infohash, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if(want > 0) {
-        rc = _snprintf(buf + i, 512 - i, "4:wantl%s%se",
+        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:wantl%s%se",
                       (want & WANT4) ? "2:n4" : "",
                       (want & WANT6) ? "2:n6" : "");
-        if (!INC(i, rc, 512)) goto fail;
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     }
-    rc = _snprintf(buf + i, 512 - i, "e1:q9:get_peers1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
-    if (!INC(i, rc, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:get_peers1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************
@@ -3131,31 +3135,31 @@ send_announce_peer(const struct sockaddr *sa, int salen,
                    unsigned char *infohash, unsigned short port,
                    unsigned char *token, int token_len, int confirm)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:ad2:id20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, myid, 20, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "9:info_hash20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, infohash, 20, 512))
-    rc = _snprintf(buf + i, 512 - i, "4:porti%ue5:token%d:", (unsigned)port,
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "9:info_hash20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, infohash, 20, DHT_NETWORK_BUFFER_LENGTH))
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:porti%ue5:token%d:", (unsigned)port,
                   token_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, token, token_len, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "e1:q13:announce_peer1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:qe");
-    if (!INC(i, rc, 512)) goto fail;
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, token, token_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q13:announce_peer1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
 
     return dht_send(buf, i, confirm ? 0 : MSG_CONFIRM, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************
@@ -3164,23 +3168,23 @@ static int
 send_peer_announced(const struct sockaddr *sa, int salen,
                     unsigned char *tid, int tid_len)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:rd2:id20:");
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, myid, 20, 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:re");
-    if (!INC(i, rc, 512)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************
@@ -3190,24 +3194,24 @@ send_error(const struct sockaddr *sa, int salen,
            unsigned char *tid, int tid_len,
            int code, const char *message)
 {
-    char buf[512];
+    char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, 512 - i, "d1:eli%de%d:",
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:eli%de%d:",
                   code, (int)strlen(message));
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, (const unsigned char *)message, (int)strlen(message), 512)) goto fail;
-    rc = _snprintf(buf + i, 512 - i, "e1:t%d:", tid_len);
-    if (!INC(i, rc, 512)) goto fail;
-    if (!COPY(buf, i, tid, tid_len, 512)) goto fail;
-    ADD_V(buf, i, 512);
-    rc = _snprintf(buf + i, 512 - i, "1:y1:ee");
-    if (!INC(i, rc, 512)) goto fail;
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, (const unsigned char *)message, (int)strlen(message), DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
+    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:ee");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
  fail:
     errno = ENOSPC;
-    return -1;
+    return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
 //*****************************************************************************

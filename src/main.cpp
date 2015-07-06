@@ -5,6 +5,7 @@
 #include "xbridgeapp.h"
 #include "xbridgeexchange.h"
 #include "util/settings.h"
+#include "statdialog.h"
 
 #include <QString>
 // #include <QDateTime>

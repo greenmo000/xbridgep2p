@@ -223,6 +223,8 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 {
     qDebug() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str();
 
+    static UcharVector localid(m_myid, m_myid+20);
+
     boost::mutex::scoped_lock l(m_sessionsLock);
     if (m_sessions.count(id))
     {
@@ -230,20 +232,31 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
         XBridgeSessionPtr ptr = m_sessions[id];
         ptr->sendXBridgeMessage(message);
     }
+
+    // check local address
+    else if (id == localid)
+    {
+        // process packet
+        XBridgePacketPtr packet(new XBridgePacket);
+        packet->copyFrom(message);
+
+        XBridgeSessionPtr ptr(new XBridgeSession);
+        ptr->processPacket(packet);
+    }
 }
 
 //*****************************************************************************
 //*****************************************************************************
 void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
 {
-    qDebug() << "received broadcast message";
+    // qDebug() << "received broadcast message";
 
     {
         boost::mutex::scoped_lock l(m_messagesLock);
         if (!m_processedMessages.insert(util::hash(message.begin(), message.end())).second)
         {
             // already processed
-            qDebug() << "already processed message, skipped";
+            // qDebug() << "already processed message, skipped";
             return;
         }
 
@@ -583,7 +596,8 @@ void XBridgeApp::dhtThreadProc()
                         if (!isFoundLocal)
                         {
                             // not local
-                            if (dht_send_message(&mpair.first[0], &mpair.second[0], mpair.second.size()) != 0)
+                            int err = dht_send_message(&mpair.first[0], &mpair.second[0], mpair.second.size());
+                            if (err != 0 && err != DHT_NETWORK_BUFFER_OWERFLOW)
                             {
                                 // not send - go to search peer
                                 std::string _id;
@@ -593,6 +607,11 @@ void XBridgeApp::dhtThreadProc()
                                 m_messages.push_back(mpair);
                                 m_searchStrings.push_back(util::base64_encode(_id));
                                 m_signalSearch = true;
+                            }
+                            else if (err == DHT_NETWORK_BUFFER_OWERFLOW)
+                            {
+                                // TODO log error
+                                qDebug() << "NETWORK_BUFFER_OWERFLOW";
                             }
                         }
                     }

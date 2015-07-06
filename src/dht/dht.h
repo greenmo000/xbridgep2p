@@ -22,6 +22,9 @@ THE SOFTWARE.
 
 #include <string>
 
+#define DHT_NETWORK_BUFFER_LENGTH 960
+#define DHT_NETWORK_BUFFER_OWERFLOW -2
+
 typedef void
 dht_callback(void *closure, int event,
              const unsigned char *info_hash,
