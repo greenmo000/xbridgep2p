@@ -914,32 +914,33 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
 
-    // size must be == 52 bytes
-    if (packet->size() != 52)
+    // size must be == 32 bytes
+    if (packet->size() != 32)
     {
         ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
         return false;
     }
 
-    // check is for me
-    if (relayPacket(packet))
-    {
-        return true;
-    }
-
+    // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
+    if (e.isEnabled())
     {
-        return true;
+        uint256 txid(packet->data());
+
+        e.deletePendingTransactions(txid);
+
+        // send cancel to clients
+        XBridgeTransactionPtr tr = e.transaction(txid);
+        if (tr->state() != XBridgeTransaction::trInvalid)
+        {
+            boost::mutex::scoped_lock l(tr->m_lock);
+            cancelTransaction(tr);
+        }
     }
 
-    uint256 txid(packet->data()+20);
-
-    // send cancel to clients
-    XBridgeTransactionPtr tr = e.transaction(txid);
-    boost::mutex::scoped_lock l(tr->m_lock);
-
-    return cancelTransaction(tr);
+    // ..and retranslate
+    sendPacketBroadcast(packet);
+    return true;
 }
 
 //*****************************************************************************

@@ -54,6 +54,7 @@ public:
                            const std::string & destCurrency,
                            const boost::uint64_t & destAmount,
                            uint256 & transactionId);
+    bool deletePendingTransactions(const uint256 & id);
     bool deleteTransaction(const uint256 & id);
 
     bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx);
