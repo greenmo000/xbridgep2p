@@ -2145,13 +2145,13 @@ dht_periodic(const unsigned char * buf, size_t buflen,
             goto dontread;
         }
 
-        if(message > REPLY) {
-            /* Rate limit requests. */
-            if(!token_bucket()) {
-                debugf("Dropping request due to rate limiting.\n");
-                goto dontread;
-            }
-        }
+//        if(message > REPLY) {
+//            /* Rate limit requests. */
+//            if(!token_bucket()) {
+//                debugf("Dropping request due to rate limiting.\n");
+//                goto dontread;
+//            }
+//        }
 
         switch(message)
         {
@@ -2272,6 +2272,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                     debug_printable(buf, buflen);
                 }
                 break;
+
             } // REPLY
 
             case PING:
@@ -2281,6 +2282,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 debugf("Sending pong.\n");
                 send_pong(from, fromlen, tid, tid_len);
                 break;
+
             } // PING
 
             case FIND_NODE:
@@ -2292,6 +2294,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                                    tid, tid_len, target, want,
                                    0, NULL, NULL, 0);
                 break;
+
             } // FIND_NODE
 
             case GET_PEERS:
@@ -2323,6 +2326,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                     }
                 }
                 break;
+
             } // GET_PEERS
 
             case ANNOUNCE_PEER:
@@ -2354,6 +2358,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 debugf("Sending peer announced.\n");
                 send_peer_announced(from, fromlen, tid, tid_len);
                 break;
+
             } // ANNOUNCE_PEERS
 
             case MESSAGE:
@@ -2381,9 +2386,19 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::copy(message.begin()+20, message.end(), std::back_inserter(vmessage));
 
                 XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                app->onMessageReceived(addr, vmessage);
+                if (app->isLocalAddress(addr))
+                {
+                    // process message
+                    app->onMessageReceived(addr, vmessage);
+                }
+                else
+                {
+                    // relay message
+                    app->onSend(addr, vmessage);
+                }
 
                 break;
+
             } // MESSAGE
 
             case BROADCAST:
@@ -2408,9 +2423,16 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::copy(message.begin(), message.end(), std::back_inserter(vmessage));
 
                 XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                app->onBroadcastReceived(vmessage);
+                if (!app->isKnownBroadcastMessage(vmessage))
+                {
+                    app->onBroadcastReceived(vmessage);
+
+                    // relay message
+                    app->onSend(vmessage);
+                }
 
                 break;
+
             } // BROADCAST
         } // switch
     }

@@ -55,6 +55,9 @@ public:
     // clear local table
     void storageClean(XBridgeSessionPtr session);
 
+    bool isLocalAddress(const std::vector<unsigned char> & id);
+    bool isKnownBroadcastMessage(const std::vector<unsigned char> & message);
+
 public slots:
     // generate new id
     void onGenerate();

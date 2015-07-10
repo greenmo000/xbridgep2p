@@ -221,6 +221,7 @@ bool XBridgeSession::decryptPacket(XBridgePacketPtr /*packet*/)
 }
 
 //*****************************************************************************
+//*****************************************************************************
 void XBridgeSession::sendPacket(const std::vector<unsigned char> & to,
                                 XBridgePacketPtr packet)
 {
@@ -317,14 +318,8 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & message)
+bool XBridgeSession::sendXBridgeMessage(XBridgePacketPtr packet)
 {
-    // DEBUG_TRACE();
-
-    XBridgePacketPtr packet(new XBridgePacket());
-    // packet->setData(message);
-    packet->copyFrom(message);
-
     boost::system::error_code error;
     m_socket->send(boost::asio::buffer(packet->header(), packet->allSize()), 0, error);
     if (error)
@@ -333,7 +328,20 @@ bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & messa
         return false;
     }
 
-    return false;
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & message)
+{
+    // DEBUG_TRACE();
+
+    XBridgePacketPtr packet(new XBridgePacket());
+    // packet->setData(message);
+    packet->copyFrom(message);
+
+    return sendXBridgeMessage(packet);
 }
 
 //*****************************************************************************
@@ -930,11 +938,12 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
         e.deletePendingTransactions(txid);
 
         // send cancel to clients
-        XBridgeTransactionPtr tr = e.transaction(txid);
-        if (tr->state() != XBridgeTransaction::trInvalid)
+        // XBridgeTransactionPtr tr = e.transaction(txid);
+        // if (tr->state() != XBridgeTransaction::trInvalid)
         {
-            boost::mutex::scoped_lock l(tr->m_lock);
-            cancelTransaction(tr);
+            // boost::mutex::scoped_lock l(tr->m_lock);
+            // sendCancelTransaction(tr);
+            sendCancelTransaction(txid);
         }
     }
 
@@ -981,33 +990,34 @@ bool XBridgeSession::finishTransaction(XBridgeTransactionPtr tr)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::cancelTransaction(XBridgeTransactionPtr tr)
+bool XBridgeSession::sendCancelTransaction(const uint256 & txid)
 {
-    LOG() << "cancel transaction <" << tr->id().GetHex() << ">";
+    LOG() << "cancel transaction <" << txid.GetHex() << ">";
 
-    if (tr->state() != XBridgeTransaction::trNew)
+    // if (tr->state() != XBridgeTransaction::trNew)
     {
-        std::vector<std::vector<unsigned char> > rcpts;
-        rcpts.push_back(tr->firstAddress());
-        rcpts.push_back(tr->firstDestination());
-        rcpts.push_back(tr->secondAddress());
-        rcpts.push_back(tr->secondDestination());
+        // std::vector<std::vector<unsigned char> > rcpts;
+        // rcpts.push_back(tr->firstAddress());
+        // rcpts.push_back(tr->firstDestination());
+        // rcpts.push_back(tr->secondAddress());
+        // rcpts.push_back(tr->secondDestination());
 
-        foreach (const std::vector<unsigned char> & to, rcpts)
+        // foreach (const std::vector<unsigned char> & to, rcpts)
         {
             // TODO remove this log
-            LOG() << "send xbcTransactionFinished to "
-                  << util::base64_encode(std::string((char *)&to[0], 20));
+            // LOG() << "send xbcTransactionCancel to "
+            //       << util::base64_encode(std::string((char *)&to[0], 20));
 
             XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
-            reply->append(to);
-            reply->append(tr->id().begin(), 32);
+            // reply->append(to);
+            reply->append(txid.begin(), 32);
 
-            sendPacket(to, reply);
+            // sendPacket(to, reply);
+            sendPacketBroadcast(reply);
         }
     }
 
-    tr->cancel();
+    // tr->cancel();
 
     return true;
 }

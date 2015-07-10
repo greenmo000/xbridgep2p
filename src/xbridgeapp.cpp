@@ -221,9 +221,13 @@ void XBridgeApp::onSend(const std::vector<unsigned char> & id, const XBridgePack
 //*****************************************************************************
 void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & message)
 {
-    qDebug() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str();
-
     static UcharVector localid(m_myid, m_myid+20);
+
+    XBridgePacketPtr packet(new XBridgePacket);
+    packet->copyFrom(message);
+
+    qDebug() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str()
+             << " command " << packet->command();
 
     boost::mutex::scoped_lock l(m_sessionsLock);
     if (m_sessions.count(id))
@@ -231,22 +235,20 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
         // found local client
         XBridgeSessionPtr ptr = m_sessions[id];
         ptr->sendXBridgeMessage(message);
-        return;
     }
 
     // check local address
     else if (id == localid)
     {
         // process packet
-        XBridgePacketPtr packet(new XBridgePacket);
-        packet->copyFrom(message);
-
         XBridgeSessionPtr ptr(new XBridgeSession);
         ptr->processPacket(packet);
-        return;
     }
-    // relay message
-    onSend(message);
+
+    else
+    {
+        qDebug() << "process message for unknown address";
+    }
 }
 
 //*****************************************************************************
@@ -263,17 +265,14 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
             // qDebug() << "already processed message, skipped";
             return;
         }
-
-        // process message
-        XBridgePacketPtr packet(new XBridgePacket);
-        packet->copyFrom(message);
-
-        XBridgeSessionPtr ptr(new XBridgeSession);
-        ptr->processPacket(packet);
     }
 
-    // relay message
-    onSend(message);
+    // process message
+    XBridgePacketPtr packet(new XBridgePacket);
+    packet->copyFrom(message);
+
+    XBridgeSessionPtr ptr(new XBridgeSession);
+    ptr->processPacket(packet);
 }
 
 //*****************************************************************************
@@ -759,4 +758,34 @@ void XBridgeApp::storageClean(XBridgeSessionPtr session)
             ++i;
         }
     }
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::isLocalAddress(const std::vector<unsigned char> & id)
+{
+    static UcharVector localid(m_myid, m_myid+20);
+
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    if (m_sessions.count(id))
+    {
+        return true;
+    }
+
+    // check local address
+    else if (id == localid)
+    {
+        // process packet
+        return true;
+    }
+
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::isKnownBroadcastMessage(const std::vector<unsigned char> & message)
+{
+    boost::mutex::scoped_lock l(m_messagesLock);
+    return m_processedMessages.count(util::hash(message.begin(), message.end())) > 0;
 }

@@ -24,6 +24,7 @@ public:
 
     void start(XBridge::SocketPtr socket);
 
+    bool sendXBridgeMessage(XBridgePacketPtr packet);
     bool sendXBridgeMessage(const std::vector<unsigned char> & message);
 
     bool processPacket(XBridgePacketPtr packet);
@@ -76,7 +77,7 @@ private:
     bool processTransactionCancel(XBridgePacketPtr packet);
 
     bool finishTransaction(XBridgeTransactionPtr tr);
-    bool cancelTransaction(XBridgeTransactionPtr tr);
+    bool sendCancelTransaction(const uint256 & txid);
     bool rollbackTransaction(XBridgeTransactionPtr tr);
 
     bool processBitcoinTransactionHash(XBridgePacketPtr packet);
