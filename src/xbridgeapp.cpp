@@ -231,6 +231,7 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
         // found local client
         XBridgeSessionPtr ptr = m_sessions[id];
         ptr->sendXBridgeMessage(message);
+        return;
     }
 
     // check local address
@@ -242,7 +243,10 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 
         XBridgeSessionPtr ptr(new XBridgeSession);
         ptr->processPacket(packet);
+        return;
     }
+    // relay message
+    onSend(message);
 }
 
 //*****************************************************************************
