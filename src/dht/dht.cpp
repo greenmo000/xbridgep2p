@@ -2386,15 +2386,18 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::copy(message.begin()+20, message.end(), std::back_inserter(vmessage));
 
                 XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                if (app->isLocalAddress(addr))
+                if (!app->isKnownMessage(vmessage))
                 {
-                    // process message
-                    app->onMessageReceived(addr, vmessage);
-                }
-                else
-                {
-                    // relay message
-                    app->onSend(addr, vmessage);
+                    if (app->isLocalAddress(addr))
+                    {
+                        // process message
+                        app->onMessageReceived(addr, vmessage);
+                    }
+                    else
+                    {
+                        // relay message
+                        app->onSend(addr, vmessage);
+                    }
                 }
 
                 break;
@@ -2423,7 +2426,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::copy(message.begin(), message.end(), std::back_inserter(vmessage));
 
                 XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                if (!app->isKnownBroadcastMessage(vmessage))
+                if (!app->isKnownMessage(vmessage))
                 {
                     app->onBroadcastReceived(vmessage);
 
@@ -2779,12 +2782,12 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     {
         if (sr->af == AF_INET && id_cmp(sr->id, id) == 0)
         {
-            if (sr && sr->numnodes)
+            for (int ii = 0; ii < sr->numnodes; ++ii)
             {
                 // send to
-                dht_send(buf, i, 0, (sockaddr *)&sr->nodes[0].ss, sizeof(sr->nodes[0].ss));
-                break;
+                dht_send(buf, i, 0, (sockaddr *)&sr->nodes[ii].ss, sizeof(sr->nodes[ii].ss));
             }
+            break;
         }
         sr = sr->next;
     }
@@ -2795,12 +2798,12 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     {
         if (sr6->af == AF_INET6 && id_cmp(sr6->id, id) == 0)
         {
-            if (sr6 && sr6->numnodes)
+            for (int ii = 0; ii < sr6->numnodes; ++ii)
             {
                 // send to
-                dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[0].ss, sizeof(sr6->nodes[0].ss));
-                break;
+                dht_send(buf, i, 0, (sockaddr *)&sr6->nodes[ii].ss, sizeof(sr6->nodes[ii].ss));
             }
+            break;
         }
         sr6 = sr6->next;
     }

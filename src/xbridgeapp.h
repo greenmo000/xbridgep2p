@@ -14,6 +14,7 @@
 #include <atomic>
 #include <vector>
 #include <map>
+#include <tuple>
 
 #include <Ws2tcpip.h>
 
@@ -56,7 +57,7 @@ public:
     void storageClean(XBridgeSessionPtr session);
 
     bool isLocalAddress(const std::vector<unsigned char> & id);
-    bool isKnownBroadcastMessage(const std::vector<unsigned char> & message);
+    bool isKnownMessage(const std::vector<unsigned char> & message);
 
 public slots:
     // generate new id
@@ -97,7 +98,7 @@ private:
     std::atomic<bool> m_signalSend;
 
     typedef std::vector<unsigned char> UcharVector;
-    typedef std::pair<UcharVector, UcharVector> MessagePair;
+    typedef std::tuple<UcharVector, UcharVector, bool> MessagePair;
 
     std::list<std::string> m_searchStrings;
     std::list<MessagePair> m_messages;

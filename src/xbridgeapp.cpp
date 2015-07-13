@@ -186,7 +186,7 @@ void XBridgeApp::onSearch(const std::string & id)
 //*****************************************************************************
 void XBridgeApp::onSend(const std::vector<unsigned char> & message)
 {
-    m_messages.push_back(std::make_pair(std::vector<unsigned char>(), message));
+    m_messages.push_back(std::make_tuple(std::vector<unsigned char>(), message, false));
     m_signalSend = true;
 }
 
@@ -205,7 +205,7 @@ void XBridgeApp::onSend(const XBridgePacketPtr packet)
 //*****************************************************************************
 void XBridgeApp::onSend(const UcharVector & id, const UcharVector & message)
 {
-    m_messages.push_back(std::make_pair(id, message));
+    m_messages.push_back(std::make_tuple(id, message, false));
     m_signalSend = true;
 }
 
@@ -256,16 +256,6 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
 {
     // qDebug() << "received broadcast message";
-
-    {
-        boost::mutex::scoped_lock l(m_messagesLock);
-        if (!m_processedMessages.insert(util::hash(message.begin(), message.end())).second)
-        {
-            // already processed
-            // qDebug() << "already processed message, skipped";
-            return;
-        }
-    }
 
     // process message
     XBridgePacketPtr packet(new XBridgePacket);
@@ -560,23 +550,30 @@ void XBridgeApp::dhtThreadProc()
                     MessagePair mpair = messages.front();
                     messages.pop_front();
 
+                    std::vector<unsigned char> & id      = std::get<0>(mpair);
+                    std::vector<unsigned char> & message = std::get<1>(mpair);
+
                     // std::string id      = util::base64_decode(mpair.first);
                     // std ::string message = mpair.second;
 
                     // check broadcast
-                    if (mpair.first.empty())
+                    if (id.empty())
                     {
                         // send to all local clients
                         {
                             boost::mutex::scoped_lock l(m_sessionsLock);
                             for (SessionMap::iterator i = m_sessions.begin(); i != m_sessions.end(); ++i)
                             {
-                                i->second->sendXBridgeMessage(mpair.second);
+                                std::get<1>(*i)->sendXBridgeMessage(message);
                             }
                         }
 
                         // TODO send to xbridge network
-                        dht_send_broadcast(&mpair.second[0], mpair.second.size());
+                        dht_send_broadcast(&message[0], message.size());
+
+                        // add to known
+                        boost::mutex::scoped_lock l(m_messagesLock);
+                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
                     }
 
                     else
@@ -586,11 +583,11 @@ void XBridgeApp::dhtThreadProc()
                         // check local
                         {
                             boost::mutex::scoped_lock l(m_sessionsLock);
-                            if (m_sessions.count(mpair.first))
+                            if (m_sessions.count(id))
                             {
                                 // found local client
-                                XBridgeSessionPtr ptr = m_sessions[mpair.first];
-                                ptr->sendXBridgeMessage(mpair.second);
+                                XBridgeSessionPtr ptr = m_sessions[id];
+                                ptr->sendXBridgeMessage(message);
 
                                 isFoundLocal = true;
                             }
@@ -599,17 +596,35 @@ void XBridgeApp::dhtThreadProc()
                         if (!isFoundLocal)
                         {
                             // not local
-                            int err = dht_send_message(&mpair.first[0], &mpair.second[0], mpair.second.size());
+                            int err = dht_send_message(&id[0], &message[0], message.size());
+                            if (!err)
+                            {
+                                // add to known
+                                boost::mutex::scoped_lock l(m_messagesLock);
+                                m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                            }
+
                             if (err != 0 && err != DHT_NETWORK_BUFFER_OWERFLOW)
                             {
                                 // not send - go to search peer
                                 std::string _id;
-                                std::copy(mpair.first.begin(), mpair.first.end(), std::back_inserter(_id));
+                                std::copy(id.begin(), id.end(), std::back_inserter(_id));
 
-                                // return message back and try search
-                                m_messages.push_back(mpair);
-                                m_searchStrings.push_back(util::base64_encode(_id));
-                                m_signalSearch = true;
+                                if (std::get<2>(mpair))
+                                {
+                                    // error resend after search, drop this message
+                                    qDebug() << "drop message to <"
+                                             << _id.c_str()
+                                             << "> (not found)";
+                                }
+                                else
+                                {
+                                    // return message back and try search
+                                    std::get<2>(mpair) = true;
+                                    m_messages.push_back(mpair);
+                                    m_searchStrings.push_back(util::base64_encode(_id));
+                                    m_signalSearch = true;
+                                }
                             }
                             else if (err == DHT_NETWORK_BUFFER_OWERFLOW)
                             {
@@ -784,7 +799,7 @@ bool XBridgeApp::isLocalAddress(const std::vector<unsigned char> & id)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeApp::isKnownBroadcastMessage(const std::vector<unsigned char> & message)
+bool XBridgeApp::isKnownMessage(const std::vector<unsigned char> & message)
 {
     boost::mutex::scoped_lock l(m_messagesLock);
     return m_processedMessages.count(util::hash(message.begin(), message.end())) > 0;
