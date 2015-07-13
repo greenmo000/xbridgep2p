@@ -64,8 +64,8 @@ void StatDialog::setupUi()
     QPushButton * search = new QPushButton("search", this);
     hbox->addWidget(search);
 
-    QPushButton * send = new QPushButton("send", this);
-    hbox->addWidget(send);
+    // QPushButton * send = new QPushButton("send", this);
+    // hbox->addWidget(send);
 
     vbox->addLayout(hbox);
 
@@ -83,7 +83,7 @@ void StatDialog::setupUi()
 //    connect(generate, SIGNAL(clicked()), app,  SLOT(onGenerate()));
     connect(dump,     SIGNAL(clicked()), app,  SLOT(onDump()));
     connect(search,   SIGNAL(clicked()), this, SLOT(onSearch()));
-    connect(send,     SIGNAL(clicked()), this, SLOT(onSend()));
+    // connect(send,     SIGNAL(clicked()), this, SLOT(onSend()));
 }
 
 //*****************************************************************************
