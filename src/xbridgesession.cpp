@@ -481,8 +481,8 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 {
     DEBUG_TRACE();
 
-    // size must be eq 52 bytes
-    if (packet->size() != 52)
+    // size must be eq 72 bytes
+    if (packet->size() != 72)
     {
         ERR() << "invalid packet size for xbcTransactionHoldApply " << __FUNCTION__;
         return false;
@@ -500,15 +500,17 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
         return true;
     }
 
+    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
+
     // transaction id
-    uint256 id(packet->data()+20);
+    uint256 id(packet->data()+40);
 
     XBridgeTransactionPtr tr = e.transaction(id);
     boost::mutex::scoped_lock l(tr->m_lock);
 
     tr->updateTimestamp();
 
-    if (e.updateTransactionWhenHoldApplyReceived(tr))
+    if (e.updateTransactionWhenHoldApplyReceived(tr, from))
     {
         if (tr->state() == XBridgeTransaction::trHold)
         {
@@ -588,6 +590,8 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
         return true;
     }
 
+    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
+
     // transaction id
     uint256 id(packet->data()+40);
 
@@ -596,7 +600,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
 
     tr->updateTimestamp();
 
-    if (e.updateTransactionWhenInitializedReceived(tr))
+    if (e.updateTransactionWhenInitializedReceived(tr, from))
     {
         if (tr->state() == XBridgeTransaction::trInitialized)
         {
@@ -825,8 +829,7 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
         {
             // transaction commited, wait for confirm
             LOG() << "commit transaction, wait for confirm. id <"
-                  << util::base64_encode(std::string((char *)(txid.begin()), 32))
-                  << ">";
+                  << txid.GetHex() << "> hash <" << txhash.GetHex() << ">";
 
             // send confirm request to clients
 

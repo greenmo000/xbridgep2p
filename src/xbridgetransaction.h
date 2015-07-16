@@ -25,6 +25,7 @@ typedef boost::shared_ptr<XBridgeTransaction> XBridgeTransactionPtr;
 class XBridgeTransaction
 {
 public:
+    // see strState when editing
     enum State
     {
         trInvalid = 0,
@@ -62,8 +63,9 @@ public:
     // state of transaction
     State state() const;
     // update state counter and update state
-    State increaseStateCounter(State state);
+    State increaseStateCounter(State state, const std::vector<unsigned char> & from);
 
+    static std::string strState(const State state);
     std::string strState() const;
 
     void updateTimestamp();
@@ -121,7 +123,10 @@ private:
     boost::posix_time::ptime   m_created;
 
     State                      m_state;
-    unsigned int               m_stateCounter;
+    // unsigned int               m_stateCounter;
+    bool                       m_firstStateChanged;
+    bool                       m_secondStateChanged;
+
     unsigned int               m_confirmationCounter;
 
     std::string                m_sourceCurrency;

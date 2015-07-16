@@ -74,6 +74,7 @@ enum XBridgeCommand
     //
     // xbcTransactionHoldApply
     //    uint160 hub address
+    //    uint160 client address
     //    uint256 hub transaction id
     xbcTransactionHoldApply = 5,
     //

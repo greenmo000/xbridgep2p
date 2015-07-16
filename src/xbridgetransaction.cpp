@@ -10,7 +10,9 @@
 //*****************************************************************************
 XBridgeTransaction::XBridgeTransaction()
     : m_state(trInvalid)
-    , m_stateCounter(0)
+    // , m_stateCounter(0)
+    , m_firstStateChanged(false)
+    , m_secondStateChanged(false)
     , m_confirmationCounter(0)
 {
 
@@ -28,7 +30,9 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
     : m_id(id)
     , m_created(boost::posix_time::second_clock::universal_time())
     , m_state(trNew)
-    , m_stateCounter(0)
+    // , m_stateCounter(0)
+    , m_firstStateChanged(false)
+    , m_secondStateChanged(false)
     , m_confirmationCounter(0)
     , m_sourceCurrency(sourceCurrency)
     , m_destCurrency(destCurrency)
@@ -63,59 +67,104 @@ XBridgeTransaction::State XBridgeTransaction::state() const
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransaction::State state)
+XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransaction::State state,
+                                                                   const std::vector<unsigned char> & from)
 {
+    LOG() << "confirm transaction state <" << strState(state)
+          << "> from " << util::base64_encode(from);
+
     if (state == trJoined && m_state == state)
     {
-        if (++m_stateCounter >= 2)
+        if (from == m_first.source())
+        {
+            m_firstStateChanged = true;
+        }
+        else if (from == m_second.source())
+        {
+            m_secondStateChanged = true;
+        }
+        if (m_firstStateChanged && m_secondStateChanged)
         {
             m_state = trHold;
-            m_stateCounter = 0;
+            m_firstStateChanged = m_secondStateChanged = false;
         }
         return m_state;
     }
     else if (state == trHold && m_state == state)
     {
-        if (++m_stateCounter >= 2)
+        if (from == m_first.dest())
+        {
+            m_firstStateChanged = true;
+        }
+        else if (from == m_second.dest())
+        {
+            m_secondStateChanged = true;
+        }
+        if (m_firstStateChanged && m_secondStateChanged)
         {
             m_state = trInitialized;
-            m_stateCounter = 0;
+            m_firstStateChanged = m_secondStateChanged = false;
         }
         return m_state;
     }
     else if (state == trInitialized && m_state == state)
     {
-        if (++m_stateCounter >= 2)
+        if (from == m_first.source())
+        {
+            m_firstStateChanged = true;
+        }
+        else if (from == m_second.source())
+        {
+            m_secondStateChanged = true;
+        }
+        if (m_firstStateChanged && m_secondStateChanged)
         {
             m_state = trCreated;
-            m_stateCounter = 0;
+            m_firstStateChanged = m_secondStateChanged = false;
         }
         return m_state;
     }
     else if (state == trCreated && m_state == state)
     {
-        if (++m_stateCounter >= 2)
+        if (from == m_first.dest())
+        {
+            m_firstStateChanged = true;
+        }
+        else if (from == m_second.dest())
+        {
+            m_secondStateChanged = true;
+        }
+        if (m_firstStateChanged && m_secondStateChanged)
         {
             m_state = trSigned;
-            m_stateCounter = 0;
+            m_firstStateChanged = m_secondStateChanged = false;
         }
         return m_state;
     }
     else if (state == trSigned && m_state == state)
     {
-        if (++m_stateCounter >= 2)
+        if (from == m_first.source())
+        {
+            m_firstStateChanged = true;
+        }
+        else if (from == m_second.source())
+        {
+            m_secondStateChanged = true;
+        }
+        if (m_firstStateChanged && m_secondStateChanged)
         {
             m_state = trCommited;
-            m_stateCounter = 0;
+            m_firstStateChanged = m_secondStateChanged = false;
         }
         return m_state;
     }
     else if (state == trCommited && m_state == state)
     {
-        if (++m_stateCounter >= 2)
+        assert(false);
+        // if (++m_stateCounter >= 2)
         {
             m_state = trFinished;
-            m_stateCounter = 0;
+            // m_stateCounter = 0;
         }
         return m_state;
     }
@@ -125,14 +174,24 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::strState() const
+// static
+std::string XBridgeTransaction::strState(const State state)
 {
     static std::string states[] = {
-        "trInvalid", "trNew", "trJoined", "trHold", "trInitialized", "trCreated",
-        "trSigned", "trCommited", "trConfirmed", "trFinished", "trCancelled", "trDropped"
+        "trInvalid", "trNew", "trJoined",
+        "trHold", "trInitialized", "trCreated",
+        "trSigned", "trCommited", "trConfirmed",
+        "trFinished", "trCancelled", "trDropped"
     };
 
-    return states[m_state];
+    return states[state];
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::strState() const
+{
+    return strState(m_state);
 }
 
 //*****************************************************************************

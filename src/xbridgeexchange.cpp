@@ -231,9 +231,10 @@ bool XBridgeExchange::deleteTransaction(const uint256 & id)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx)
+bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx,
+                                                             const std::vector<unsigned char> & from)
 {
-    if (tx->increaseStateCounter(XBridgeTransaction::trJoined) == XBridgeTransaction::trHold)
+    if (tx->increaseStateCounter(XBridgeTransaction::trJoined, from) == XBridgeTransaction::trHold)
     {
         return true;
     }
@@ -243,9 +244,10 @@ bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(XBridgeTransactionP
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx)
+bool XBridgeExchange::updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
+                                                               const std::vector<unsigned char> & from)
 {
-    if (tx->increaseStateCounter(XBridgeTransaction::trHold) == XBridgeTransaction::trInitialized)
+    if (tx->increaseStateCounter(XBridgeTransaction::trHold, from) == XBridgeTransaction::trInitialized)
     {
         return true;
     }
@@ -267,7 +269,7 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr
         return false;
     }
 
-    if (tx->increaseStateCounter(XBridgeTransaction::trInitialized) == XBridgeTransaction::trCreated)
+    if (tx->increaseStateCounter(XBridgeTransaction::trInitialized, from) == XBridgeTransaction::trCreated)
     {
         return true;
     }
@@ -289,7 +291,7 @@ bool XBridgeExchange::updateTransactionWhenSignedReceived(XBridgeTransactionPtr 
     }
 
     // update transaction state
-    if (tx->increaseStateCounter(XBridgeTransaction::trCreated) == XBridgeTransaction::trSigned)
+    if (tx->increaseStateCounter(XBridgeTransaction::trCreated, from) == XBridgeTransaction::trSigned)
     {
         return true;
     }
@@ -316,7 +318,7 @@ bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPt
     }
 
     // update transaction state
-    if (tx->increaseStateCounter(XBridgeTransaction::trSigned) == XBridgeTransaction::trCommited)
+    if (tx->increaseStateCounter(XBridgeTransaction::trSigned, from) == XBridgeTransaction::trCommited)
     {
         return true;
     }

@@ -18,6 +18,11 @@ namespace util
 
 const std::string base64_padding[] = {"", "==","="};
 
+std::string base64_encode(const std::vector<unsigned char> & s)
+{
+    return base64_encode(std::string((char *)&s[0], s.size()));
+}
+
 //*****************************************************************************
 //*****************************************************************************
 std::string base64_encode(const std::string& s)

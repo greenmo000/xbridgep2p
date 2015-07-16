@@ -57,8 +57,10 @@ public:
     bool deletePendingTransactions(const uint256 & id);
     bool deleteTransaction(const uint256 & id);
 
-    bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx);
-    bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx);
+    bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx,
+                                                const std::vector<unsigned char> & from);
+    bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
+                                                  const std::vector<unsigned char> & from);
     bool updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
                                               const std::vector<unsigned char> & from,
                                               const std::string & rawpaytx,
