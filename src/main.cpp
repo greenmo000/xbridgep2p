@@ -6,6 +6,7 @@
 #include "xbridgeexchange.h"
 #include "util/settings.h"
 #include "statdialog.h"
+#include "version.h"
 
 #include <QString>
 // #include <QDateTime>
@@ -107,7 +108,9 @@ int main(int argc, char *argv[])
 
     if (e.isEnabled())
     {
-        w.setWindowTitle("xbridgep2p - [exchange]");
+        w.setWindowTitle(QString("xbridgep2p - [exchange] - [v.%1.%2]")
+                         .arg(QString::number(XBRIDGE_VERSION_MAJOR),
+                              QString::number(XBRIDGE_VERSION_MINOR)));
     }
 
     int retcode = a.exec();

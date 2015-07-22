@@ -4,7 +4,9 @@
 #include "xbridgeapp.h"
 #include "xbridgeexchange.h"
 #include "util/util.h"
+#include "util/logger.h"
 #include "dht/dht.h"
+#include "version.h"
 
 #include <thread>
 #include <chrono>
@@ -15,7 +17,6 @@
 #include <openssl/rand.h>
 #include <openssl/md5.h>
 
-#include <QDebug>
 #include <QByteArray>
 #include <QTimer>
 #include <QStringList>
@@ -40,7 +41,9 @@ XBridgeApp::XBridgeApp(int argc, char *argv[])
 //*****************************************************************************
 XBridgeApp::~XBridgeApp()
 {
+#ifdef WIN32
     WSACleanup();
+#endif
 }
 
 //*****************************************************************************
@@ -55,13 +58,18 @@ const unsigned char hash[20] =
 //*****************************************************************************
 bool XBridgeApp::initDht()
 {
+    LOG() << "initialize v." << XBRIDGE_VERSION_MAJOR
+             << "." << XBRIDGE_VERSION_MINOR << " [" << XBRIDGE_VERSION << "]";
+
+#ifdef WIN32
     WSADATA wsa = {0};
     int rc = WSAStartup(MAKEWORD(2, 2), &wsa);
     if (rc != 0)
     {
-        qDebug() << "startup error";
+        LOG() << "startup error";
         return false;
     }
+#endif
 
     // parse parameters
     QStringList args = arguments();
@@ -71,12 +79,12 @@ bool XBridgeApp::initDht()
         if (arg.startsWith("-dhtport="))
         {
             m_dhtPort = arg.mid(9).toInt();
-            qDebug() << "-dhtport -> " << m_dhtPort;
+            LOG() << "-dhtport -> " << m_dhtPort;
         }
         else if (arg.startsWith("-bridgeport="))
         {
             m_bridgePort = arg.mid(12).toInt();
-            qDebug() << "-bridgeport -> " << m_bridgePort;
+            LOG() << "-bridgeport -> " << m_bridgePort;
         }
         else if (arg.startsWith("-peer="))
         {
@@ -85,7 +93,7 @@ bool XBridgeApp::initDht()
             QString port = peer.mid(idx+1);
             peer = peer.left(idx);
 
-            qDebug() << "-peer -> " << peer << ":" << port.toInt();
+            LOG() << "-peer -> " << peer.toStdString() << ":" << port.toInt();
 
             addrinfo   hints;
             memset(&hints, 0, sizeof(hints));
@@ -97,7 +105,7 @@ bool XBridgeApp::initDht()
             int rc = getaddrinfo(peer.toLocal8Bit(), port.toLocal8Bit(), &hints, &info);
             if (rc != 0)
             {
-                qDebug() << "getaddrinfo failed " << rc << gai_strerror(rc);
+                LOG() << "getaddrinfo failed " << rc << gai_strerror(rc);
                 continue;
             }
 
@@ -142,11 +150,11 @@ bool XBridgeApp::initDht()
 //*****************************************************************************
 bool XBridgeApp::stopDht()
 {
-    qDebug() << "stopping dht thread";
+    LOG() << "stopping dht thread";
     m_dhtStop = true;
     m_dhtThread.join();
 
-    qDebug() << "stoppeng bridge thread";
+    LOG() << "stoppeng bridge thread";
     m_bridge->stop();
     m_bridgeThread.join();
 
@@ -226,7 +234,7 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
     XBridgePacketPtr packet(new XBridgePacket);
     packet->copyFrom(message);
 
-    qDebug() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str()
+    LOG() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str()
              << " command " << packet->command();
 
     boost::mutex::scoped_lock l(m_sessionsLock);
@@ -247,7 +255,7 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 
     else
     {
-        qDebug() << "process message for unknown address";
+        LOG() << "process message for unknown address";
     }
 }
 
@@ -255,7 +263,7 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 //*****************************************************************************
 void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
 {
-    // qDebug() << "received broadcast message";
+    // LOG() << "received broadcast message";
 
     // process message
     XBridgePacketPtr packet(new XBridgePacket);
@@ -289,7 +297,7 @@ void callback(void * closure, int event,
 
     if (event == DHT_EVENT_SEARCH_DONE || event == DHT_EVENT_SEARCH_DONE6)
     {
-        qDebug() << ((event == DHT_EVENT_SEARCH_DONE6) ?
+        LOG() << ((event == DHT_EVENT_SEARCH_DONE6) ?
                         "Search done(6)" : "Search done");
 
         if (app->m_messages.size())
@@ -300,11 +308,11 @@ void callback(void * closure, int event,
 
     else if(event == DHT_EVENT_VALUES)
     {
-        qDebug() << "Received " << (int)(data_len / 6) << " values";
+        LOG() << "Received " << (int)(data_len / 6) << " values";
     }
     else if (event == DHT_EVENT_VALUES6)
     {
-        qDebug() << "Received " << (int)(data_len / 6) << " values(6)";
+        LOG() << "Received " << (int)(data_len / 6) << " values(6)";
     }
 }
 
@@ -314,11 +322,11 @@ void XBridgeApp::dhtThreadProc()
 {
     sleep(500);
 
-    qDebug() << "started";
+    LOG() << "started";
 
     // generate random id
     dht_random_bytes(m_myid, sizeof(m_myid));
-    qDebug() << "generated id <"
+    LOG() << "generated id <"
              << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
              << ">";
 
@@ -326,20 +334,20 @@ void XBridgeApp::dhtThreadProc()
     int s4 = m_ipv4 ? socket(PF_INET, SOCK_DGRAM, 0) : -1;
     if (m_ipv4 && s4 == INVALID_SOCKET)
     {
-        qDebug() << "s4 error";
+        LOG() << "s4 error";
     }
 
     // init s6
     int s6 = m_ipv6 ? socket(PF_INET6, SOCK_DGRAM, 0) : -1;
     if (m_ipv6 && s6 == INVALID_SOCKET)
     {
-        qDebug() << "s6 error";
+        LOG() << "s6 error";
     }
 
     // check no sockets
     if (s4 < 0 && s6 < 0)
     {
-        qDebug() << "no socket";
+        LOG() << "no socket";
         return;
     }
 
@@ -352,7 +360,7 @@ void XBridgeApp::dhtThreadProc()
         rc = bind(s4, (sockaddr *)&m_sin, sizeof(m_sin));
         if (rc < 0)
         {
-            qDebug() << "s4 bind error";
+            LOG() << "s4 bind error";
         }
     }
 
@@ -364,7 +372,7 @@ void XBridgeApp::dhtThreadProc()
                         (char *)&val, sizeof(val));
         if (rc6 < 0)
         {
-            qDebug() << "s6 set opt error";
+            LOG() << "s6 set opt error";
         }
         else
         {
@@ -375,7 +383,7 @@ void XBridgeApp::dhtThreadProc()
             rc6 = bind(s6, (struct sockaddr*)&m_sin6, sizeof(m_sin6));
             if (rc6 < 0)
             {
-                qDebug() << "s6 bind error";
+                LOG() << "s6 bind error";
             }
         }
     }
@@ -390,7 +398,7 @@ void XBridgeApp::dhtThreadProc()
     rc = dht_init(s4, s6, m_myid, (unsigned char*)"BT\0\0");
     if (rc < 0)
     {
-        qDebug() << "dht_init error";
+        LOG() << "dht_init error";
         closesocket(s6);
         closesocket(s4);
         return;
@@ -404,14 +412,14 @@ void XBridgeApp::dhtThreadProc()
     // ping nodes (bootstrap)
     for (size_t i = 0; i < m_nodes.size(); ++i)
     {
-        qDebug() << "ping";
+        LOG() << "ping";
         dht_ping_node((struct sockaddr*)&m_nodes[i], sizeof(m_nodes[i]));
         sleep(rand() % 100);
     }
 
     while (!m_dhtStop)
     {
-        // qDebug() << "working";
+        // LOG() << "working";
 
         fd_set readfds;
 
@@ -434,7 +442,7 @@ void XBridgeApp::dhtThreadProc()
         {
             if (errno != EINTR)
             {
-                qDebug() << "errno";
+                LOG() << "errno";
                 break;
             }
         }
@@ -459,8 +467,8 @@ void XBridgeApp::dhtThreadProc()
                 break;
             }
 
-            // qDebug() << "read";
-            // qDebug() << buf;
+            // LOG() << "read";
+            // LOG() << buf;
         }
 
         if (rc > 0)
@@ -478,12 +486,12 @@ void XBridgeApp::dhtThreadProc()
         {
             if(errno == EINTR)
             {
-                qDebug() << "continue";
+                LOG() << "continue";
                 continue;
             }
             else
             {
-                qDebug() << "dht_periodic";
+                LOG() << "dht_periodic";
                 if (rc == EINVAL || rc == EFAULT)
                 {
                     break;
@@ -494,7 +502,7 @@ void XBridgeApp::dhtThreadProc()
 
         if (m_signalGenerate)
         {
-            qDebug() << "generate new entity";
+            LOG() << "generate new entity";
             unsigned char e[20];
             dht_random_bytes(e, sizeof(e));
             dht_storage_store(e, (sockaddr *)&m_sin, m_dhtPort);
@@ -516,11 +524,11 @@ void XBridgeApp::dhtThreadProc()
                 str = util::base64_decode(str);
                 if (!str.length())
                 {
-                    qDebug() << "searching, skipped empty or error data";
+                    LOG() << "searching, skipped empty or error data";
                     continue;
                 }
 
-                qDebug() << "searching " << str.length() << " bytes";
+                LOG() << "searching " << str.length() << " bytes";
                 if (s4 >= 0)
                 {
                     dht_search((const unsigned char *)str.c_str(), 0, AF_INET, callback, this);
@@ -536,7 +544,7 @@ void XBridgeApp::dhtThreadProc()
 
         if (m_signalSend)
         {
-            // qDebug() << "sendind";
+            // LOG() << "sendind";
 
             if (m_messages.size())
             {
@@ -613,7 +621,7 @@ void XBridgeApp::dhtThreadProc()
                                 if (std::get<2>(mpair))
                                 {
                                     // error resend after search, drop this message
-                                    qDebug() << "drop message to <"
+                                    LOG() << "drop message to <"
                                              << _id.c_str()
                                              << "> (not found)";
                                 }
@@ -629,7 +637,7 @@ void XBridgeApp::dhtThreadProc()
                             else if (err == DHT_NETWORK_BUFFER_OWERFLOW)
                             {
                                 // TODO log error
-                                qDebug() << "NETWORK_BUFFER_OWERFLOW";
+                                LOG() << "NETWORK_BUFFER_OWERFLOW";
                             }
                         }
                     }
@@ -642,10 +650,10 @@ void XBridgeApp::dhtThreadProc()
         // For debugging, or idle curiosity
         else if (m_signalDump)
         {
-            qDebug() << "dumping";
+            LOG() << "dumping";
             std::string dump;
             dht_dump_tables(dump);
-            qDebug() << dump.c_str();
+            LOG() << dump.c_str();
             m_signalDump = false;
         }
     }
@@ -655,7 +663,7 @@ void XBridgeApp::dhtThreadProc()
         struct sockaddr_in6 sin6[500];
         int num = 500, num6 = 500;
         int i = dht_get_nodes(sin, &num, sin6, &num6);
-        qDebug() << "Found " << i << "(" << num << " + " << num6 << ") good nodes";
+        LOG() << "Found " << i << "(" << num << " + " << num6 << ") good nodes";
     }
 
     dht_uninit();
@@ -663,7 +671,7 @@ void XBridgeApp::dhtThreadProc()
     closesocket(s6);
     closesocket(s4);
 
-    qDebug() << "stopped";
+    LOG() << "stopped";
 }
 
 //*****************************************************************************

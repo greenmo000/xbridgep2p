@@ -46,7 +46,8 @@ HEADERS += \
     src/xbridgeexchange.h \
     src/xbridgetransaction.h \
     src/util/settings.h \
-    src/xbridgetransactionmember.h
+    src/xbridgetransactionmember.h \
+    src/version.h
 
 #LIBS += \
 #    -llibeay32 \
