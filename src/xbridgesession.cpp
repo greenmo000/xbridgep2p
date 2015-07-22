@@ -967,23 +967,24 @@ bool XBridgeSession::finishTransaction(XBridgeTransactionPtr tr)
         return false;
     }
 
-    std::vector<std::vector<unsigned char> > rcpts;
-    rcpts.push_back(tr->firstAddress());
-    rcpts.push_back(tr->firstDestination());
-    rcpts.push_back(tr->secondAddress());
-    rcpts.push_back(tr->secondDestination());
+//    std::vector<std::vector<unsigned char> > rcpts;
+//    rcpts.push_back(tr->firstAddress());
+//    rcpts.push_back(tr->firstDestination());
+//    rcpts.push_back(tr->secondAddress());
+//    rcpts.push_back(tr->secondDestination());
 
-    foreach (const std::vector<unsigned char> & to, rcpts)
+//    foreach (const std::vector<unsigned char> & to, rcpts)
     {
         // TODO remove this log
-        LOG() << "send xbcTransactionFinished to "
-              << util::base64_encode(std::string((char *)&to[0], 20));
+//        LOG() << "send xbcTransactionFinished to "
+//              << util::base64_encode(std::string((char *)&to[0], 20));
 
         XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
-        reply->append(to);
+        // reply->append(to);
         reply->append(tr->id().begin(), 32);
 
-        sendPacket(to, reply);
+        // sendPacket(to, reply);
+        sendPacketBroadcast(reply);
     }
 
     tr->finish();
@@ -1031,24 +1032,15 @@ bool XBridgeSession::rollbackTransaction(XBridgeTransactionPtr tr)
 {
     LOG() << "rollback transaction <" << tr->id().GetHex() << ">";
 
-    std::vector<std::vector<unsigned char> > crcpts;
-    std::vector<std::vector<unsigned char> > rrcpts;
+    std::vector<std::vector<unsigned char> > rcpts;
 
-    crcpts.push_back(tr->firstDestination());
-    crcpts.push_back(tr->secondDestination());
-
-    if (tr->state() < XBridgeTransaction::trSigned)
+    if (tr->state() >= XBridgeTransaction::trSigned)
     {
-        crcpts.push_back(tr->firstAddress());
-        crcpts.push_back(tr->secondAddress());
-    }
-    else
-    {
-        rrcpts.push_back(tr->firstAddress());
-        rrcpts.push_back(tr->secondAddress());
+        rcpts.push_back(tr->firstAddress());
+        rcpts.push_back(tr->secondAddress());
     }
 
-    foreach (const std::vector<unsigned char> & to, rrcpts)
+    foreach (const std::vector<unsigned char> & to, rcpts)
     {
         // TODO remove this log
         LOG() << "send xbcTransactionRollback to "
@@ -1061,19 +1053,7 @@ bool XBridgeSession::rollbackTransaction(XBridgeTransactionPtr tr)
         sendPacket(to, reply);
     }
 
-    foreach (const std::vector<unsigned char> & to, crcpts)
-    {
-        // TODO remove this log
-        LOG() << "send xbcTransactionCancel to "
-              << util::base64_encode(std::string((char *)&to[0], 20));
-
-        XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
-        reply->append(to);
-        reply->append(tr->id().begin(), 32);
-
-        sendPacket(to, reply);
-    }
-
+    sendCancelTransaction(tr->id());
     tr->finish();
 
     return true;
