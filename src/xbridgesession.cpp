@@ -829,7 +829,9 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
         {
             // transaction commited, wait for confirm
             LOG() << "commit transaction, wait for confirm. id <"
-                  << txid.GetHex() << "> hash <" << txhash.GetHex() << ">";
+                  << txid.GetHex() << ">" << std::endl
+                  << "    hash <" << tr->firstTxHash().GetHex() << ">" << std::endl
+                  << "    hash <" << tr->secondTxHash().GetHex() << ">";
 
             // send confirm request to clients
 
