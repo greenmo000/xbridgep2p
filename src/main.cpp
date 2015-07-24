@@ -9,10 +9,13 @@
 #include "version.h"
 
 #include <QString>
+#include <QFile>
 // #include <QDateTime>
 // #include <QThread>
 #include <QDebug>
 #include <QtGlobal>
+
+QString g_logFileName;
 
 //*****************************************************************************
 //*****************************************************************************
@@ -41,33 +44,32 @@ void logOutput(QtMsgType type, const char * _msg)
     // mes.replace('\n', ' ');
 
     // QString dt = QDateTime::currentDateTime().toString(QLatin1String("[dd.MM.yy hh:mm:ss] "));
-    QString dt;// = QDateTime::currentDateTime().toString(QLatin1String("[hh:mm:ss] "));
-    switch (type)
-    {
-        case QtDebugMsg:
-            dt += QLatin1String("[D]");
-            break;
-        case QtWarningMsg:
-            dt += QLatin1String("[W]");
-            break;
-        case QtCriticalMsg:
-            dt += QLatin1String("[C]");
-            break;
-        case QtFatalMsg:
-            dt += QLatin1String("[F]");
-    }
+//    QString dt;// = QDateTime::currentDateTime().toString(QLatin1String("[hh:mm:ss] "));
+//    switch (type)
+//    {
+//        case QtDebugMsg:
+//            dt += QLatin1String("[D]");
+//            break;
+//        case QtWarningMsg:
+//            dt += QLatin1String("[W]");
+//            break;
+//        case QtCriticalMsg:
+//            dt += QLatin1String("[C]");
+//            break;
+//        case QtFatalMsg:
+//            dt += QLatin1String("[F]");
+//    }
 
 //    dt += QString().sprintf(" [%04x]", QThread::currentThreadId());
 
-//    QFile f(logFileName);
+    QFile f(g_logFileName);
 
-//    f.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
-
-//    QTextStream out(&f);
-
-//    out << dt << QLatin1Char(' ') << mes << endl << flush;
-
-//    f.close();
+    if (f.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+    {
+        QTextStream out(&f);
+        out << msg << endl << flush;
+        f.close();
+    }
 
 //    fprintf(stderr, "%s %s\n", dt.toLocal8Bit().constData(), msg.toLocal8Bit().constData());
 
@@ -87,6 +89,8 @@ int main(int argc, char *argv[])
     Settings::instance().init(std::string(*argv) + ".conf");
 
     XBridgeApp a(argc, argv);
+
+    g_logFileName = QString(argv[0]) + ".log";
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     qInstallMessageHandler(logOutput);
