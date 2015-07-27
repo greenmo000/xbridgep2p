@@ -1,20 +1,25 @@
 
 windows {
 
+win32-msvc2013 {
 INCLUDEPATH += \
-    d:/work/openssl/include \
-    D:/work/boost/boost_1_55_0
+    d:/work/openssl/openssl/include \
+    D:/work/boost/boost_1_57_0
 
 LIBS += \
-    -Ld:/work/openssl/lib \
-    -LD:/work/boost/boost_1_55_0/stage/lib
+    -Ld:/work/openssl/openssl/lib \
+    -LD:/work/boost/boost_1_57_0/stage/lib
+}
 
 win32-g++ {
 
-LIBS += \
-    -lboost_system-mgw48-mt-1_55 \
-    -lboost_thread-mgw48-mt-1_55
-}
+INCLUDEPATH += \
+    d:/work/openssl/openssl-1.0.2a-mgw/include \
+    D:/work/boost/boost_1_57_0
 
+LIBS += \
+    -Ld:/work/openssl/openssl-1.0.2a-mgw \
+    -LD:/work/boost/boost_1_57_0/stage/lib
+}
 }
 

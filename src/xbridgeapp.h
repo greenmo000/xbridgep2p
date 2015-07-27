@@ -13,6 +13,7 @@
 #include <vector>
 #include <map>
 #include <tuple>
+#include <set>
 
 #ifdef WIN32
 #include <Ws2tcpip.h>
