@@ -9,6 +9,7 @@
 
 CONFIG   += console
 CONFIG   -= app_bundle
+CONFIG   += static
 
 TARGET = xbridgep2p
 TEMPLATE = app
@@ -57,7 +58,6 @@ LIBS += \
 }
 
 win32-g++ {
-
 QMAKE_CXXFLAGS += -std=c++11
 
 LIBS += \
@@ -70,5 +70,16 @@ LIBS += \
     -lboost_thread-mgw49-mt-1_57 \
     -lboost_date_time-mgw49-mt-1_57 \
     -lboost_program_options-mgw49-mt-1_57
+}
 
+gcc {
+QMAKE_CXXFLAGS += -std=c++11
+
+LIBS += \
+    -lcrypto \
+    -lssl \
+    -lboost_system \
+    -lboost_thread \
+    -lboost_date_time \
+    -lboost_program_options
 }

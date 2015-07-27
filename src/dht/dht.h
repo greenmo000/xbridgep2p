@@ -36,6 +36,10 @@ dht_callback(void *closure, int event,
 #define DHT_EVENT_SEARCH_DONE 3
 #define DHT_EVENT_SEARCH_DONE6 4
 
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
+
 extern bool dht_debug;
 
 int dht_init(int s, int s6, const unsigned char *id, const unsigned char *v);

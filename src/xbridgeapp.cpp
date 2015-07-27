@@ -397,8 +397,13 @@ void XBridgeApp::dhtThreadProc()
 
     if (rc < 0 && rc6 < 0)
     {
+#ifdef WIN32
         closesocket(s6);
         closesocket(s4);
+#else
+        close(s6);
+        close(s4);
+#endif
         return;
     }
 
@@ -406,8 +411,13 @@ void XBridgeApp::dhtThreadProc()
     if (rc < 0)
     {
         LOG() << "dht_init error";
+#ifdef WIN32
         closesocket(s6);
         closesocket(s4);
+#else
+        close(s6);
+        close(s4);
+#endif
         return;
     }
 
@@ -673,8 +683,13 @@ void XBridgeApp::dhtThreadProc()
 
     dht_uninit();
 
-    closesocket(s6);
-    closesocket(s4);
+#ifdef WIN32
+        closesocket(s6);
+        closesocket(s4);
+#else
+        close(s6);
+        close(s4);
+#endif
 
     LOG() << "stopped";
 }

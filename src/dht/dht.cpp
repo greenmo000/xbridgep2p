@@ -46,6 +46,10 @@ THE SOFTWARE.
 #include <fcntl.h>
 // #include <sys/time.h>
 
+#ifdef WIN32
+#define snprintf _snprintf
+#endif
+
 #ifdef __MINGW32__
 #include <windef.h>
 #include<winsock2.h>
@@ -1706,7 +1710,7 @@ void dump_bucket(std::stringstream & stream, struct bucket *b)
             inet_ntop(AF_INET6, &sin6->sin6_addr, buf, DHT_NETWORK_BUFFER_LENGTH);
             port = ntohs(sin6->sin6_port);
         } else {
-            _snprintf(buf, DHT_NETWORK_BUFFER_LENGTH, "unknown(%d)", n->ss.ss_family);
+            snprintf(buf, DHT_NETWORK_BUFFER_LENGTH, "unknown(%d)", n->ss.ss_family);
             port = 0;
         }
 
@@ -2667,14 +2671,14 @@ int dht_send_broadcast(const unsigned char * message, const int length)
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0;
     {
-        int rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
         if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return -1;
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:broadcast%d:", msg.length());
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:broadcast%d:", msg.length());
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
     }
 
@@ -2757,14 +2761,14 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0;
     {
-        int rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
         if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return -1;
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q7:message%d:", msg.length());
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q7:message%d:", msg.length());
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
     }
 
@@ -2854,14 +2858,14 @@ send_ping(const struct sockaddr *sa, int salen,
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q4:ping1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q4:ping1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
@@ -2878,14 +2882,14 @@ send_pong(const struct sockaddr *sa, int salen,
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
@@ -2903,23 +2907,23 @@ send_find_node(const struct sockaddr *sa, int salen,
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "6:target20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "6:target20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, target, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if(want > 0) {
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:wantl%s%se",
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:wantl%s%se",
                       (want & WANT4) ? "2:n4" : "",
                       (want & WANT6) ? "2:n6" : "");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     }
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:find_node1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:find_node1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
 
@@ -2941,21 +2945,21 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
     char buf[2048];
     int i = 0, rc, j0, j, k, len;
 
-    rc = _snprintf(buf + i, 2048 - i, "d1:rd2:id20:");
+    rc = snprintf(buf + i, 2048 - i, "d1:rd2:id20:");
     if (!INC(i, rc, 2048)) goto fail;
     if (!COPY(buf, i, myid, 20, 2048)) goto fail;
     if(nodes_len > 0) {
-        rc = _snprintf(buf + i, 2048 - i, "5:nodes%d:", nodes_len);
+        rc = snprintf(buf + i, 2048 - i, "5:nodes%d:", nodes_len);
         if (!INC(i, rc, 2048)) goto fail;
         if (!COPY(buf, i, nodes, nodes_len, 2048)) goto fail;
     }
     if(nodes6_len > 0) {
-         rc = _snprintf(buf + i, 2048 - i, "6:nodes6%d:", nodes6_len);
+         rc = snprintf(buf + i, 2048 - i, "6:nodes6%d:", nodes6_len);
          if (!INC(i, rc, 2048)) goto fail;
          if (!COPY(buf, i, nodes6, nodes6_len, 2048)) goto fail;
     }
     if(token_len > 0) {
-        rc = _snprintf(buf + i, 2048 - i, "5:token%d:", token_len);
+        rc = snprintf(buf + i, 2048 - i, "5:token%d:", token_len);
         if (!INC(i, rc, 2048)) goto fail;
         if (!COPY(buf, i, token, token_len, 2048)) goto fail;
     }
@@ -2970,13 +2974,13 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
         j = j0;
         k = 0;
 
-        rc = _snprintf(buf + i, 2048 - i, "6:valuesl");
+        rc = snprintf(buf + i, 2048 - i, "6:valuesl");
         if (!INC(i, rc, 2048)) goto fail;
         do {
             if(st->peers[j].len == len) {
                 unsigned short swapped;
                 swapped = htons(st->peers[j].port);
-                rc = _snprintf(buf + i, 2048 - i, "%d:", len + 2);
+                rc = snprintf(buf + i, 2048 - i, "%d:", len + 2);
                 if (!INC(i, rc, 2048)) goto fail;
                 if (!COPY(buf, i, st->peers[j].ip, len, 2048)) goto fail;
                 if (!COPY(buf, i, (unsigned char *)&swapped, 2, 2048)) goto fail;
@@ -2984,15 +2988,15 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
             }
             j = (j + 1) % st->numpeers;
         } while(j != j0 && k < 50);
-        rc = _snprintf(buf + i, 2048 - i, "e");
+        rc = snprintf(buf + i, 2048 - i, "e");
         if (!INC(i, rc, 2048)) goto fail;
     }
 
-    rc = _snprintf(buf + i, 2048 - i, "e1:t%d:", tid_len);
+    rc = snprintf(buf + i, 2048 - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, 2048)) goto fail;
     if (!COPY(buf, i, tid, tid_len, 2048)) goto fail;
     ADD_V(buf, i, 2048);
-    rc = _snprintf(buf + i, 2048 - i, "1:y1:re");
+    rc = snprintf(buf + i, 2048 - i, "1:y1:re");
     if (!INC(i, rc, 2048)) goto fail;
 
     return dht_send(buf, i, 0, sa, salen);
@@ -3125,23 +3129,23 @@ send_get_peers(const struct sockaddr *sa, int salen,
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "9:info_hash20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "9:info_hash20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, infohash, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if(want > 0) {
-        rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:wantl%s%se",
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:wantl%s%se",
                       (want & WANT4) ? "2:n4" : "",
                       (want & WANT6) ? "2:n6" : "");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     }
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:get_peers1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:get_peers1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
 
@@ -3161,21 +3165,21 @@ send_announce_peer(const struct sockaddr *sa, int salen,
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "9:info_hash20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "9:info_hash20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, infohash, 20, DHT_NETWORK_BUFFER_LENGTH))
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:porti%ue5:token%d:", (unsigned)port,
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "4:porti%ue5:token%d:", (unsigned)port,
                   token_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, token, token_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q13:announce_peer1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q13:announce_peer1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
 
     return dht_send(buf, i, confirm ? 0 : MSG_CONFIRM, sa, salen);
@@ -3194,14 +3198,14 @@ send_peer_announced(const struct sockaddr *sa, int salen,
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
@@ -3220,15 +3224,15 @@ send_error(const struct sockaddr *sa, int salen,
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0, rc;
 
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:eli%de%d:",
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:eli%de%d:",
                   code, (int)strlen(message));
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, (const unsigned char *)message, (int)strlen(message), DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
-    rc = _snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:ee");
+    rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:ee");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
 
@@ -3301,7 +3305,7 @@ parse_message(const unsigned char *buf, int buflen,
     if(((unsigned char*)ptr) + (len) > (buf) + (buflen)) goto overflow;
 
     if(tid_return) {
-        p = dht_memmem((const char *)buf, buflen, "1:t", 3);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "1:t", 3);
         if(p) {
             long l;
             char *q;
@@ -3315,7 +3319,7 @@ parse_message(const unsigned char *buf, int buflen,
         }
     }
     if(id_return) {
-        p = dht_memmem((const char *)buf, buflen, "2:id20:", 7);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "2:id20:", 7);
         if(p) {
             CHECK(p + 7, 20);
             memcpy(id_return, p + 7, 20);
@@ -3324,7 +3328,7 @@ parse_message(const unsigned char *buf, int buflen,
         }
     }
     if(info_hash_return) {
-        p = dht_memmem((const char *)buf, buflen, "9:info_hash20:", 14);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "9:info_hash20:", 14);
         if(p) {
             CHECK(p + 14, 20);
             memcpy(info_hash_return, p + 14, 20);
@@ -3333,7 +3337,7 @@ parse_message(const unsigned char *buf, int buflen,
         }
     }
     if(port_return) {
-        p = dht_memmem((const char *)buf, buflen, "porti", 5);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "porti", 5);
         if(p) {
             long l;
             char *q;
@@ -3346,7 +3350,7 @@ parse_message(const unsigned char *buf, int buflen,
             *port_return = 0;
     }
     if(target_return) {
-        p = dht_memmem((const char *)buf, buflen, "6:target20:", 11);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "6:target20:", 11);
         if(p) {
             CHECK(p + 11, 20);
             memcpy(target_return, p + 11, 20);
@@ -3355,7 +3359,7 @@ parse_message(const unsigned char *buf, int buflen,
         }
     }
     if(token_return) {
-        p = dht_memmem((const char *)buf, buflen, "5:token", 7);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "5:token", 7);
         if(p) {
             long l;
             char *q;
@@ -3371,7 +3375,7 @@ parse_message(const unsigned char *buf, int buflen,
     }
 
     if(nodes_len) {
-        p = dht_memmem((const char *)buf, buflen, "5:nodes", 7);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "5:nodes", 7);
         if(p) {
             long l;
             char *q;
@@ -3387,7 +3391,7 @@ parse_message(const unsigned char *buf, int buflen,
     }
 
     if(nodes6_len) {
-        p = dht_memmem((const char *)buf, buflen, "6:nodes6", 8);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "6:nodes6", 8);
         if(p) {
             long l;
             char *q;
@@ -3403,7 +3407,7 @@ parse_message(const unsigned char *buf, int buflen,
     }
 
     if(values_len || values6_len) {
-        p = dht_memmem((const char *)buf, buflen, "6:valuesl", 9);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "6:valuesl", 9);
         if(p) {
             int i = p - buf + 9;
             int j = 0, j6 = 0;
@@ -3446,7 +3450,7 @@ parse_message(const unsigned char *buf, int buflen,
     }
 
     if(want_return) {
-        p = dht_memmem((const char *)buf, buflen, "4:wantl", 7);
+        p = (unsigned char*)dht_memmem((const char *)buf, buflen, "4:wantl", 7);
         if(p) {
             int i = p - buf + 7;
             *want_return = 0;
