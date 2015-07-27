@@ -67,6 +67,8 @@ bool Settings::parseCmdLine(int argc, char * argv[])
     {
         m_peers = options["peer"].as<std::vector<std::string> >();
     }
+
+    return true;
 }
 
 //******************************************************************************
