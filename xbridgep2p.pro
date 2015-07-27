@@ -51,35 +51,6 @@ HEADERS += \
     src/version.h \
     src/config.h
 
-win32-msvc2013 {
-LIBS += \
-    -llibeay32 \
-    -lssleay32
-}
-
-win32-g++ {
-QMAKE_CXXFLAGS += -std=c++11
-
-LIBS += \
-    -lwsock32 \
-    -lws2_32 \
-    -lcrypto \
-    -lssl \
-    -lgdi32 \
-    -lboost_system-mgw49-mt-1_57 \
-    -lboost_thread-mgw49-mt-1_57 \
-    -lboost_date_time-mgw49-mt-1_57 \
-    -lboost_program_options-mgw49-mt-1_57
-}
-
-gcc {
-QMAKE_CXXFLAGS += -std=c++11
-
-LIBS += \
-    -lcrypto \
-    -lssl \
-    -lboost_system \
-    -lboost_thread \
-    -lboost_date_time \
-    -lboost_program_options
-}
+DISTFILES += \
+    xbridgep2p.exe.conf \
+    config.orig.pri
