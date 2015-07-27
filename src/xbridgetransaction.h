@@ -45,7 +45,9 @@ public:
     enum
     {
         // ttl in seconds
-        TTL = 600
+        // TTL = 600
+        // 150 for testing
+        TTL = 150
     };
 
 public:
