@@ -34,14 +34,13 @@ XBridgeExchange & XBridgeExchange::instance()
 //*****************************************************************************
 bool XBridgeExchange::init()
 {
-    QStringList args = qApp->arguments();
-    if (!args.contains("-enable-exchange"))
+    if (!settings().isExchangeEnabled())
     {
         // disabled
         return true;
     }
 
-    Settings & s = Settings::instance();
+    Settings & s = settings();
 
     std::vector<std::string> wallets = s.exchangeWallets();
     for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)

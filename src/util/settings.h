@@ -15,24 +15,92 @@
 //******************************************************************************
 class Settings
 {
-public:
-    static Settings & instance();
-    bool init(const std::string & filename);
+    friend Settings & settings();
 
-    std::vector<std::string> exchangeWallets() const;
-
-    template<typename T> T get(std::string key) const
-    {
-        T value;
-        TRY(value = m_pt.get<T>(key));
-        return value;
-    }
-
-    // boost::property_tree::ptree & properties() { return m_pt; }
 private:
     Settings();
 
+public:
+    bool parseCmdLine(int argc, char * argv[]);
+
+    bool read(const char * fileName = 0);
+    bool write(const char * fileName = 0);
+
+public:
+    bool isFullLog() const
+#ifdef _DEBUG
+        { return true; }
+#else
+        { return get<bool>("Main.FullLog", false); }
+#endif
+
+    bool isExchangeEnabled() const { return m_isExchangeEnabled; }
+    std::string appPath() const    { return m_appPath; }
+
+    unsigned short dhtPort() const    { return m_dhtPort; }
+    unsigned short bridgePort() const { return m_bridgePort; }
+
+    const std::vector<std::string> peers() const { return m_peers; }
+
+    std::string logPath() const
+    {
+        try { return m_pt.get<std::string>("Main.LogPath"); }
+        catch (std::exception &) {} return std::string();
+    }
+
+    std::vector<std::string> exchangeWallets() const;
+
+public:
+    template <class _T>
+    _T get(const std::string & param, _T def = _T()) const
+    {
+        return get<_T>(param.c_str(), def);
+    }
+
+    template <class _T>
+    _T get(const char * param, _T def = _T()) const
+    {
+        _T tmp = def;
+        try
+        {
+            tmp = m_pt.get<_T>(param);
+        }
+        catch (std::exception & e)
+        {
+            LOG() << e.what();
+        }
+        return tmp;
+    }
+
+    template <class _T>
+    bool set(const char * param, const _T & val)
+    {
+        try
+        {
+            m_pt.put<_T>(param, val);
+            write();
+        }
+        catch (std::exception & e)
+        {
+            LOG() << e.what();
+            return false;
+        }
+        return true;
+    }
+
+private:
+    std::string                 m_appPath;
+    std::string                 m_fileName;
     boost::property_tree::ptree m_pt;
+
+    unsigned short              m_dhtPort;
+    unsigned short              m_bridgePort;
+
+    std::vector<std::string>    m_peers;
+
+    bool                        m_isExchangeEnabled;
 };
+
+Settings & settings();
 
 #endif // SETTINGS_H

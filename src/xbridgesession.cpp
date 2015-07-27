@@ -39,7 +39,6 @@ XBridgeSession::XBridgeSession()
     m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
 
     // transaction processing
-    // if (XBridgeExchange::instance().isEnabled())
     {
         m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::processTransactionHoldApply);
         m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processTransactionInitialized);
@@ -52,20 +51,6 @@ XBridgeSession::XBridgeSession()
         // wallet received transaction
         m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processBitcoinTransactionHash);
     }
-//    else
-//    {
-//        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSession::relayPacket);
-//        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::relayPacket);
-//        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::relayPacket);
-//        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSession::relayPacket);
-//        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSession::relayPacket);
-//        // m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSession::relayPacket);
-//        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSession::relayPacket);
-
-//        // wallet received transaction
-//        // TODO make broadcast or run wallet for exchange node?
-//        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processZero);
-//    }
 
     // retranslate messages to xbridge network
     m_processors[xbcXChatMessage]          .bind(this, &XBridgeSession::processXChatMessage);
@@ -94,8 +79,8 @@ void XBridgeSession::disconnect()
 
     LOG() << "client disconnected " << m_socket.get();
 
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    app->storageClean(shared_from_this());
+    XBridgeApp & app = XBridgeApp::instance();
+    app.storageClean(shared_from_this());
 }
 
 //*****************************************************************************
@@ -198,8 +183,8 @@ void XBridgeSession::onReadBody(XBridgePacketPtr packet,
 //*****************************************************************************
 const unsigned char * XBridgeSession::myaddr() const
 {
-    static XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    return app->myid();
+    XBridgeApp & app = XBridgeApp::instance();
+    return app.myid();
 }
 
 //*****************************************************************************
@@ -225,8 +210,8 @@ bool XBridgeSession::decryptPacket(XBridgePacketPtr /*packet*/)
 void XBridgeSession::sendPacket(const std::vector<unsigned char> & to,
                                 XBridgePacketPtr packet)
 {
-    static XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    app->onSend(to, packet->body());
+    XBridgeApp & app = XBridgeApp::instance();
+    app.onSend(to, packet->body());
 }
 
 //*****************************************************************************
@@ -240,12 +225,12 @@ bool XBridgeSession::relayPacket(XBridgePacketPtr packet)
     }
 
     // check address
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    if (memcmp(packet->data(), app->myid(), 20) != 0)
+    XBridgeApp & app = XBridgeApp::instance();
+    if (memcmp(packet->data(), app.myid(), 20) != 0)
     {
         // not for me, retranslate packet
         std::vector<unsigned char> addr(packet->data(), packet->data() + 20);
-        app->onSend(addr, packet);
+        app.onSend(addr, packet);
         return true;
     }
 
@@ -311,8 +296,8 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
         return false;
     }
 
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    app->storageStore(shared_from_this(), packet->data());
+    XBridgeApp & app = XBridgeApp::instance();
+    app.storageStore(shared_from_this(), packet->data());
     return true;
 }
 
@@ -361,8 +346,8 @@ bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
     // read dest address
     std::vector<unsigned char> daddr(packet->data(), packet->data() + 20);
 
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    app->onSend(daddr, std::vector<unsigned char>(packet->header(), packet->header()+packet->allSize()));
+    XBridgeApp & app = XBridgeApp::instance();
+    app.onSend(daddr, std::vector<unsigned char>(packet->header(), packet->header()+packet->allSize()));
 
     return true;
 }
@@ -374,8 +359,8 @@ void XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
 
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    app->onSend(packet);
+    XBridgeApp & app = XBridgeApp::instance();
+    app.onSend(packet);
 }
 
 //*****************************************************************************
@@ -434,7 +419,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
                 if (tr && tr->state() == XBridgeTransaction::trJoined)
                 {
                     // send hold to clients
-                    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
+                    XBridgeApp & app = XBridgeApp::instance();
 
                     // first
                     // TODO remove this log
@@ -443,13 +428,13 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 
                     XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
                     reply1->append(tr->firstAddress());
-                    reply1->append(app->myid(), 20);
+                    reply1->append(app.myid(), 20);
                     reply1->append(tr->firstId().begin(), 32);
                     reply1->append(transactionId.begin(), 32);
 
-                    app->onSend(tr->firstAddress(),
-                                std::vector<unsigned char>(reply1->header(),
-                                                           reply1->header()+reply1->allSize()));
+                    app.onSend(tr->firstAddress(),
+                               std::vector<unsigned char>(reply1->header(),
+                                                          reply1->header()+reply1->allSize()));
 
                     // second
                     // TODO remove this log
@@ -458,13 +443,13 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 
                     XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
                     reply2->append(tr->secondAddress());
-                    reply2->append(app->myid(), 20);
+                    reply2->append(app.myid(), 20);
                     reply2->append(tr->secondId().begin(), 32);
                     reply2->append(transactionId.begin(), 32);
 
-                    app->onSend(tr->secondAddress(),
-                                std::vector<unsigned char>(reply2->header(),
-                                                           reply2->header()+reply2->allSize()));
+                    app.onSend(tr->secondAddress(),
+                               std::vector<unsigned char>(reply2->header(),
+                                                          reply2->header()+reply2->allSize()));
                 }
             }
         }
@@ -1042,8 +1027,11 @@ bool XBridgeSession::rollbackTransaction(XBridgeTransactionPtr tr)
         rcpts.push_back(tr->secondAddress());
     }
 
-    foreach (const std::vector<unsigned char> & to, rcpts)
+    std::vector<std::vector<unsigned char> >::const_iterator i = rcpts.begin();
+    for (; i != rcpts.end(); ++i)
     {
+        const std::vector<unsigned char> & to = *i;
+
         // TODO remove this log
         LOG() << "send xbcTransactionRollback to "
               << util::base64_encode(std::string((char *)&to[0], 20));
@@ -1122,8 +1110,11 @@ void XBridgeSession::sendListOfTransactions()
     }
 
     std::list<XBridgeTransactionPtr> list = e.pendingTransactions();
-    foreach (XBridgeTransactionPtr ptr, list)
+    std::list<XBridgeTransactionPtr>::iterator i = list.begin();
+    for (; i != list.end(); ++i)
     {
+        XBridgeTransactionPtr & ptr = *i;
+
         boost::mutex::scoped_lock l(ptr->m_lock);
 
         XBridgePacketPtr packet(new XBridgePacket(xbcPendingTransaction));
@@ -1162,39 +1153,42 @@ void XBridgeSession::checkFinishedTransactions()
     }
 
     std::list<XBridgeTransactionPtr> list = e.finishedTransactions();
-    foreach (XBridgeTransactionPtr ptr, list)
+    std::list<XBridgeTransactionPtr>::iterator i = list.begin();
+    for (; i != list.end(); ++i)
     {
+        XBridgeTransactionPtr & ptr = *i;
+
         boost::mutex::scoped_lock l(ptr->m_lock);
 
         uint256 txid = ptr->id();
 
         if (ptr->state() == XBridgeTransaction::trConfirmed)
         {
-            // TODO send finished
+            // send finished
             LOG() << "confirmed transaction <" << txid.GetHex() << ">";
             finishTransaction(ptr);
         }
         else if (ptr->state() == XBridgeTransaction::trCancelled)
         {
-            // TODO drop cancelled tx
+            // drop cancelled tx
             LOG() << "drop cancelled transaction <" << txid.GetHex() << ">";
             ptr->drop();
         }
         else if (ptr->state() == XBridgeTransaction::trFinished)
         {
-            // TODO delete finished tx
+            // delete finished tx
             LOG() << "delete finished transaction <" << txid.GetHex() << ">";
             e.deleteTransaction(txid);
         }
         else if (ptr->state() == XBridgeTransaction::trDropped)
         {
-            // TODO delete dropped tx
+            // delete dropped tx
             LOG() << "delete dropped transaction <" << txid.GetHex() << ">";
             e.deleteTransaction(txid);
         }
         else if (!ptr->isValid())
         {
-            // TODO delete invalid tx
+            // delete invalid tx
             LOG() << "delete invalid transaction <" << txid.GetHex() << ">";
             e.deleteTransaction(txid);
         }

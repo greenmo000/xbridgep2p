@@ -4,9 +4,11 @@
 #
 #-------------------------------------------------
 
-QT       += core gui concurrent
+#QT       += core concurrent
+#greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+CONFIG   += console
+CONFIG   -= app_bundle
 
 TARGET = xbridgep2p
 TEMPLATE = app
@@ -21,7 +23,6 @@ DEFINES += \
 
 SOURCES += \
     src/main.cpp\
-    src/statdialog.cpp \
     src/dht/dht.cpp \
     src/util/util.cpp \
     src/util/logger.cpp \
@@ -34,7 +35,6 @@ SOURCES += \
     src/xbridgetransactionmember.cpp
 
 HEADERS += \
-    src/statdialog.h \
     src/dht/dht.h \
     src/util/util.h \
     src/util/logger.h \
@@ -47,7 +47,8 @@ HEADERS += \
     src/xbridgetransaction.h \
     src/util/settings.h \
     src/xbridgetransactionmember.h \
-    src/version.h
+    src/version.h \
+    src/config.h
 
 #LIBS += \
 #    -llibeay32 \

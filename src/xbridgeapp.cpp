@@ -5,35 +5,32 @@
 #include "xbridgeexchange.h"
 #include "util/util.h"
 #include "util/logger.h"
+#include "util/settings.h"
 #include "dht/dht.h"
 #include "version.h"
+#include "config.h"
 
 #include <thread>
 #include <chrono>
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <openssl/rand.h>
 #include <openssl/md5.h>
 
-#include <QByteArray>
-#include <QTimer>
-#include <QStringList>
-
 //*****************************************************************************
 //*****************************************************************************
-XBridgeApp::XBridgeApp(int argc, char *argv[])
-    : QApplication(argc, argv)
-    , m_path(std::string(*argv))
-    , m_signalGenerate(false)
+XBridgeApp::XBridgeApp()
+    : m_signalGenerate(false)
     , m_signalDump(false)
     , m_signalSearch(false)
     , m_signalSend(false)
     , m_ipv4(true)
     , m_ipv6(true)
-    , m_dhtPort(DHT_PORT)
-    , m_bridgePort(BRIDGE_PORT)
+    , m_dhtPort(Config::DHT_PORT)
+    , m_bridgePort(Config::BRIDGE_PORT)
 {
 }
 
@@ -44,6 +41,23 @@ XBridgeApp::~XBridgeApp()
 #ifdef WIN32
     WSACleanup();
 #endif
+}
+
+//*****************************************************************************
+//*****************************************************************************
+// static
+XBridgeApp & XBridgeApp::instance()
+{
+    static XBridgeApp app;
+    return app;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+int XBridgeApp::exec()
+{
+    m_threads.join_all();
+    return 0;
 }
 
 //*****************************************************************************
@@ -71,54 +85,48 @@ bool XBridgeApp::initDht()
     }
 #endif
 
-    // parse parameters
-    QStringList args = arguments();
-    for (QStringList::iterator i = args.begin(); i != args.end(); ++i)
+    Settings & s = settings();
+    m_dhtPort    = s.dhtPort();
+    m_bridgePort = s.bridgePort();
+
+    std::vector<std::string> peers = s.peers();
+    for (std::vector<std::string>::iterator i = peers.begin(); i != peers.end(); ++i)
     {
-        QString arg = *i;
-        if (arg.startsWith("-dhtport="))
+        std::string peer = *i;
+        std::string port = boost::lexical_cast<std::string>(Config::DHT_PORT);
+
+        size_t idx = peer.find(':');
+        if (idx != std::string::npos)
         {
-            m_dhtPort = arg.mid(9).toInt();
-            LOG() << "-dhtport -> " << m_dhtPort;
+            port = peer.substr(idx+1);
+            peer = peer.substr(0, idx);
         }
-        else if (arg.startsWith("-bridgeport="))
+
+        LOG() << "peer -> " << peer << ":" << port;
+
+        addrinfo   hints;
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_socktype = SOCK_DGRAM;
+        hints.ai_family   = !m_ipv6 ? AF_INET :
+                            !m_ipv4 ? AF_INET6 : 0;
+
+        addrinfo * info = 0;
+        int rc = getaddrinfo(peer.c_str(), port.c_str(), &hints, &info);
+        if (rc != 0)
         {
-            m_bridgePort = arg.mid(12).toInt();
-            LOG() << "-bridgeport -> " << m_bridgePort;
+            LOG() << "getaddrinfo failed " << rc << gai_strerror(rc);
+            continue;
         }
-        else if (arg.startsWith("-peer="))
+
+        addrinfo * infop = info;
+        while(infop)
         {
-            QString peer = arg.mid(6);
-            int idx = peer.indexOf(':');
-            QString port = peer.mid(idx+1);
-            peer = peer.left(idx);
-
-            LOG() << "-peer -> " << peer.toStdString() << ":" << port.toInt();
-
-            addrinfo   hints;
-            memset(&hints, 0, sizeof(hints));
-            hints.ai_socktype = SOCK_DGRAM;
-            hints.ai_family   = !m_ipv6 ? AF_INET :
-                                !m_ipv4 ? AF_INET6 : 0;
-
-            addrinfo * info = 0;
-            int rc = getaddrinfo(peer.toLocal8Bit(), port.toLocal8Bit(), &hints, &info);
-            if (rc != 0)
-            {
-                LOG() << "getaddrinfo failed " << rc << gai_strerror(rc);
-                continue;
-            }
-
-            addrinfo * infop = info;
-            while(infop)
-            {
-                sockaddr_storage tmp;
-                memcpy(&tmp, infop->ai_addr, infop->ai_addrlen);
-                m_nodes.push_back(tmp);
-                infop = infop->ai_next;
-            }
-            freeaddrinfo(info);
+            sockaddr_storage tmp;
+            memcpy(&tmp, infop->ai_addr, infop->ai_addrlen);
+            m_nodes.push_back(tmp);
+            infop = infop->ai_next;
         }
+        freeaddrinfo(info);
     }
 
     // start xbrige
@@ -138,10 +146,9 @@ bool XBridgeApp::initDht()
     // start dht thread
     m_dhtStarted = false;
     m_dhtStop    = false;
-    m_dhtThread  = std::thread(&XBridgeApp::dhtThreadProc, this);
-    // m_dhtThread.join();
 
-    m_bridgeThread = std::thread(&XBridgeApp::bridgeThreadProc, this);
+    m_threads.create_thread(boost::bind(&XBridgeApp::dhtThreadProc, this));
+    m_threads.create_thread(boost::bind(&XBridgeApp::bridgeThreadProc, this));
 
     return true;
 }
@@ -150,23 +157,23 @@ bool XBridgeApp::initDht()
 //*****************************************************************************
 bool XBridgeApp::stopDht()
 {
-    LOG() << "stopping dht thread";
-    m_dhtStop = true;
-    m_dhtThread.join();
+    // LOG() << "stopping dht thread";
+    // m_dhtStop = true;
+    // m_dhtThread.join();
 
-    LOG() << "stoppeng bridge thread";
-    m_bridge->stop();
-    m_bridgeThread.join();
+    // LOG() << "stopping bridge thread";
+    // m_bridge->stop();
+    // m_bridgeThread.join();
 
     return true;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeApp::logMessage(const QString & msg)
-{
-    emit showLogMessage(msg);
-}
+//void XBridgeApp::logMessage(const QString & msg)
+//{
+//    emit showLogMessage(msg);
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -548,8 +555,7 @@ void XBridgeApp::dhtThreadProc()
 
             if (m_messages.size())
             {
-                // TODO
-                // sync
+                // TODO sync
                 std::list<MessagePair> messages = m_messages;
                 m_messages.clear();
 
@@ -576,7 +582,7 @@ void XBridgeApp::dhtThreadProc()
                             }
                         }
 
-                        // TODO send to xbridge network
+                        // send to xbridge network
                         dht_send_broadcast(&message[0], message.size());
 
                         // add to known
@@ -636,7 +642,6 @@ void XBridgeApp::dhtThreadProc()
                             }
                             else if (err == DHT_NETWORK_BUFFER_OWERFLOW)
                             {
-                                // TODO log error
                                 LOG() << "NETWORK_BUFFER_OWERFLOW";
                             }
                         }

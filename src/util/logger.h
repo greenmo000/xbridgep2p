@@ -26,6 +26,9 @@ public:
     virtual ~LOG();
 
 private:
+    const std::string makeFileName() const;
+
+private:
     char m_r;
 };
 

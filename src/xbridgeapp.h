@@ -8,48 +8,45 @@
 #include "xbridgesession.h"
 #include "util/uint256.h"
 
-#include <QApplication>
-
 #include <thread>
 #include <atomic>
 #include <vector>
 #include <map>
 #include <tuple>
 
+#ifdef WIN32
 #include <Ws2tcpip.h>
+#endif
 
 //*****************************************************************************
 //*****************************************************************************
-class XBridgeApp : public QApplication
+class XBridgeApp
 {
     friend void callback(void * closure, int event,
                          const unsigned char * info_hash,
                          const void * data, size_t data_len);
 
-    Q_OBJECT
-
-public:
-    enum
-    {
-        BRIDGE_PORT = 30330,
-        DHT_PORT    = 33330
-    };
-
-public:
-    XBridgeApp(int argc, char *argv[]);
+private:
+    XBridgeApp();
     virtual ~XBridgeApp();
 
-signals:
-    void showLogMessage(const QString & msg);
+public:
+    static XBridgeApp & instance();
+
+    bool init(int argc, char *argv[]);
+
+    int exec();
+
+//signals:
+//    void showLogMessage(const QString & msg);
 
 public:
     const unsigned char * myid() const { return m_myid; }
-    const std::string path() const     { return m_path; }
 
     bool initDht();
     bool stopDht();
 
-    void logMessage(const QString & msg);
+    // void logMessage(const QString & msg);
 
     // store session addresses in local table
     void storageStore(XBridgeSessionPtr session, const unsigned char * data);
@@ -59,7 +56,7 @@ public:
     bool isLocalAddress(const std::vector<unsigned char> & id);
     bool isKnownMessage(const std::vector<unsigned char> & message);
 
-public slots:
+public:// slots:
     // generate new id
     void onGenerate();
     // dump local table
@@ -86,9 +83,8 @@ private:
 private:
     unsigned char     m_myid[20];
 
-    std::string       m_path;
-
-    std::thread       m_dhtThread;
+    boost::thread_group m_threads;
+    // std::thread       m_dhtThread;
     std::atomic<bool> m_dhtStarted;
     std::atomic<bool> m_dhtStop;
 
@@ -112,7 +108,7 @@ private:
 
     std::vector<sockaddr_storage> m_nodes;
 
-    std::thread       m_bridgeThread;
+    // std::thread       m_bridgeThread;
     unsigned short    m_bridgePort;
     XBridgePtr        m_bridge;
 

@@ -35,6 +35,7 @@ THE SOFTWARE.
 
 #include "../util/util.h"
 #include "../util/logger.h"
+#include "../xbridgeapp.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,10 +86,6 @@ THE SOFTWARE.
 #else
   #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
 #endif
-
-// TODO remove
-#include "../xbridgeapp.h"
-#include <QDebug>
 
 //struct timezone
 //{
@@ -1527,9 +1524,8 @@ storage_store(const unsigned char *id,
 //*****************************************************************************
 int dht_storage_store(const unsigned char * id, const sockaddr *sa, unsigned short port)
 {
-    // TODO sizeof (id)
-    // qDebug() << "new entity";
-    // qDebug() << util::base64_encode(std::string((char *)id, 20)).c_str();
+    // LOG() << "new entity";
+    // LOG() << util::base64_encode(std::string((char *)id, 20)).c_str();
 
     return storage_store(id, sa, port);
 }
@@ -2385,18 +2381,18 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::vector<unsigned char> vmessage;
                 std::copy(message.begin()+20, message.end(), std::back_inserter(vmessage));
 
-                XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                if (!app->isKnownMessage(vmessage))
+                XBridgeApp & app = XBridgeApp::instance();
+                if (!app.isKnownMessage(vmessage))
                 {
-                    if (app->isLocalAddress(addr))
+                    if (app.isLocalAddress(addr))
                     {
                         // process message
-                        app->onMessageReceived(addr, vmessage);
+                        app.onMessageReceived(addr, vmessage);
                     }
                     else
                     {
                         // relay message
-                        app->onSend(addr, vmessage);
+                        app.onSend(addr, vmessage);
                     }
                 }
 
@@ -2425,13 +2421,13 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 std::vector<unsigned char> vmessage;
                 std::copy(message.begin(), message.end(), std::back_inserter(vmessage));
 
-                XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-                if (!app->isKnownMessage(vmessage))
+                XBridgeApp & app = XBridgeApp::instance();
+                if (!app.isKnownMessage(vmessage))
                 {
-                    app->onBroadcastReceived(vmessage);
+                    app.onBroadcastReceived(vmessage);
 
                     // relay message
-                    app->onSend(vmessage);
+                    app.onSend(vmessage);
                 }
 
                 break;

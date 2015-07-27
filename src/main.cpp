@@ -1,107 +1,20 @@
 //*****************************************************************************
 //*****************************************************************************
 
-#include "statdialog.h"
 #include "xbridgeapp.h"
 #include "xbridgeexchange.h"
 #include "util/settings.h"
-#include "statdialog.h"
 #include "version.h"
-
-#include <QString>
-#include <QFile>
-// #include <QDateTime>
-// #include <QThread>
-#include <QDebug>
-#include <QtGlobal>
-
-QString g_logFileName;
-
-//*****************************************************************************
-//*****************************************************************************
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-void logOutput(QtMsgType type,
-               const QMessageLogContext & /*context*/,
-               const QString &msg)
-{
-#else
-void logOutput(QtMsgType type, const char * _msg)
-{
-    QString msg(_msg);
-#endif
-    static bool recursion = false;
-    if (recursion)
-    {
-        assert(false);
-        return;
-    }
-
-    recursion = true;
-
-//    QString logFileName = settings().logFileName();
-
-    // QString mes = QString::fromUtf8(msg);
-    // mes.replace('\n', ' ');
-
-    // QString dt = QDateTime::currentDateTime().toString(QLatin1String("[dd.MM.yy hh:mm:ss] "));
-//    QString dt;// = QDateTime::currentDateTime().toString(QLatin1String("[hh:mm:ss] "));
-//    switch (type)
-//    {
-//        case QtDebugMsg:
-//            dt += QLatin1String("[D]");
-//            break;
-//        case QtWarningMsg:
-//            dt += QLatin1String("[W]");
-//            break;
-//        case QtCriticalMsg:
-//            dt += QLatin1String("[C]");
-//            break;
-//        case QtFatalMsg:
-//            dt += QLatin1String("[F]");
-//    }
-
-//    dt += QString().sprintf(" [%04x]", QThread::currentThreadId());
-
-    QFile f(g_logFileName);
-
-    if (f.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
-    {
-        QTextStream out(&f);
-        out << msg << endl << flush;
-        f.close();
-    }
-
-//    fprintf(stderr, "%s %s\n", dt.toLocal8Bit().constData(), msg.toLocal8Bit().constData());
-
-    XBridgeApp * app = qobject_cast<XBridgeApp *>(qApp);
-    if (app)
-    {
-        app->logMessage(msg);
-    }
-
-    recursion = false;
-}
 
 //*****************************************************************************
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
-    Settings::instance().init(std::string(*argv) + ".conf");
+    Settings & s = settings();
+    s.read((std::string(*argv) + ".conf").c_str());
+    s.parseCmdLine(argc, argv);
 
-    XBridgeApp a(argc, argv);
-
-    g_logFileName = QString(argv[0]) + ".log";
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    qInstallMessageHandler(logOutput);
-#else
-    qInstallMsgHandler(logOutput);
-#endif
-
-    StatDialog w;
-    a.connect(&a, SIGNAL(showLogMessage(const QString &)),
-              &w, SLOT(onLogMessage(const QString &)));
-    w.show();
+    XBridgeApp & a = XBridgeApp::instance();
 
     // init xbridge network
     a.initDht();
@@ -110,15 +23,9 @@ int main(int argc, char *argv[])
     XBridgeExchange & e = XBridgeExchange::instance();
     e.init();
 
-    if (e.isEnabled())
-    {
-        w.setWindowTitle(QString("xbridgep2p - [exchange] - [v.%1.%2]")
-                         .arg(QString::number(XBRIDGE_VERSION_MAJOR),
-                              QString::number(XBRIDGE_VERSION_MINOR)));
-    }
-
     int retcode = a.exec();
 
+    // stop
     a.stopDht();
 
     return retcode;
