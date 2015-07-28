@@ -93,7 +93,7 @@ bool XBridgeExchange::isEnabled()
 //*****************************************************************************
 bool XBridgeExchange::haveConnectedWallet(const std::string & walletName)
 {
-    return m_wallets.count(walletName);
+    return m_wallets.count(walletName) > 0;
 }
 
 //*****************************************************************************

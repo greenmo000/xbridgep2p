@@ -3,6 +3,7 @@
 
 #include "util.h"
 
+#include <boost/locale.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/insert_linebreaks.hpp>
@@ -16,8 +17,66 @@
 namespace util
 {
 
+static std::locale loc("rus");
+
+//******************************************************************************
+//******************************************************************************
+std::wstring wide_string(std::string const &s)//, std::locale const &loc)
+{
+    if (s.empty())
+    {
+        return std::wstring();
+    }
+
+    std::ctype<wchar_t> const &facet = std::use_facet<std::ctype<wchar_t> >(loc);
+    char const *first = s.c_str();
+    char const *last = first + s.size();
+    std::vector<wchar_t> result(s.size());
+
+    facet.widen(first, last, &result[0]);
+
+    return std::wstring(result.begin(), result.end());
+}
+
+//******************************************************************************
+//******************************************************************************
+//std::string narrow_string(std::wstring const &s, char default_char)//, std::locale const &loc, char default_char)
+//{
+//    if (s.empty())
+//    {
+//        return std::string();
+//    }
+
+//    std::ctype<wchar_t> const &facet = std::use_facet<std::ctype<wchar_t> >(loc);
+//    wchar_t const *first = s.c_str();
+//    wchar_t const *last = first + s.size();
+//    std::vector<char> result(s.size());
+
+//    facet.narrow(first, last, default_char, &result[0]);
+
+//    return std::string(result.begin(), result.end());
+//}
+
+//******************************************************************************
+//******************************************************************************
+std::string mb_string(std::string const &s)
+{
+    return mb_string(wide_string(s));
+}
+
+//******************************************************************************
+//******************************************************************************
+std::string mb_string(std::wstring const &s)
+{
+    return boost::locale::conv::utf_to_utf<char>(s);
+}
+
+//*****************************************************************************
+//*****************************************************************************
 const std::string base64_padding[] = {"", "==","="};
 
+//*****************************************************************************
+//*****************************************************************************
 std::string base64_encode(const std::vector<unsigned char> & s)
 {
     return base64_encode(std::string((char *)&s[0], s.size()));
