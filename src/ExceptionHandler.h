@@ -46,8 +46,8 @@ protected:
     static struct CallbackContext m_context;
 
 protected:
-    ExceptionHandler(void)  {};
-    ~ExceptionHandler(void) {};
+    ExceptionHandler(void)  {}
+    ~ExceptionHandler(void) {}
 
 protected:
     static const std::wstring temppath;

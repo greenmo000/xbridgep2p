@@ -12,25 +12,28 @@
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
-    std::wstring name(L"abrisgeptp.exe");
-    std::wstring version(L"v.0.4");
+    std::wstring name(L"xbridgep2p.exe");
     std::wstring mailto(L"xbridge_bugs@aktivsystems.ru");
 
     Settings & s = settings();
-
-#ifdef WIN32
-    {
-        if (s.logPath().length() > 0)
-        {
-            ExceptionHandler::instance().init(util::wide_string(s.logPath()), name, version, mailto);
-        }
-    }
-#endif
 
     s.read((std::string(*argv) + ".conf").c_str());
     s.parseCmdLine(argc, argv);
 
     XBridgeApp & a = XBridgeApp::instance();
+
+#ifdef WIN32
+    {
+        if (s.logPath().length() > 0)
+        {
+            ExceptionHandler & e = ExceptionHandler::instance();
+            e.init(util::wide_string(s.logPath()),
+                   name,
+                   util::wide_string(a.version()),
+                   mailto);
+        }
+    }
+#endif
 
     // init xbridge network
     a.initDht();

@@ -34,6 +34,8 @@ private:
 public:
     static XBridgeApp & instance();
 
+    static std::string version();
+
     bool init(int argc, char *argv[]);
 
     int exec();

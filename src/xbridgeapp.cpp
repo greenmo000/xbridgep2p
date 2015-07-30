@@ -54,6 +54,17 @@ XBridgeApp & XBridgeApp::instance()
 
 //*****************************************************************************
 //*****************************************************************************
+// static
+std::string XBridgeApp::version()
+{
+    std::ostringstream o;
+    o << XBRIDGE_VERSION_MAJOR
+      << "." << XBRIDGE_VERSION_MINOR << " [" << XBRIDGE_VERSION << "]";
+    return o.str();
+}
+
+//*****************************************************************************
+//*****************************************************************************
 int XBridgeApp::exec()
 {
     m_threads.join_all();
@@ -72,8 +83,7 @@ const unsigned char hash[20] =
 //*****************************************************************************
 bool XBridgeApp::initDht()
 {
-    LOG() << "initialize v." << XBRIDGE_VERSION_MAJOR
-             << "." << XBRIDGE_VERSION_MINOR << " [" << XBRIDGE_VERSION << "]";
+    LOG() << "initialize v." << version();
 
 #ifdef WIN32
     WSADATA wsa = {0};

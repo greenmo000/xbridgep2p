@@ -28,6 +28,8 @@ DEFINES +=\
 INCLUDEPATH += \
     $$PWD/src/3rdparty/breakpad/src
 
+QMAKE_CFLAGS_RELEASE += -Zi
+
 SOURCES += \
     src/main.cpp\
     src/dht/dht.cpp \
@@ -64,11 +66,10 @@ DISTFILES += \
     xbridgep2p.exe.conf \
     config.orig.pri
 
-win32-msvc2013 {
 LIBS += \
     -L$$PWD/lib/win/breakpad/win/release \
     -lcommon \
     -lexception_handler \
-    -lcrash_generation_client
-#    -lcrash_report_sender
-}
+    -lcrash_generation_client \
+    -lcrash_generation_server \
+    -lcrash_report_sender
