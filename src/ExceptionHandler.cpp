@@ -85,16 +85,19 @@ void ExceptionHandler::init(const std::wstring & _path,
         return;
     }
 
-//    // Get the temp path
-//    // TCHAR * temppath = _T(".");
-//    TCHAR temppath[MAX_PATH] = {0};
-//    DWORD size = sizeof(temppath)/sizeof(TCHAR);
-//    GetTempPath(size, temppath);
+    LOG() << "initialize exception handler";
+
+    // Get the temp path
+    // TCHAR * temppath = _T(".");
+    wchar_t temppath[MAX_PATH] = {0};
+    DWORD size = sizeof(temppath)/sizeof(wchar_t);
+    GetTempPathW(size, temppath);
 
     m_context.name     = _name;
     m_context.version  = _version;
     m_context.mailto   = _mailto;
-    m_context.temppath = _path;
+    // m_context.temppath = _path;
+    m_context.temppath = temppath;
 
     m_handler = 
         new google_breakpad::ExceptionHandler(

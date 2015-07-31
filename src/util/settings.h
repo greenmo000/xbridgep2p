@@ -28,11 +28,7 @@ public:
 
 public:
     bool isFullLog() const
-#ifdef _DEBUG
-        { return true; }
-#else
         { return get<bool>("Main.FullLog", false); }
-#endif
 
     bool isExchangeEnabled() const { return m_isExchangeEnabled; }
     std::string appPath() const    { return m_appPath; }

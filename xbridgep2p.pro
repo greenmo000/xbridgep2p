@@ -7,6 +7,7 @@
 #QT       += core concurrent
 #greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+CONFIG   -= qt
 CONFIG   += console
 CONFIG   -= app_bundle
 CONFIG   += static
@@ -66,8 +67,16 @@ DISTFILES += \
     xbridgep2p.exe.conf \
     config.orig.pri
 
+CONFIG(release, debug|release) {
 LIBS += \
-    -L$$PWD/lib/win/breakpad/win/release \
+    -L$$PWD/lib/win/breakpad/win/release
+}
+else:CONFIG(debug, debug|release){
+LIBS += \
+    -L$$PWD/lib/win/breakpad/win/debug
+}
+
+LIBS += \
     -lcommon \
     -lexception_handler \
     -lcrash_generation_client \
