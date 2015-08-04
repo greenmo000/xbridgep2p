@@ -13,7 +13,7 @@ CONFIG   -= app_bundle
 CONFIG   += static
 
 #-------------------------------------------------
-TARGET = xbridgep2p
+TARGET = ../bin/xbridgep2p
 TEMPLATE = app
 
 #-------------------------------------------------
@@ -24,12 +24,15 @@ TEMPLATE = app
 #-------------------------------------------------
 breakpad {
 
+message("msvc build, breakpad enabled")
+
 DEFINES += BREAKPAD_ENABLED
 
 INCLUDEPATH += \
     $$PWD/src/3rdparty/breakpad/src
 
 QMAKE_CFLAGS_RELEASE += -Zi
+QMAKE_LFLAGS_RELEASE += /DEBUG /INCREMENTAL:NO
 
 }
 
