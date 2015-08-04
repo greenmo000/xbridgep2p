@@ -3,6 +3,10 @@
 
 win32-msvc2013 {
 
+message(win32-msvc2013 build)
+
+CONFIG += breakpad
+
 INCLUDEPATH += \
     d:/work/openssl/openssl/include \
     D:/work/boost/boost_1_57_0
@@ -18,6 +22,8 @@ LIBS += \
 
 ###############################################################
 win32-g++ {
+
+message(win32-g++ build)
 
 QMAKE_CXXFLAGS += -std=c++11
 
@@ -43,6 +49,8 @@ LIBS += \
 
 ###############################################################
 linux-g++ {
+
+message(linux-g++ build)
 
 QMAKE_CXXFLAGS += -std=c++11
 
