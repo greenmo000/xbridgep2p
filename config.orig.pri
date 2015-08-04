@@ -62,3 +62,19 @@ LIBS += \
     -lboost_date_time \
     -lboost_program_options
 }
+
+###############################################################
+linux-g++-64 {
+
+message(linux-g++-64 build)
+
+QMAKE_CXXFLAGS += -std=c++11
+
+LIBS += \
+    -lcrypto \
+    -lssl \
+    -lboost_system \
+    -lboost_thread \
+    -lboost_date_time \
+    -lboost_program_options
+}
