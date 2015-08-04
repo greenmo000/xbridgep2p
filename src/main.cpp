@@ -20,6 +20,8 @@ int main(int argc, char *argv[])
     s.read((std::string(*argv) + ".conf").c_str());
     s.parseCmdLine(argc, argv);
 
+    util::init();
+
     XBridgeApp & a = XBridgeApp::instance();
 
 #ifdef BREAKPAD_ENABLED

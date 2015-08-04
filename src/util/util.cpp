@@ -2,6 +2,7 @@
 //*****************************************************************************
 
 #include "util.h"
+#include "logger.h"
 
 #include <boost/locale.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
@@ -17,7 +18,22 @@
 namespace util
 {
 
-static std::locale loc("rus");
+std::locale loc;
+
+//******************************************************************************
+//******************************************************************************
+void init()
+{
+    try
+    {
+        loc = std::locale ("en_US.UTF8");
+    }
+    catch (std::runtime_error & e)
+    {
+        LOG() << "use default locale, " << e.what();
+        loc = std::locale (loc, "", std::locale::ctype);
+    }
+}
 
 //******************************************************************************
 //******************************************************************************

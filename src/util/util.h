@@ -17,6 +17,8 @@
 //*****************************************************************************
 namespace util
 {
+    void init();
+
     std::wstring wide_string(std::string const & s);//, std::locale const &loc);
     // std::string narrow_string(std::wstring const &s, char default_char = '?');//, std::locale const &loc, char default_char = '?');
 
