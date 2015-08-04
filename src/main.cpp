@@ -6,15 +6,15 @@
 #include "util/util.h"
 #include "util/settings.h"
 #include "version.h"
+
+#ifdef BREAKPAD_ENABLED
 #include "ExceptionHandler.h"
+#endif
 
 //*****************************************************************************
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
-    std::wstring name(L"xbridgep2p.exe");
-    std::wstring mailto(L"xbridge_bugs@aktivsystems.ru");
-
     Settings & s = settings();
 
     s.read((std::string(*argv) + ".conf").c_str());
@@ -22,7 +22,10 @@ int main(int argc, char *argv[])
 
     XBridgeApp & a = XBridgeApp::instance();
 
-#ifdef WIN32
+#ifdef BREAKPAD_ENABLED
+    std::wstring name(L"xbridgep2p.exe");
+    std::wstring mailto(L"xbridge_bugs@aktivsystems.ru");
+
     {
         if (s.logPath().length() > 0)
         {

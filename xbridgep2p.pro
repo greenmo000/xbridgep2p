@@ -12,12 +12,29 @@ CONFIG   += console
 CONFIG   -= app_bundle
 CONFIG   += static
 
+#-------------------------------------------------
 TARGET = xbridgep2p
 TEMPLATE = app
 
+#-------------------------------------------------
 !include($$PWD/config.pri) {
     error(Failed to include config.pri)
 }
+
+#-------------------------------------------------
+breakpad {
+
+DEFINES += BREAKPAD_ENABLED
+
+INCLUDEPATH += \
+    $$PWD/src/3rdparty/breakpad/src
+
+QMAKE_CFLAGS_RELEASE += -Zi
+
+}
+
+#-------------------------------------------------
+win32 {
 
 DEFINES += \
     _CRT_SECURE_NO_WARNINGS \
@@ -26,11 +43,9 @@ DEFINES += \
 DEFINES +=\
     _WIN32_WINNT=0x0600
 
-INCLUDEPATH += \
-    $$PWD/src/3rdparty/breakpad/src
+} #win32
 
-QMAKE_CFLAGS_RELEASE += -Zi
-
+#-------------------------------------------------
 SOURCES += \
     src/main.cpp\
     src/dht/dht.cpp \
@@ -42,10 +57,9 @@ SOURCES += \
     src/xbridgeexchange.cpp \
     src/xbridgetransaction.cpp \
     src/util/settings.cpp \
-    src/xbridgetransactionmember.cpp \
-    src/ExceptionHandler.cpp \
-    src/sender.cpp
+    src/xbridgetransactionmember.cpp
 
+#-------------------------------------------------
 HEADERS += \
     src/dht/dht.h \
     src/util/util.h \
@@ -60,12 +74,22 @@ HEADERS += \
     src/util/settings.h \
     src/xbridgetransactionmember.h \
     src/version.h \
-    src/config.h \
-    src/ExceptionHandler.h
+    src/config.h
 
+#-------------------------------------------------
 DISTFILES += \
     xbridgep2p.exe.conf \
     config.orig.pri
+
+#-------------------------------------------------
+breakpad {
+
+SOURCES += \
+    src/ExceptionHandler.cpp \
+    src/sender.cpp
+
+HEADERS += \
+    src/ExceptionHandler.h
 
 CONFIG(release, debug|release) {
 LIBS += \
@@ -82,3 +106,5 @@ LIBS += \
     -lcrash_generation_client \
     -lcrash_generation_server \
     -lcrash_report_sender
+
+} #breakpad
