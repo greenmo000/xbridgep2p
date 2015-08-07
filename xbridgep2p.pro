@@ -13,8 +13,14 @@ CONFIG   -= app_bundle
 CONFIG   += static
 
 #-------------------------------------------------
-TARGET = ../bin/xbridgep2p
 TEMPLATE = app
+CONFIG(release, debug|release) {
+    TARGET = ../bin/xbridgep2p
+}
+else:CONFIG(debug, debug|release){
+    TARGET = ../bin/xbridgep2p-debug
+}
+
 
 #-------------------------------------------------
 !include($$PWD/config.pri) {

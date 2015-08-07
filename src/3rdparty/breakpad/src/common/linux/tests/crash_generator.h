@@ -38,6 +38,7 @@
 #include <string>
 
 #include "common/tests/auto_tempdir.h"
+#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
@@ -58,12 +59,11 @@ class CrashGenerator {
   // if /proc/sys/kernel/core_pattern has the default value 'core'.
   bool HasDefaultCorePattern() const;
 
-  // Sets the maximum size of core dump file (both the soft and hard limit)
-  // to |limit| bytes. Returns true on success.
-  bool SetCoreFileSizeLimit(rlim_t limit) const;
-
   // Returns the expected path of the core dump file.
-  std::string GetCoreFilePath() const;
+  string GetCoreFilePath() const;
+
+  // Returns the directory of a copy of proc files of the child process.
+  string GetDirectoryOfProcFilesCopy() const;
 
   // Creates a crash (and a core dump file) by creating a child process with
   // |num_threads| threads, and the terminating the child process by sending
@@ -72,14 +72,23 @@ class CrashGenerator {
   bool CreateChildCrash(unsigned num_threads, unsigned crash_thread,
                         int crash_signal, pid_t* child_pid);
 
-  // Creates |num_threads| threads in the child process.
-  void CreateThreadsInChildProcess(unsigned num_threads);
-
   // Returns the thread ID of the |index|-th thread in the child process.
   // This method does not validate |index|.
   pid_t GetThreadId(unsigned index) const;
 
  private:
+  // Copies the following proc files of the process with |pid| to the directory
+  // at |path|: auxv, cmdline, environ, maps, status
+  // The directory must have been created. Returns true on success.
+  bool CopyProcFiles(pid_t pid, const char* path) const;
+
+  // Creates |num_threads| threads in the child process.
+  void CreateThreadsInChildProcess(unsigned num_threads);
+
+  // Sets the maximum size of core dump file (both the soft and hard limit)
+  // to |limit| bytes. Returns true on success.
+  bool SetCoreFileSizeLimit(rlim_t limit) const;
+
   // Creates a shared memory of |memory_size| bytes for communicating thread
   // IDs between the parent and child process. Returns true on success.
   bool MapSharedMemory(size_t memory_size);

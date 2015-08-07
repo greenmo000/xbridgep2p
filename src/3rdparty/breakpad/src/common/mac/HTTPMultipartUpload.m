@@ -32,6 +32,8 @@
 
 @interface HTTPMultipartUpload(PrivateMethods)
 - (NSString *)multipartBoundary;
+// Each of the following methods will append the starting multipart boundary,
+// but not the ending one.
 - (NSData *)formDataForKey:(NSString *)key value:(NSString *)value;
 - (NSData *)formDataForFileContents:(NSData *)contents name:(NSString *)name;
 - (NSData *)formDataForFile:(NSString *)file name:(NSString *)name;
@@ -67,11 +69,9 @@
   NSString *fmt = @"--%@\r\nContent-Disposition: form-data; name=\"%@\"; "
     "filename=\"minidump.dmp\"\r\nContent-Type: application/octet-stream\r\n\r\n";
   NSString *pre = [NSString stringWithFormat:fmt, boundary_, escaped];
-  NSString *post = [NSString stringWithFormat:@"\r\n--%@--\r\n", boundary_];
 
   [data appendData:[pre dataUsingEncoding:NSUTF8StringEncoding]];
   [data appendData:contents];
-  [data appendData:[post dataUsingEncoding:NSUTF8StringEncoding]];
 
   return data;
 }
@@ -143,7 +143,7 @@
 
 //=============================================================================
 - (NSData *)send:(NSError **)error {
-  NSMutableURLRequest *req = 
+  NSMutableURLRequest *req =
     [[NSMutableURLRequest alloc]
           initWithURL:url_ cachePolicy:NSURLRequestUseProtocolCachePolicy
       timeoutInterval:10.0 ];
@@ -182,17 +182,25 @@
     [postBody appendData:fileData];
   }
 
+  NSString *epilogue = [NSString stringWithFormat:@"\r\n--%@--\r\n", boundary_];
+  [postBody appendData:[epilogue dataUsingEncoding:NSUTF8StringEncoding]];
+
   [req setHTTPBody:postBody];
   [req setHTTPMethod:@"POST"];
 
   [response_ release];
   response_ = nil;
-  
-  NSData *data =  [NSURLConnection sendSynchronousRequest:req
-                               returningResponse:&response_
-                                           error:error];
 
-  [response_ retain];
+  NSData *data = nil;
+  if ([[req URL] isFileURL]) {
+    [[req HTTPBody] writeToURL:[req URL] options:0 error:error];
+  } else {
+    NSURLResponse *response = nil;
+    data = [NSURLConnection sendSynchronousRequest:req
+                                 returningResponse:&response
+                                             error:error];
+    response_ = (NSHTTPURLResponse *)[response retain];
+  }
   [req release];
 
   return data;
