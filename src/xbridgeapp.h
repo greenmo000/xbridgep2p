@@ -76,6 +76,11 @@ public:// slots:
     // broadcast message
     void onBroadcastReceived(const std::vector<unsigned char> & message);
 
+    void storeAddressBookEntry(const std::string & currency,
+                               const std::string & name,
+                               const std::string & address);
+    void resendAddressBook();
+
 public:
     static void sleep(const unsigned int umilliseconds);
 
@@ -122,6 +127,12 @@ private:
     boost::mutex m_messagesLock;
     typedef std::set<uint256> ProcessedMessages;
     ProcessedMessages m_processedMessages;
+
+    boost::mutex m_addressBookLock;
+    typedef std::tuple<std::string, std::string, std::string> AddressBookEntry;
+    typedef std::vector<AddressBookEntry> AddressBook;
+    AddressBook m_addressBook;
+    std::set<std::string> m_addresses;
 };
 
 #endif // XBRIDGEAPP_H

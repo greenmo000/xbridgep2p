@@ -197,7 +197,12 @@ enum XBridgeCommand
     //    uint64 source amount
     //    8 bytes destination currency
     //    uint64 destination amount
-    xbcPendingTransaction = 22
+    xbcPendingTransaction = 22,
+
+    // address book entry
+    //
+    // xbcAddressBook
+    xbcAddressBookEntry = 23
 };
 
 //******************************************************************************

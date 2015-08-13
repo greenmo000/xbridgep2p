@@ -842,3 +842,37 @@ bool XBridgeApp::isKnownMessage(const std::vector<unsigned char> & message)
     boost::mutex::scoped_lock l(m_messagesLock);
     return m_processedMessages.count(util::hash(message.begin(), message.end())) > 0;
 }
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::storeAddressBookEntry(const std::string & currency,
+                                       const std::string & name,
+                                       const std::string & address)
+{
+    // TODO fix this, potentially deadlock
+    // boost::mutex::try_lock l(m_addressBookLock);
+    // boost::mutex::scoped_lock l(m_addressBookLock);
+    // if (l.lock())
+    {
+        if (!m_addresses.count(address))
+        {
+            m_addresses.insert(address);
+            m_addressBook.push_back(std::make_tuple(currency, name, address));
+        }
+    }
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::resendAddressBook()
+{
+    boost::mutex::scoped_lock l(m_addressBookLock);
+
+    for (SessionMap::iterator i = m_sessions.begin(); i != m_sessions.end(); ++i)
+    {
+        for (AddressBook::iterator ii = m_addressBook.begin(); ii != m_addressBook.end(); ++ii)
+        {
+            i->second->sendAddressbookEntry(std::get<0>(*ii), std::get<1>(*ii), std::get<2>(*ii));
+        }
+    }
+}

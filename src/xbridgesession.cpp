@@ -52,8 +52,10 @@ XBridgeSession::XBridgeSession()
         m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSession::processBitcoinTransactionHash);
     }
 
+    m_processors[xbcAddressBookEntry].bind(this, &XBridgeSession::processAddressBookEntry);
+
     // retranslate messages to xbridge network
-    m_processors[xbcXChatMessage]          .bind(this, &XBridgeSession::processXChatMessage);
+    m_processors[xbcXChatMessage].bind(this, &XBridgeSession::processXChatMessage);
 }
 
 //*****************************************************************************
@@ -1078,6 +1080,21 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
+bool XBridgeSession::processAddressBookEntry(XBridgePacketPtr packet)
+{
+    // DEBUG_TRACE();
+
+    std::string currency(reinterpret_cast<const char *>(packet->data()));
+    std::string name(reinterpret_cast<const char *>(packet->data()+currency.length()+1));
+    std::string address(reinterpret_cast<const char *>(packet->data()+currency.length()+name.length()+2));
+
+    XBridgeApp::instance().storeAddressBookEntry(currency, name, address);
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeSession::sendListOfWallets()
 {
     XBridgeExchange & e = XBridgeExchange::instance();
@@ -1144,6 +1161,31 @@ void XBridgeSession::sendListOfTransactions()
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeSession::eraseExpiredPendingTransactions()
+{
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return;
+    }
+
+    std::list<XBridgeTransactionPtr> list = e.pendingTransactions();
+    std::list<XBridgeTransactionPtr>::iterator i = list.begin();
+    for (; i != list.end(); ++i)
+    {
+        XBridgeTransactionPtr & ptr = *i;
+
+        boost::mutex::scoped_lock l(ptr->m_lock);
+
+        if (ptr->isExpired())
+        {
+            e.deletePendingTransactions(ptr->id());
+        }
+    }
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeSession::checkFinishedTransactions()
 {
     XBridgeExchange & e = XBridgeExchange::instance();
@@ -1200,5 +1242,29 @@ void XBridgeSession::checkFinishedTransactions()
             // send rollback
             rollbackTransaction(ptr);
         }
+    }
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeSession::resendAddressBook()
+{
+    XBridgeApp::instance().resendAddressBook();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeSession::sendAddressbookEntry(const std::string & currency,
+                                          const std::string & name,
+                                          const std::string & address)
+{
+    if (m_socket->is_open())
+    {
+        XBridgePacketPtr p(new XBridgePacket(xbcAddressBookEntry));
+        p->append(currency);
+        p->append(name);
+        p->append(address);
+
+        sendXBridgeMessage(p);
     }
 }

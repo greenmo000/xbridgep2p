@@ -32,6 +32,12 @@ public:
     void sendListOfWallets();
     void sendListOfTransactions();
     void checkFinishedTransactions();
+    void eraseExpiredPendingTransactions();
+
+    void resendAddressBook();
+    void sendAddressbookEntry(const std::string & currency,
+                              const std::string & name,
+                              const std::string & address);
 
 private:
     void disconnect();
@@ -81,6 +87,8 @@ private:
     bool rollbackTransaction(XBridgeTransactionPtr tr);
 
     bool processBitcoinTransactionHash(XBridgePacketPtr packet);
+
+    bool processAddressBookEntry(XBridgePacketPtr packet);
 
 private:
     XBridge::SocketPtr m_socket;

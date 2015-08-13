@@ -31,7 +31,9 @@ XBridge::XBridge(const unsigned short port)
         // listener
         if (port)
         {
-            boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), port);
+            // boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), port);
+            boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), port);
+
             m_acceptor = std::shared_ptr<boost::asio::ip::tcp::acceptor>
                             (new boost::asio::ip::tcp::acceptor
                                     (*m_services.front(), ep));
@@ -128,6 +130,12 @@ void XBridge::onTimer()
 
         // send transactions list
         io->post(boost::bind(&XBridgeSession::sendListOfTransactions, session));
+
+        // send transactions list
+        io->post(boost::bind(&XBridgeSession::eraseExpiredPendingTransactions, session));
+
+        // resend addressbook
+        io->post(boost::bind(&XBridgeSession::resendAddressBook, session));
     }
 
     m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(TIMER_INTERVAL));
