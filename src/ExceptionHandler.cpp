@@ -50,7 +50,7 @@ bool dumpCallback(const wchar_t * dump_path,
 
     std::string path = (to_string(std::wstring(dump_path)) + "/" + to_string(std::wstring(minidump_id)) + ".dmp");
 
-    LOG() << "Dump path: " << dump_path << minidump_id << std::endl;
+    LOG() << "Dump path: " << path << std::endl;
 
     sendBugReport(path, to_string(context->name), to_string(context->version), to_string(context->mailto));
 

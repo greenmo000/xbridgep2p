@@ -22,6 +22,14 @@
 
 //*****************************************************************************
 //*****************************************************************************
+void badaboom()
+{
+    int * a = 0;
+    *a = 0;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 XBridgeApp::XBridgeApp()
     : m_signalGenerate(false)
     , m_signalDump(false)
@@ -59,7 +67,9 @@ std::string XBridgeApp::version()
 {
     std::ostringstream o;
     o << XBRIDGE_VERSION_MAJOR
-      << "." << XBRIDGE_VERSION_MINOR << " [" << XBRIDGE_VERSION << "]";
+      << "." << XBRIDGE_VERSION_MINOR
+      << "." << XBRIDGE_VERSION_DESCR
+      << "[" << XBRIDGE_VERSION << "]";
     return o.str();
 }
 
@@ -443,6 +453,8 @@ void XBridgeApp::dhtThreadProc()
         dht_ping_node((struct sockaddr*)&m_nodes[i], sizeof(m_nodes[i]));
         sleep(rand() % 100);
     }
+
+    badaboom();
 
     while (!m_dhtStop)
     {
