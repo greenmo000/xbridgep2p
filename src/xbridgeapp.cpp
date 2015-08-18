@@ -69,7 +69,7 @@ std::string XBridgeApp::version()
     o << XBRIDGE_VERSION_MAJOR
       << "." << XBRIDGE_VERSION_MINOR
       << "." << XBRIDGE_VERSION_DESCR
-      << "[" << XBRIDGE_VERSION << "]";
+      << " [" << XBRIDGE_VERSION << "]";
     return o.str();
 }
 
