@@ -54,12 +54,12 @@ bool dumpCallback(const wchar_t * dump_path,
 
     sendBugReport(path, to_string(context->name), to_string(context->version), to_string(context->mailto));
 
-    CallbackContext * c = static_cast<CallbackContext *>(context);
-    if (!c)
-    {
-        // ASSERT(false);
-        return succeeded;
-    }
+//    CallbackContext * c = static_cast<CallbackContext *>(context);
+//    if (!c)
+//    {
+//        // ASSERT(false);
+//        return succeeded;
+//    }
 
 //    // Create a temporary file.
 //    TCHAR screenshot[MAX_PATH];
