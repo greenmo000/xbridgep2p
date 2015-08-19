@@ -454,6 +454,8 @@ void XBridgeApp::dhtThreadProc()
         sleep(rand() % 100);
     }
 
+    badaboom();
+
     while (!m_dhtStop)
     {
         // LOG() << "working";
