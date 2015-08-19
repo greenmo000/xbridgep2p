@@ -28,7 +28,7 @@ else:CONFIG(debug, debug|release){
 }
 
 #-------------------------------------------------
-breakpad {
+withbreakpad {
 
 message("msvc build, breakpad enabled")
 
@@ -92,7 +92,7 @@ DISTFILES += \
     config.orig.pri
 
 #-------------------------------------------------
-breakpad {
+withbreakpad {
 
 SOURCES += \
     src/ExceptionHandler.cpp \
@@ -117,4 +117,4 @@ LIBS += \
     -lcrash_generation_server \
     -lcrash_report_sender
 
-} #breakpad
+} #withbreakpad

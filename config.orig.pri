@@ -1,19 +1,40 @@
 
 ###############################################################
 
+win32-msvc2015 {
+
+message(win32-msvc2015 build)
+
+CONFIG += withbreakpad
+
+INCLUDEPATH += \
+    C:/_buildagent/src/3rdparty/openssl/openssl-1.0.2d/inc32 \
+    c:/_buildagent/src/3rdparty/boost/boost_1_58_0
+
+LIBS += \
+    -LC:/_buildagent/src/3rdparty/openssl/openssl-1.0.2d/out32dll \
+    -Lc:/_buildagent/src/3rdparty/boost/boost_1_58_0/stage/lib
+
+LIBS += \
+    -llibeay32 \
+    -lssleay32
+}
+
+###############################################################
+
 win32-msvc2013 {
 
 message(win32-msvc2013 build)
 
-CONFIG += breakpad
+CONFIG += withbreakpad
 
 INCLUDEPATH += \
-    d:/work/openssl/openssl/include \
-    D:/work/boost/boost_1_57_0
+    C:/_buildagent/src/3rdparty/openssl/openssl-1.0.2a/inc32 \
+    c:/_buildagent/src/3rdparty/boost/boost_1_58_0
 
 LIBS += \
-    -Ld:/work/openssl/openssl/lib \
-    -LD:/work/boost/boost_1_57_0/stage/lib
+    -LC:/_buildagent/src/3rdparty/openssl/openssl-1.0.2a/out32dll \
+    -Lc:/_buildagent/src/3rdparty/boost/boost_1_58_0/stage/lib
 
 LIBS += \
     -llibeay32 \
