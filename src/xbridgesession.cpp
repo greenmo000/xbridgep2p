@@ -245,6 +245,12 @@ bool XBridgeSession::processPacket(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
 
+    if (!checkXBridgePacketVersion(packet))
+    {
+        ERR() << "incorrect protocol version <" << packet->version() << "> " << __FUNCTION__;
+        return false;
+    }
+
     if (!decryptPacket(packet))
     {
         ERR() << "packet decoding error " << __FUNCTION__;
@@ -300,6 +306,19 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
 
     XBridgeApp & app = XBridgeApp::instance();
     app.storageStore(shared_from_this(), packet->data());
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+// static
+bool XBridgeSession::checkXBridgePacketVersion(XBridgePacketPtr packet)
+{
+    if (packet->version() != XBRIDGE_PROTOCOL_VERSION)
+    {
+        return false;
+    }
+
     return true;
 }
 
