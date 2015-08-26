@@ -210,7 +210,7 @@ bool XBridgeExchange::deletePendingTransactions(const uint256 & id)
 {
     boost::mutex::scoped_lock l(m_pendingTransactionsLock);
 
-    LOG() << "delete pending transactions <" << id.GetHex() << ">";
+    LOG() << "delete pending transaction <" << id.GetHex() << ">";
 
     m_pendingTransactions.erase(id);
     return true;

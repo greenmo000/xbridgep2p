@@ -1198,7 +1198,8 @@ void XBridgeSession::eraseExpiredPendingTransactions()
 
         if (ptr->isExpired())
         {
-            e.deletePendingTransactions(ptr->id());
+            LOG() << "transaction expired <" << ptr->id().GetHex() << ">";
+            e.deletePendingTransactions(ptr->hash1());
         }
     }
 }
