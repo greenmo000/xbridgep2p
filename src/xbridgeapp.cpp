@@ -264,7 +264,7 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
     LOG() << "received message to" << util::base64_encode(std::string((char *)&id[0], 20)).c_str()
              << " command " << packet->command();
 
-    if (XBridgeSession::checkXBridgePacketVersion(packet))
+    if (!XBridgeSession::checkXBridgePacketVersion(packet))
     {
         ERR() << "incorrect protocol version <" << packet->version() << "> " << __FUNCTION__;
         return;
