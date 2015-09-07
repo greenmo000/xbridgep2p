@@ -61,7 +61,7 @@ bool Settings::parseCmdLine(int argc, char * argv[])
     }
     if (options.count("bridgeport"))
     {
-        m_dhtPort = options["bridgeport"].as<unsigned short>();
+        m_bridgePort = options["bridgeport"].as<unsigned short>();
     }
     if (options.count("peer"))
     {
