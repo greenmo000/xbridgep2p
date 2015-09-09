@@ -314,7 +314,7 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
 // static
 bool XBridgeSession::checkXBridgePacketVersion(XBridgePacketPtr packet)
 {
-    if (packet->version() != XBRIDGE_PROTOCOL_VERSION)
+    if (packet->version() != static_cast<boost::uint32_t>(XBRIDGE_PROTOCOL_VERSION))
     {
         return false;
     }
