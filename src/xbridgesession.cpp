@@ -127,6 +127,13 @@ void XBridgeSession::onReadHeader(XBridgePacketPtr packet,
         return;
     }
 
+    if (!checkXBridgePacketVersion(packet))
+    {
+        ERR() << "incorrect protocol version <" << packet->version() << "> " << __FUNCTION__;
+        disconnect();
+        return;
+    }
+
     packet->alloc();
     doReadBody(packet);
 }
@@ -244,12 +251,6 @@ bool XBridgeSession::relayPacket(XBridgePacketPtr packet)
 bool XBridgeSession::processPacket(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
-
-    if (!checkXBridgePacketVersion(packet))
-    {
-        ERR() << "incorrect protocol version <" << packet->version() << "> " << __FUNCTION__;
-        return false;
-    }
 
     if (!decryptPacket(packet))
     {
