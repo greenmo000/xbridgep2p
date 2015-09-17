@@ -344,8 +344,6 @@ bool XBridgeExchange::updateTransaction(const uint256 & hash)
 {
     // DEBUG_TRACE();
 
-    LOG() << "            " << hash.GetHex();
-
     // store
     m_walletTransactions.insert(hash);
 
