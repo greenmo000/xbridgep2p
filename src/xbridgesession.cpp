@@ -618,6 +618,9 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             LOG() << "send xbcTransactionCreate to "
                   << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
 
+            // send xbcTransactionCreate
+            // with nLockTime == TTL*2 for first client,
+            // with nLockTime == TTL*4 for second
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionCreate));
             reply1->append(tr->firstAddress());
             reply1->append(myaddr(), 20);
@@ -637,7 +640,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(myaddr(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(tr->firstDestination());
-            reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 2));
+            reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
 
             sendPacket(tr->secondAddress(), reply2);
         }
