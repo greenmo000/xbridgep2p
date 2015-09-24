@@ -627,6 +627,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply1->append(id.begin(), 32);
             reply1->append(tr->secondDestination());
             reply1->append((boost::uint32_t)(XBridgeTransaction::TTL * 2));
+            reply1->append((boost::uint32_t)24*60*60);
 
             sendPacket(tr->firstAddress(), reply1);
 
@@ -641,6 +642,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(id.begin(), 32);
             reply2->append(tr->firstDestination());
             reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
+            reply2->append((boost::uint32_t)48*60*60);
 
             sendPacket(tr->secondAddress(), reply2);
         }
