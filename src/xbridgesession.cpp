@@ -56,12 +56,14 @@ XBridgeSession::XBridgeSession(const std::string & currency,
                                const std::string & port,
                                const std::string & user,
                                const std::string & passwd,
+                               const std::string & prefix,
                                const boost::uint64_t & COIN)
     : m_currency(currency)
     , m_address(address)
     , m_port(port)
     , m_user(user)
     , m_passwd(passwd)
+    , m_prefix(prefix)
     , m_COIN(COIN)
 {
     init();

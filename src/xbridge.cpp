@@ -43,15 +43,18 @@ XBridge::XBridge()
                 std::string port     = s.get<std::string>(*i + ".Port");
                 std::string user     = s.get<std::string>(*i + ".Username");
                 std::string passwd   = s.get<std::string>(*i + ".Password");
+                std::string prefix   = s.get<std::string>(*i + ".AddressPrefix");
                 boost::uint64_t COIN = s.get<boost::uint64_t>(*i + ".COIN", 0);
 
-                if (ip.empty() || port.empty() || user.empty() || passwd.empty() || COIN == 0)
+                if (ip.empty() || port.empty() ||
+                    user.empty() || passwd.empty() ||
+                    prefix.empty() || COIN == 0)
                 {
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
                 }
 
-                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, COIN));
+                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
                 session->requestAddressBook();
             }
         }

@@ -191,8 +191,8 @@ bool XBridgeApp::initDht()
     m_dhtStarted = false;
     m_dhtStop    = false;
 
-    // m_threads.create_thread(boost::bind(&XBridgeApp::dhtThreadProc, this));
-    m_threads.create_thread(boost::bind(&XBridgeApp::bridgeThreadProc, this));
+    m_threads.create_thread(boost::bind(&XBridgeApp::dhtThreadProc, this));
+    // m_threads.create_thread(boost::bind(&XBridgeApp::bridgeThreadProc, this));
 
     return true;
 }
@@ -205,8 +205,8 @@ bool XBridgeApp::stopDht()
     // m_dhtStop = true;
     // m_dhtThread.join();
 
-    LOG() << "stopping bridge thread";
-    m_bridge->stop();
+    // LOG() << "stopping bridge thread";
+    // m_bridge->stop();
 
     return true;
 }
