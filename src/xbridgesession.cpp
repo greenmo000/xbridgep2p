@@ -408,7 +408,8 @@ bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & messa
     // packet->setData(message);
     packet->copyFrom(message);
 
-    return sendXBridgeMessage(packet);
+    // return sendXBridgeMessage(packet);
+    return processPacket(packet);
 }
 
 //*****************************************************************************
