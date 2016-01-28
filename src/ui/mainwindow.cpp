@@ -16,12 +16,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     setCentralWidget(new XBridgeTransactionsView(this));
 
-//    statusBar()->addWidget(&m_peers);
+    statusBar()->addWidget(&m_peers);
 
-//    connect(&m_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-//    onTimer();
+    connect(&m_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+    onTimer();
 
-//    m_timer.start(5000);
+    m_timer.start(5000);
 }
 
 //******************************************************************************
@@ -36,5 +36,5 @@ MainWindow::~MainWindow()
 void MainWindow::onTimer()
 {
     XBridgeApp & app = XBridgeApp::instance();
-    m_peers.setText(tr("Connected %1 peers").arg(QString::number(app.peersCount())));
+    m_peers.setText(tr("Peers: <%1>").arg(QString::number(app.peersCount())));
 }

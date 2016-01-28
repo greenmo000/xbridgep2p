@@ -32,6 +32,7 @@ XBridge::XBridge()
         m_timer.async_wait(boost::bind(&XBridge::onTimer, this));
 
         // sessions
+        XBridgeApp & app = XBridgeApp::instance();
         {
             Settings & s = settings();
             std::vector<std::string> wallets = s.exchangeWallets();
@@ -55,6 +56,7 @@ XBridge::XBridge()
                 }
 
                 XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
+                app->addSession(session);
                 session->requestAddressBook();
             }
         }

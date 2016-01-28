@@ -727,9 +727,11 @@ void XBridgeApp::dhtThreadProc()
     {
         struct sockaddr_in sin[500];
         struct sockaddr_in6 sin6[500];
-        int num = 500, num6 = 500;
-        int i = dht_get_nodes(sin, &num, sin6, &num6);
-        LOG() << "Found " << i << "(" << num << " + " << num6 << ") good nodes";
+        int tmpNodes  = 500;
+        int tmpNodes6 = 500;
+
+        int i = dht_get_nodes(sin, &tmpNodes, sin6, &tmpNodes6);
+        LOG() << "Found " << i << "(" << tmpNodes << " + " << tmpNodes6 << ") good nodes";
     }
 
     dht_uninit();
@@ -813,6 +815,14 @@ int dht_random_bytes(unsigned char * buf, size_t size)
 void XBridgeApp::bridgeThreadProc()
 {
     m_bridge->run();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::addSession(XBridgeSessionPtr session)
+{
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    m_sessionIds[session->currency()] = session;
 }
 
 //*****************************************************************************
@@ -1051,4 +1061,11 @@ bool XBridgeApp::sendCancelTransaction(const uint256 & txid)
 
     // cancelled
     return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+int XBridgeApp::peersCount() const
+{
+    return dht_get_count(0, 0);
 }
