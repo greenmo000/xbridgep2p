@@ -55,6 +55,8 @@ public:
     bool cancelXBridgeTransaction(const uint256 & id);
     bool sendCancelTransaction(const uint256 & txid);
 
+    int peersCount() const { return m_nodes.size(); }
+
 //signals:
 //    void showLogMessage(const QString & msg);
 

@@ -11,7 +11,7 @@
 #include "config.h"
 #include "uiconnector.h"
 
-#include "ui/xbridgetransactionsview.h"
+#include "ui/mainwindow.h"
 
 #include <thread>
 #include <chrono>
@@ -92,7 +92,7 @@ int XBridgeApp::exec()
     // m_threads.join_all();
     // return 0;
 
-    XBridgeTransactionsView view;
+    MainWindow view;
     view.show();
 
     return m_app->exec();
