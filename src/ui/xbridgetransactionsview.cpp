@@ -2,6 +2,7 @@
 //******************************************************************************
 
 #include "xbridgetransactionsview.h"
+#include "../xbridgeapp.h"
 // #include "xbridgetransactiondialog.h"
 #include "../util/verify.h"
 

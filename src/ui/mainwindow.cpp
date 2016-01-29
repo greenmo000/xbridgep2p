@@ -12,7 +12,8 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setMinimumSize(QSize(800, 400));
-    setWindowTitle(tr("Blocknet Decentralized Exchange"));
+    setWindowTitle(tr("Blocknet Decentralized Exchange v.%1")
+                   .arg(QString::fromStdString(XBridgeApp::version())));
 
     setCentralWidget(new XBridgeTransactionsView(this));
 
