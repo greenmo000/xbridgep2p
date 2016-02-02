@@ -1002,7 +1002,7 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 {
     // if (!ptr->packet)
     {
-        ptr->packet.reset(new XBridgePacket(xbcTransaction));
+        ptr->packet.reset(new XBridgePacket(xbcPendingTransaction));
 
         // field length must be 8 bytes
         std::vector<unsigned char> fc(8, 0);

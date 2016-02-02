@@ -1291,6 +1291,34 @@ void XBridgeSession::sendListOfWallets()
 //*****************************************************************************
 void XBridgeSession::sendListOfTransactions()
 {
+    // send my trx
+//    if (!XBridgeApp::m_pendingTransactions.size())
+//    {
+//        if (XBridgeApp::m_txLocker.try_lock())
+//        {
+//            // send pending transactions
+//            for (std::map<uint256, XBridgeTransactionDescrPtr>::iterator i = XBridgeApp::m_pendingTransactions.begin();
+//                 i != XBridgeApp::m_pendingTransactions.end(); ++i)
+//            {
+//                XBridgePacketPtr packet(new XBridgePacket(xbcPendingTransaction));
+
+//                packet->append(i->second->id.begin(), 32);
+//                // packet->append(ptr->firstAddress());
+//                packet->append(i->second->from);
+//                packet->append(i->second->fromAmount);
+//                // packet->append(ptr->firstDestination());
+//                packet->append(i->second->to);
+//                packet->append(i->second->toAmount);
+//                // packet->append(static_cast<boost::uint32_t>(ptr->state()));
+
+//                sendPacket(std::vector<unsigned char>(), packet);
+//            }
+
+//            XBridgeApp::m_txLocker.unlock();
+//        }
+//    }
+
+    // send exchange trx
     XBridgeExchange & e = XBridgeExchange::instance();
     if (!e.isEnabled())
     {
@@ -1483,7 +1511,7 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 {
     if (packet->size() != 64)
     {
-        ERR() << "incorrect packet size for xbcTransactionHold" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionHold " << __FUNCTION__;
         return false;
     }
 
