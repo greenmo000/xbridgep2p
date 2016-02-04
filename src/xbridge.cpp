@@ -57,7 +57,7 @@ XBridge::XBridge()
 
                 XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
                 app.addSession(session);
-                session->requestAddressBook();
+                // session->requestAddressBook();
             }
         }
     }

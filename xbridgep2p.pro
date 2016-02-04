@@ -169,3 +169,5 @@ LIBS += \
 
 RESOURCES += \
     resource.qrc
+
+win32:RC_FILE = xbridgep2p.rc
