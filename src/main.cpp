@@ -15,6 +15,8 @@
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
+    Settings & s = settings();
+
     {
         std::string path(*argv);
         std::string::size_type pos = path.rfind(".");
@@ -24,7 +26,6 @@ int main(int argc, char *argv[])
         }
         path += ".conf";
 
-        Settings & s = settings();
         s.read(path.c_str());
         s.parseCmdLine(argc, argv);
     }
