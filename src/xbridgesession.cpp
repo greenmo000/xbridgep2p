@@ -461,22 +461,34 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
         return false;
     }
 
+    // source
+    std::vector<unsigned char> saddr(packet->data()+32, packet->data()+52);
+    std::string scurrency((const char *)packet->data()+52);
+    boost::uint64_t samount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+60));
+
+    // destination
+    std::vector<unsigned char> daddr(packet->data()+68, packet->data()+88);
+    std::string dcurrency((const char *)packet->data()+88);
+    boost::uint64_t damount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+96));
+
+    {
+        XBridgeTransactionDescr d;
+        d.id           = uint256(packet->data());
+        d.fromCurrency = scurrency;
+        d.fromAmount   = samount;
+        d.toCurrency   = dcurrency;
+        d.toAmount     = damount;
+        d.state        = XBridgeTransactionDescr::trPending;
+
+        uiConnector.NotifyXBridgePendingTransactionReceived(d);
+    }
+
     // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
     {
         // read packet data
         uint256 id(packet->data());
-
-        // source
-        std::vector<unsigned char> saddr(packet->data()+32, packet->data()+52);
-        std::string scurrency((const char *)packet->data()+52);
-        boost::uint64_t samount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+60));
-
-        // destination
-        std::vector<unsigned char> daddr(packet->data()+68, packet->data()+88);
-        std::string dcurrency((const char *)packet->data()+88);
-        boost::uint64_t damount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+96));
 
         LOG() << "received transaction " << util::base64_encode(std::string((char *)id.begin(), 32)) << std::endl
               << "    from " << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
@@ -1291,32 +1303,23 @@ void XBridgeSession::sendListOfWallets()
 //*****************************************************************************
 void XBridgeSession::sendListOfTransactions()
 {
+    XBridgeApp & app = XBridgeApp::instance();
+
     // send my trx
-//    if (!XBridgeApp::m_pendingTransactions.size())
-//    {
-//        if (XBridgeApp::m_txLocker.try_lock())
-//        {
-//            // send pending transactions
-//            for (std::map<uint256, XBridgeTransactionDescrPtr>::iterator i = XBridgeApp::m_pendingTransactions.begin();
-//                 i != XBridgeApp::m_pendingTransactions.end(); ++i)
-//            {
-//                XBridgePacketPtr packet(new XBridgePacket(xbcPendingTransaction));
+    if (XBridgeApp::m_pendingTransactions.size())
+    {
+        if (XBridgeApp::m_txLocker.try_lock())
+        {
+            // send pending transactions
+            for (std::map<uint256, XBridgeTransactionDescrPtr>::iterator i = XBridgeApp::m_pendingTransactions.begin();
+                 i != XBridgeApp::m_pendingTransactions.end(); ++i)
+            {
+                app.sendPendingTransaction(i->second);
+            }
 
-//                packet->append(i->second->id.begin(), 32);
-//                // packet->append(ptr->firstAddress());
-//                packet->append(i->second->from);
-//                packet->append(i->second->fromAmount);
-//                // packet->append(ptr->firstDestination());
-//                packet->append(i->second->to);
-//                packet->append(i->second->toAmount);
-//                // packet->append(static_cast<boost::uint32_t>(ptr->state()));
-
-//                sendPacket(std::vector<unsigned char>(), packet);
-//            }
-
-//            XBridgeApp::m_txLocker.unlock();
-//        }
-//    }
+            XBridgeApp::m_txLocker.unlock();
+        }
+    }
 
     // send exchange trx
     XBridgeExchange & e = XBridgeExchange::instance();
@@ -1511,7 +1514,7 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 {
     if (packet->size() != 64)
     {
-        ERR() << "incorrect packet size for xbcTransactionHold " << __FUNCTION__;
+        ERR() << "incorrect packet size " << __FUNCTION__;
         return false;
     }
 
@@ -1534,7 +1537,7 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 {
     if (packet->size() != 104)
     {
-        ERR() << "incorrect packet size for xbcTransactionHold" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionHold " << __FUNCTION__;
         return false;
     }
 

@@ -635,13 +635,13 @@ void XBridgeApp::dhtThreadProc()
                     if (id.empty())
                     {
                         // send to all local clients
-                        {
-                            boost::mutex::scoped_lock l(m_sessionsLock);
-                            for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
-                            {
-                                std::get<1>(*i)->sendXBridgeMessage(message);
-                            }
-                        }
+//                        {
+//                            boost::mutex::scoped_lock l(m_sessionsLock);
+//                            for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
+//                            {
+//                                std::get<1>(*i)->sendXBridgeMessage(message);
+//                            }
+//                        }
 
                         // send to xbridge network
                         dht_send_broadcast(&message[0], message.size());
@@ -1002,7 +1002,7 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 {
     // if (!ptr->packet)
     {
-        ptr->packet.reset(new XBridgePacket(xbcPendingTransaction));
+        ptr->packet.reset(new XBridgePacket(xbcTransaction));
 
         // field length must be 8 bytes
         std::vector<unsigned char> fc(8, 0);
