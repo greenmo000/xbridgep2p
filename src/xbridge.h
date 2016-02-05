@@ -15,7 +15,7 @@ class XBridge
 {
     enum
     {
-        THREAD_COUNT = 1,
+        THREAD_COUNT = 2,
         TIMER_INTERVAL = 20
     };
 
