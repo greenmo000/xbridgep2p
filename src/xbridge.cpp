@@ -106,12 +106,12 @@ void XBridge::onTimer()
         io->post(boost::bind(&XBridgeSession::checkFinishedTransactions, session));
 
         // send list of wallets (broadcast)
-        io->post(boost::bind(&XBridgeSession::sendListOfWallets, session));
+        // io->post(boost::bind(&XBridgeSession::sendListOfWallets, session));
 
         // send transactions list
         io->post(boost::bind(&XBridgeSession::sendListOfTransactions, session));
 
-        // send transactions list
+        // erase expired tx
         io->post(boost::bind(&XBridgeSession::eraseExpiredPendingTransactions, session));
 
         // resend addressbook

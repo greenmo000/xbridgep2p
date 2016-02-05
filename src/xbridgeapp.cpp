@@ -628,6 +628,11 @@ void XBridgeApp::dhtThreadProc()
                     std::vector<unsigned char> & id      = std::get<0>(mpair);
                     std::vector<unsigned char> & message = std::get<1>(mpair);
 
+                    if (isKnownMessage(message))
+                    {
+                        continue;
+                    }
+
                     // std::string id      = util::base64_decode(mpair.first);
                     // std ::string message = mpair.second;
 
@@ -635,13 +640,13 @@ void XBridgeApp::dhtThreadProc()
                     if (id.empty())
                     {
                         // send to all local clients
-//                        {
-//                            boost::mutex::scoped_lock l(m_sessionsLock);
-//                            for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
-//                            {
-//                                std::get<1>(*i)->sendXBridgeMessage(message);
-//                            }
-//                        }
+                        {
+                            boost::mutex::scoped_lock l(m_sessionsLock);
+                            for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
+                            {
+                                std::get<1>(*i)->sendXBridgeMessage(message);
+                            }
+                        }
 
                         // send to xbridge network
                         dht_send_broadcast(&message[0], message.size());

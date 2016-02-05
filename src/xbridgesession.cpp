@@ -1100,7 +1100,7 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
         {
             // boost::mutex::scoped_lock l(tr->m_lock);
             // sendCancelTransaction(tr);
-            sendCancelTransaction(txid);
+            // sendCancelTransaction(txid);
         }
     }
 
@@ -1741,7 +1741,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     for (const rpc::Unspent & entry : entries)
     {
         usedInTx.push_back(entry);
-        inAmount += entry.amount;
+        inAmount += entry.amount*m_COIN;
 
         // check amount
         if (inAmount >= outAmount)

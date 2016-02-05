@@ -4,6 +4,7 @@
 #include "mainwindow.h"
 #include "xbridgetransactionsview.h"
 #include "../xbridgeapp.h"
+#include "../xbridgeexchange.h"
 
 #include <QStatusBar>
 
@@ -12,8 +13,14 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setMinimumSize(QSize(800, 400));
-    setWindowTitle(tr("Blocknet Decentralized Exchange v.%1")
-                   .arg(QString::fromStdString(XBridgeApp::version())));
+
+    QString title = tr("Blocknet Decentralized Exchange v.%1")
+            .arg(QString::fromStdString(XBridgeApp::version()));
+    if (XBridgeExchange::instance().isEnabled())
+    {
+        title += tr(" [exhange enabled]");
+    }
+    setWindowTitle(title);
 
     setCentralWidget(new XBridgeTransactionsView(this));
 

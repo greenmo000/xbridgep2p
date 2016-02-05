@@ -139,6 +139,10 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
                                                     destAmount));
+
+    LOG() << tr->hash1().ToString();
+    LOG() << tr->hash2().ToString();
+
     if (!tr->isValid())
     {
         return false;
