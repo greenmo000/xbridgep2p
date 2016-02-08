@@ -1044,7 +1044,12 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     reply->append(unsignedTx1);
     reply->append(unsignedTx2);
 
-    sendPacket(hubAddress, reply);
+    if (!sendPacketBroadcast(reply))
+    {
+        ERR() << "error sending created transactions packet " << __FUNCTION__;
+        return false;
+    }
+
     return true;
 }
 
@@ -1198,7 +1203,12 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
     reply->append(txid.begin(), 32);
     reply->append(txToString(txrev));
 
-    sendPacket(hubAddress, reply);
+    if (!sendPacketBroadcast(reply))
+    {
+        ERR() << "error sending created transactions packet " << __FUNCTION__;
+        return false;
+    }
+
     return true;
 }
 
@@ -1327,7 +1337,13 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
 //    reply->append(walletTxId.begin(), 32);
-    sendPacket(hubAddress, reply);
+    if (!sendPacketBroadcast(reply))
+    {
+        ERR() << "error sending transaction commited packet "
+                 << __FUNCTION__;
+        return false;
+    }
+
     return true;
 }
 
@@ -1981,6 +1997,7 @@ bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
         return false;
     }
 
+    // rollback, commit revert transaction
     if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->payTx))
     {
         // not commited....send cancel???
