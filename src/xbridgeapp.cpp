@@ -633,9 +633,6 @@ void XBridgeApp::dhtThreadProc()
                         continue;
                     }
 
-                    // std::string id      = util::base64_decode(mpair.first);
-                    // std ::string message = mpair.second;
-
                     // check broadcast
                     if (id.empty())
                     {

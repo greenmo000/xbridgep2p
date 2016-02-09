@@ -924,8 +924,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         return false;
     }
 
-    // TODO fee
-    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);//  + MIN_TX_FEE;
+    boost::uint64_t fee = m_COIN*XBridgeTransactionDescr::MIN_TX_FEE/XBridgeTransactionDescr::COIN;
+    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+fee;
     boost::uint64_t inAmount  = 0;
 
     std::vector<rpc::Unspent> usedInTx;
@@ -966,9 +966,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // outputs
-    // TODO fee
-    // tx1.vout.push_back(CTxOut(outAmount-MIN_TX_FEE, destination(destAddress)));
-    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
+    tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress)));
 
     if (inAmount > outAmount)
     {
@@ -1015,10 +1013,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
         // rest
         CScript script = destination(addr);
-
-        // TODO fee
-        // tx2.vout.push_back(CTxOut(outAmount-2*MIN_TX_FEE, script));
-        tx2.vout.push_back(CTxOut(outAmount, script));
+        tx2.vout.push_back(CTxOut(outAmount-2*fee, script));
     }
 
     // lock time for tx2
