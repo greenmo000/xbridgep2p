@@ -966,7 +966,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress)));
+    tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress, m_prefix[0])));
 
     if (inAmount > outAmount)
     {
