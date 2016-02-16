@@ -614,7 +614,8 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be eq 72 bytes
     if (packet->size() != 72)
@@ -758,7 +759,8 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be eq 72 bytes
     if (packet->size() != 72)
@@ -1053,7 +1055,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be > 72 bytes
     if (packet->size() < 72)
@@ -1212,7 +1215,8 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be > 72 bytes
     if (packet->size() < 72)
@@ -1347,7 +1351,8 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be == 104 bytes
     if (packet->size() != 104)
