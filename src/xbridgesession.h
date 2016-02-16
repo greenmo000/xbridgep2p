@@ -83,6 +83,8 @@ private:
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
 
+    std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
+
 private:
     bool processInvalid(XBridgePacketPtr packet);
     bool processZero(XBridgePacketPtr packet);

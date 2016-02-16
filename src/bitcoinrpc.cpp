@@ -409,7 +409,7 @@ bool listaccounts(const std::string & rpcuser, const std::string & rpcpasswd,
 {
     try
     {
-        LOG() << "rpc call <listaccounts>";
+        // LOG() << "rpc call <listaccounts>";
 
         Array params;
         Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
@@ -463,7 +463,7 @@ bool getaddressesbyaccount(const std::string & rpcuser, const std::string & rpcp
 {
     try
     {
-        LOG() << "rpc call <getaddressesbyaccount>";
+        // LOG() << "rpc call <getaddressesbyaccount>";
 
         Array params;
         params.push_back(account);
@@ -520,14 +520,14 @@ bool requestAddressBook(const std::string & rpcuser, const std::string & rpcpass
     {
         return false;
     }
-    LOG() << "received " << accounts.size() << " accounts";
+    // LOG() << "received " << accounts.size() << " accounts";
     for (std::string & acc : accounts)
     {
         std::vector<std::string> addrs;
         if (getaddressesbyaccount(rpcuser, rpcpasswd, rpcip, rpcport, acc, addrs))
         {
             entries.push_back(std::make_pair(acc, addrs));
-            LOG() << acc << " - " << boost::algorithm::join(addrs, ",");
+            // LOG() << acc << " - " << boost::algorithm::join(addrs, ",");
         }
     }
 

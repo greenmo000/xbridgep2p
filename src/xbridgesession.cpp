@@ -452,7 +452,8 @@ bool XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE();
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be 104 bytes
     if (packet->size() != 104)

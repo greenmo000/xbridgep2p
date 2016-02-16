@@ -16,6 +16,7 @@ message(no gui build)
 
 CONFIG   -= qt
 CONFIG   += console
+
 DEFINES += NO_GUI
 
 }
