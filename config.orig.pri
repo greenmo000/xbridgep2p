@@ -89,6 +89,8 @@ linux-g++-64 {
 
 message(linux-g++-64 build)
 
+CONFIG += withoutgui
+
 QMAKE_CXXFLAGS += -std=c++11
 
 LIBS += \

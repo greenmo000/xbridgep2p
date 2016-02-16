@@ -20,7 +20,9 @@
 // #include <Ws2tcpip.h>
 #endif
 
+#ifndef NO_GUI
 #include <QApplication>
+#endif
 
 //*****************************************************************************
 //*****************************************************************************
@@ -161,7 +163,9 @@ public:
     static std::map<uint256, XBridgeTransactionDescrPtr> m_pendingTransactions;
     static std::map<uint256, XBridgeTransactionDescrPtr> m_transactions;
 
-    std::shared_ptr<QApplication> m_app;
+#ifndef NO_GUI
+    std::shared_ptr<QCoreApplication> m_app;
+#endif
 };
 
 #endif // XBRIDGEAPP_H

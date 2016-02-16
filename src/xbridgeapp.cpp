@@ -11,7 +11,9 @@
 #include "config.h"
 #include "uiconnector.h"
 
+#ifndef NO_GUI
 #include "ui/mainwindow.h"
+#endif
 
 #include <thread>
 #include <chrono>
@@ -89,13 +91,16 @@ std::string XBridgeApp::version()
 //*****************************************************************************
 int XBridgeApp::exec()
 {
-    // m_threads.join_all();
-    // return 0;
+#ifdef NO_GUI
+    m_threads.join_all();
+    return 0;
 
+#else
     MainWindow view;
     view.show();
 
     return m_app->exec();
+#endif
 }
 
 //*****************************************************************************
@@ -110,7 +115,9 @@ const unsigned char hash[20] =
 //*****************************************************************************
 bool XBridgeApp::init(int argc, char *argv[])
 {
+#ifndef NO_GUI
     m_app.reset(new QApplication(argc, argv));
+#endif
     return true;
 }
 
