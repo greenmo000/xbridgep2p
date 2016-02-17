@@ -203,7 +203,7 @@ public:
     }
 };
 
-class CTransaction
+class CBTCTransaction
 {
 public:
     static const int CURRENT_VERSION=1;
@@ -218,7 +218,7 @@ public:
     mutable int nDoS;
     bool DoS(int nDoSIn, bool fIn) const { nDoS += nDoSIn; return fIn; }
 
-    CTransaction()
+    CBTCTransaction()
     {
         SetNull();
     }
@@ -227,7 +227,7 @@ public:
     (
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
-        READWRITE(nTime);
+        // READWRITE(nTime);
         READWRITE(vin);
         READWRITE(vout);
         READWRITE(nLockTime);
@@ -235,7 +235,7 @@ public:
 
     void SetNull()
     {
-        nVersion = CTransaction::CURRENT_VERSION;
+        nVersion = CBTCTransaction::CURRENT_VERSION;
         nTime = time(0);// GetAdjustedTime();
         vin.clear();
         vout.clear();
@@ -270,7 +270,7 @@ public:
 //        return true;
 //    }
 
-    bool IsNewerThan(const CTransaction& old) const
+    bool IsNewerThan(const CBTCTransaction& old) const
     {
         if (vin.size() != old.vin.size())
             return false;
@@ -403,16 +403,16 @@ public:
 //        return true;
 //    }
 
-    friend bool operator==(const CTransaction& a, const CTransaction& b)
+    friend bool operator==(const CBTCTransaction& a, const CBTCTransaction& b)
     {
         return (a.nVersion  == b.nVersion &&
-                a.nTime     == b.nTime &&
+                // a.nTime     == b.nTime &&
                 a.vin       == b.vin &&
                 a.vout      == b.vout &&
                 a.nLockTime == b.nLockTime);
     }
 
-    friend bool operator!=(const CTransaction& a, const CTransaction& b)
+    friend bool operator!=(const CBTCTransaction& a, const CBTCTransaction& b)
     {
         return !(a == b);
     }
@@ -490,6 +490,30 @@ public:
 
 protected:
 //    const CTxOut& GetOutputFor(const CTxIn& input, const MapPrevTx& inputs) const;
+};
+
+
+class CTransaction : public CBTCTransaction
+{
+public:
+    IMPLEMENT_SERIALIZE
+    (
+        READWRITE(this->nVersion);
+        nVersion = this->nVersion;
+        READWRITE(nTime);
+        READWRITE(vin);
+        READWRITE(vout);
+        READWRITE(nLockTime);
+    )
+
+        friend bool operator==(const CTransaction& a, const CTransaction& b)
+        {
+            return (a.nVersion  == b.nVersion &&
+                    a.nTime     == b.nTime &&
+                    a.vin       == b.vin &&
+                    a.vout      == b.vout &&
+                    a.nLockTime == b.nLockTime);
+        }
 };
 
 #endif // CTRANSACTION_H

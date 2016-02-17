@@ -863,11 +863,32 @@ CScript destination(const std::string & address)
 
 //******************************************************************************
 //******************************************************************************
+std::string txToStringBTC(const CBTCTransaction & tx)
+{
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << tx;
+    return HexStr(ss.begin(), ss.end());
+}
+
+//******************************************************************************
+//******************************************************************************
 std::string txToString(const CTransaction & tx)
 {
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
     ss << tx;
     return HexStr(ss.begin(), ss.end());
+}
+
+//******************************************************************************
+//******************************************************************************
+CBTCTransaction txFromStringBTC(const std::string & str)
+{
+    std::vector<char> txdata = ParseHex(str);
+    CDataStream stream(txdata,
+                       SER_NETWORK, PROTOCOL_VERSION);
+    CBTCTransaction tx;
+    stream >> tx;
+    return tx;
 }
 
 //******************************************************************************
@@ -987,7 +1008,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // serialize
-    std::string unsignedTx1 = txToString(tx1);
+    std::string unsignedTx1 = (m_currency == "BTC") ?  txToStringBTC(tx1) : txToString(tx1);
     std::string signedTx1 = unsignedTx1;
 
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
@@ -1026,7 +1047,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // serialize
-    std::string unsignedTx2 = txToString(tx2);
+    std::string unsignedTx2 = (m_currency == "BTC") ?  txToStringBTC(tx2) : txToString(tx2);
 
     // store
     xtx->revTx = unsignedTx2;
@@ -1172,14 +1193,16 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
     }
 
     // unserialize
-    CTransaction txpay = txFromString(rawtxpay);
-    CTransaction txrev = txFromString(rawtxrev);
-
-    if (txpay.nLockTime < LOCKTIME_THRESHOLD || txrev.nLockTime < LOCKTIME_THRESHOLD)
     {
-        // not signed, cancel tx
-        sendCancelTransaction(txid);
-        return false;
+        CBTCTransaction txpay = (m_currency == "BTC") ? txFromStringBTC(rawtxpay) : txFromString(rawtxpay);
+        CBTCTransaction txrev = (m_currency == "BTC") ? txFromStringBTC(rawtxrev) : txFromString(rawtxrev);
+
+        if (txpay.nLockTime < LOCKTIME_THRESHOLD || txrev.nLockTime < LOCKTIME_THRESHOLD)
+        {
+            // not signed, cancel tx
+            sendCancelTransaction(txid);
+            return false;
+        }
     }
 
     // TODO check txpay, inputs-outputs
@@ -1200,7 +1223,7 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    reply->append(txToString(txrev));
+    reply->append(rawtxrev);
 
     if (!sendPacketBroadcast(reply))
     {
