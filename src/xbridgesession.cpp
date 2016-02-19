@@ -907,6 +907,8 @@ CTransaction txFromString(const std::string & str)
 //******************************************************************************
 bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 {
+    DEBUG_TRACE_LOG(currencyToLog());
+
     if (packet->size() != 100)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
@@ -1009,6 +1011,9 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // serialize
     std::string unsignedTx1 = (m_currency == "BTC") ?  txToStringBTC(tx1) : txToString(tx1);
+    LOG() << "created payment tx";
+    LOG() << unsignedTx1;
+
     std::string signedTx1 = unsignedTx1;
 
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
@@ -1048,6 +1053,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // serialize
     std::string unsignedTx2 = (m_currency == "BTC") ?  txToStringBTC(tx2) : txToString(tx2);
+    LOG() << "created revert tx";
+    LOG() << unsignedTx1;
 
     // store
     xtx->revTx = unsignedTx2;

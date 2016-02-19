@@ -506,14 +506,14 @@ public:
         READWRITE(nLockTime);
     )
 
-        friend bool operator==(const CTransaction& a, const CTransaction& b)
-        {
-            return (a.nVersion  == b.nVersion &&
-                    a.nTime     == b.nTime &&
-                    a.vin       == b.vin &&
-                    a.vout      == b.vout &&
-                    a.nLockTime == b.nLockTime);
-        }
+    friend bool operator==(const CTransaction& a, const CTransaction& b)
+    {
+        return (a.nVersion  == b.nVersion &&
+                a.nTime     == b.nTime &&
+                a.vin       == b.vin &&
+                a.vout      == b.vout &&
+                a.nLockTime == b.nLockTime);
+    }
 };
 
 #endif // CTRANSACTION_H
