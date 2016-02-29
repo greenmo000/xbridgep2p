@@ -30,6 +30,19 @@ namespace rpc
                      const std::string & rpcport,
                      std::vector<Unspent> & entries);
 
+    struct Destination
+    {
+        std::string addr;
+        double amount;
+    };
+    bool createRawTransaction(const std::string & rpcuser,
+                              const std::string & rpcpasswd,
+                              const std::string & rpcip,
+                              const std::string & rpcport,
+                              const std::vector<Unspent> & inputs,
+                              const std::vector<Destination> & outputs,
+                              std::string & rawtx);
+
     bool signRawTransaction(const std::string & rpcuser,
                             const std::string & rpcpasswd,
                             const std::string & rpcip,

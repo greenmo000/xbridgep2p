@@ -963,10 +963,10 @@ void XBridgeApp::getAddressBook()
 
 //******************************************************************************
 //******************************************************************************
-uint256 XBridgeApp::sendXBridgeTransaction(const std::vector<unsigned char> & from,
+uint256 XBridgeApp::sendXBridgeTransaction(const std::string & from,
                                            const std::string & fromCurrency,
                                            const boost::uint64_t fromAmount,
-                                           const std::vector<unsigned char> & to,
+                                           const std::string & to,
                                            const std::string & toCurrency,
                                            const boost::uint64_t toAmount)
 {
@@ -1023,7 +1023,7 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 
         // 20 bytes - id of transaction
         // 2x
-        // 20 bytes - address
+        // 34 bytes - address
         //  8 bytes - currency
         //  4 bytes - amount
         ptr->packet->append(ptr->id.begin(), 32);

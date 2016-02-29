@@ -21,10 +21,10 @@ XBridgeTransaction::XBridgeTransaction()
 //*****************************************************************************
 //*****************************************************************************
 XBridgeTransaction::XBridgeTransaction(const uint256 & id,
-                                       const std::vector<unsigned char> & sourceAddr,
+                                       const std::string & sourceAddr,
                                        const std::string & sourceCurrency,
                                        const boost::uint64_t & sourceAmount,
-                                       const std::vector<unsigned char> & destAddr,
+                                       const std::string & destAddr,
                                        const std::string & destCurrency,
                                        const boost::uint64_t & destAmount)
     : m_id(id)
@@ -68,19 +68,35 @@ XBridgeTransaction::State XBridgeTransaction::state() const
 //*****************************************************************************
 //*****************************************************************************
 XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransaction::State state,
-                                                                   const std::vector<unsigned char> & from)
+                                                                   const std::vector<unsigned char> & xfrom)
 {
-    LOG() << "confirm transaction state <" << strState(state)
-          << "> from " << util::base64_encode(from);
+    std::vector<unsigned char> fs;
+    std::vector<unsigned char> ss;
+    std::vector<unsigned char> fd;
+    std::vector<unsigned char> sd;
+    if (!util::toXBridgeAddress(m_first.source(), fs) ||
+        !util::toXBridgeAddress(m_second.source(), ss) ||
+        !util::toXBridgeAddress(m_first.dest(), fd) ||
+        !util::toXBridgeAddress(m_second.dest(), sd))
+    {
+        LOG() << "bad xbridge address " << __FUNCTION__;
+        return trInvalid;
+    }
+
+    LOG l;
+    l << "confirm transaction state <" << strState(state)
+          << "> from ";
 
     if (state == trJoined && m_state == state)
     {
-        if (from == m_first.source())
+        if (xfrom == fs)
         {
+            l << m_first.source();
             m_firstStateChanged = true;
         }
-        else if (from == m_second.source())
+        else if (xfrom == ss)
         {
+            l << m_second.source();
             m_secondStateChanged = true;
         }
         if (m_firstStateChanged && m_secondStateChanged)
@@ -92,12 +108,14 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     }
     else if (state == trHold && m_state == state)
     {
-        if (from == m_first.dest())
+        if (xfrom == fd)
         {
+            l << m_first.dest();
             m_firstStateChanged = true;
         }
-        else if (from == m_second.dest())
+        else if (xfrom == sd)
         {
+            l << m_second.dest();
             m_secondStateChanged = true;
         }
         if (m_firstStateChanged && m_secondStateChanged)
@@ -109,12 +127,14 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     }
     else if (state == trInitialized && m_state == state)
     {
-        if (from == m_first.source())
+        if (xfrom == fs)
         {
+            l << m_first.source();
             m_firstStateChanged = true;
         }
-        else if (from == m_second.source())
+        else if (xfrom == ss)
         {
+            l << m_second.source();
             m_secondStateChanged = true;
         }
         if (m_firstStateChanged && m_secondStateChanged)
@@ -126,12 +146,14 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     }
     else if (state == trCreated && m_state == state)
     {
-        if (from == m_first.dest())
+        if (xfrom == fd)
         {
+            l << m_first.dest();
             m_firstStateChanged = true;
         }
-        else if (from == m_second.dest())
+        else if (xfrom == sd    )
         {
+            l << m_second.dest();
             m_secondStateChanged = true;
         }
         if (m_firstStateChanged && m_secondStateChanged)
@@ -143,12 +165,14 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
     }
     else if (state == trSigned && m_state == state)
     {
-        if (from == m_first.source())
+        if (xfrom == fs)
         {
+            l << m_first.source();
             m_firstStateChanged = true;
         }
-        else if (from == m_second.source())
+        else if (xfrom == ss)
         {
+            l << m_second.source();
             m_secondStateChanged = true;
         }
         if (m_firstStateChanged && m_secondStateChanged)
@@ -298,14 +322,14 @@ uint256 XBridgeTransaction::firstId() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::firstAddress() const
+std::string XBridgeTransaction::firstAddress() const
 {
     return m_first.source();
 }
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::firstDestination() const
+std::string XBridgeTransaction::firstDestination() const
 {
     return m_first.dest();
 }
@@ -354,14 +378,14 @@ uint256 XBridgeTransaction::secondId() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::secondAddress() const
+std::string XBridgeTransaction::secondAddress() const
 {
     return m_second.source();
 }
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::secondDestination() const
+std::string XBridgeTransaction::secondDestination() const
 {
     return m_second.dest();
 }
@@ -474,17 +498,26 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::setRawPayTx(const std::vector<unsigned char> & addr,
+bool XBridgeTransaction::setRawPayTx(const std::vector<unsigned char> &xaddr,
                                      const std::string & rawpaytx,
                                      const std::string & rawrevtx)
 {
-    if (m_second.source() == addr)
+    std::vector<unsigned char> fs;
+    std::vector<unsigned char> ss;
+    if (!util::toXBridgeAddress(m_first.source(), fs) ||
+        !util::toXBridgeAddress(m_second.source(), ss))
+    {
+        LOG() << "bad xbridge address " << __FUNCTION__;
+        return false;
+    }
+
+    if (ss == xaddr)
     {
         m_rawpaytx2 = rawpaytx;
         m_rawrevtx2 = rawrevtx;
         return true;
     }
-    else if (m_first.source() == addr)
+    else if (fs == xaddr)
     {
         m_rawpaytx1 = rawpaytx;
         m_rawrevtx1 = rawrevtx;
@@ -495,15 +528,24 @@ bool XBridgeTransaction::setRawPayTx(const std::vector<unsigned char> & addr,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::updateRawRevTx(const std::vector<unsigned char> & addr,
+bool XBridgeTransaction::updateRawRevTx(const std::vector<unsigned char> & xaddr,
                                         const std::string & rawrevtx)
 {
-    if (m_second.dest() == addr)
+    std::vector<unsigned char> fd;
+    std::vector<unsigned char> sd;
+    if (!util::toXBridgeAddress(m_first.dest(), fd) ||
+        !util::toXBridgeAddress(m_second.dest(), sd))
+    {
+        LOG() << "bad xbridge address " << __FUNCTION__;
+        return false;
+    }
+
+    if (sd == xaddr)
     {
         m_rawrevtx1 = rawrevtx;
         return true;
     }
-    else if (m_first.dest() == addr)
+    else if (fd == xaddr)
     {
         m_rawrevtx2 = rawrevtx;
         return true;
@@ -513,15 +555,24 @@ bool XBridgeTransaction::updateRawRevTx(const std::vector<unsigned char> & addr,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::setTxHash(const std::vector<unsigned char> & addr,
+bool XBridgeTransaction::setTxHash(const std::vector<unsigned char> &xaddr,
                                    const uint256 & hash)
 {
-    if (m_second.source() == addr)
+    std::vector<unsigned char> fs;
+    std::vector<unsigned char> ss;
+    if (!util::toXBridgeAddress(m_first.source(), fs) ||
+        !util::toXBridgeAddress(m_second.source(), ss))
+    {
+        LOG() << "bad xbridge address " << __FUNCTION__;
+        return false;
+    }
+
+    if (ss == xaddr)
     {
         m_txhash1 = hash;
         return true;
     }
-    else if (m_first.source() == addr)
+    else if (fs == xaddr)
     {
         m_txhash2 = hash;
         return true;

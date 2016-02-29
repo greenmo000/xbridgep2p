@@ -51,10 +51,10 @@ public:
     std::vector<unsigned char> walletAddress(const std::string & walletName);
 
     bool createTransaction(const uint256 & id,
-                           const std::vector<unsigned char> & sourceAddr,
+                           const std::string & sourceAddr,
                            const std::string & sourceCurrency,
                            const boost::uint64_t & sourceAmount,
-                           const std::vector<unsigned char> & destAddr,
+                           const std::string & destAddr,
                            const std::string & destCurrency,
                            const boost::uint64_t & destAmount,
                            uint256 & transactionId);
@@ -62,18 +62,18 @@ public:
     bool deleteTransaction(const uint256 & id);
 
     bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx,
-                                                const std::vector<unsigned char> & from);
+                                                const std::vector<unsigned char> & xfrom);
     bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
-                                                  const std::vector<unsigned char> & from);
+                                                  const std::vector<unsigned char> & xfrom);
     bool updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
-                                              const std::vector<unsigned char> & from,
+                                              const std::vector<unsigned char> & xfrom,
                                               const std::string & rawpaytx,
                                               const std::string & rawrevtx);
     bool updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
-                                             const std::vector<unsigned char> & from,
+                                             const std::vector<unsigned char> & xfrom,
                                              const std::string & rawrevtx);
     bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
-                                               const std::vector<unsigned char> & from,
+                                               const std::vector<unsigned char> & xfrom,
                                                const uint256 & txhash);
     // bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx);
 

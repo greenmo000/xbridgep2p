@@ -61,10 +61,10 @@ enum XBridgeCommand
     //
     // xbcTransaction
     //    uint256 client transaction id
-    //    uint160 source address
+    //    34 byte string source address + \0
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
+    //    34 byte string destination address + \0
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransaction = 3,
@@ -86,10 +86,10 @@ enum XBridgeCommand
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    uint160 source address
+    //    34 byte string source address + \0
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
+    //    34 byte string destination address + \0
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransactionInit = 6,
@@ -104,7 +104,7 @@ enum XBridgeCommand
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id
-    //    uint160  destination address
+    //    34 byte string destination address + \0
     //    uint32_t tx1 lock time (in seconds)
     //    uint32_t tx2 lock time (in seconds)
     xbcTransactionCreate = 8,

@@ -53,10 +53,12 @@ public:
 public:
     XBridgeTransaction();
     XBridgeTransaction(const uint256 & id,
-                       const std::vector<unsigned char> & sourceAddr,
+                       // const std::vector<unsigned char> & sourceAddr,
+                       const std::string & sourceAddr,
                        const std::string & sourceCurrency,
                        const boost::uint64_t & sourceAmount,
-                       const std::vector<unsigned char> & destAddr,
+                       // const std::vector<unsigned char> & destAddr,
+                       const std::string & destAddr,
                        const std::string & destCurrency,
                        const boost::uint64_t & destAmount);
     ~XBridgeTransaction();
@@ -65,7 +67,8 @@ public:
     // state of transaction
     State state() const;
     // update state counter and update state
-    State increaseStateCounter(State state, const std::vector<unsigned char> & from);
+    State increaseStateCounter(State state,
+                               const std::vector<unsigned char> & xfrom);
 
     static std::string strState(const State state);
     std::string strState() const;
@@ -87,8 +90,10 @@ public:
     uint256 hash2() const;
 
     uint256                    firstId() const;
-    std::vector<unsigned char> firstAddress() const;
-    std::vector<unsigned char> firstDestination() const;
+//    std::vector<unsigned char> firstAddress() const;
+//    std::vector<unsigned char> firstDestination() const;
+    std::string                firstAddress() const;
+    std::string                firstDestination() const;
     std::string                firstCurrency() const;
     boost::uint64_t            firstAmount() const;
     std::string                firstRawPayTx() const;
@@ -96,8 +101,10 @@ public:
     uint256                    firstTxHash() const;
 
     uint256                    secondId() const;
-    std::vector<unsigned char> secondAddress() const;
-    std::vector<unsigned char> secondDestination() const;
+//    std::vector<unsigned char> secondAddress() const;
+//    std::vector<unsigned char> secondDestination() const;
+    std::string                secondAddress() const;
+    std::string                secondDestination() const;
     std::string                secondCurrency() const;
     boost::uint64_t            secondAmount() const;
     std::string                secondRawPayTx() const;
@@ -108,12 +115,12 @@ public:
 
     // std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
 
-    bool                       setRawPayTx(const std::vector<unsigned char> & addr,
+    bool                       setRawPayTx(const std::vector<unsigned char> & xaddr,
                                            const std::string & rawpaytx,
                                            const std::string & rawrevtx);
-    bool                       updateRawRevTx(const std::vector<unsigned char> & addr,
+    bool                       updateRawRevTx(const std::vector<unsigned char> & xaddr,
                                               const std::string & rawrevytx);
-    bool                       setTxHash(const std::vector<unsigned char> & addr,
+    bool                       setTxHash(const std::vector<unsigned char> & xaddr,
                                          const uint256 & hash);
 
 public:

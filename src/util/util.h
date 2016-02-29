@@ -144,7 +144,10 @@ namespace util
         SHA256((unsigned char*)&hash1, sizeof(hash1), (unsigned char*)&hash2);
         return hash2;
     }
-}
+
+    bool toXBridgeAddress(const std::string & addr, std::vector<unsigned char> xaddr);
+
+} // namespace
 
 std::string real_strprintf(const std::string &format, int dummy, ...);
 #define strprintf(format, ...) real_strprintf(format, 0, __VA_ARGS__)

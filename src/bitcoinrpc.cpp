@@ -447,7 +447,12 @@ bool listaccounts(const std::string & rpcuser, const std::string & rpcpasswd,
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "listaccounts exception " << e.what();
+        return false;
+    }
+    catch (...)
+    {
+        LOG() << "listaccounts unknown exception";
         return false;
     }
 
@@ -502,7 +507,12 @@ bool getaddressesbyaccount(const std::string & rpcuser, const std::string & rpcp
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "getaddressesbyaccount exception " << e.what();
+        return false;
+    }
+    catch (...)
+    {
+        LOG() << "getaddressesbyaccount unknown exception";
         return false;
     }
 
@@ -609,7 +619,104 @@ bool listUnspent(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "listunspent exception " << e.what();
+        return false;
+    }
+    catch (...)
+    {
+        LOG() << "listunspent unknown exception";
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool createRawTransaction(const std::string & rpcuser,
+                          const std::string & rpcpasswd,
+                          const std::string & rpcip,
+                          const std::string & rpcport,
+                          const std::vector<Unspent> & inputs,
+                          const std::vector<Destination> & outputs,
+                          std::string & rawtx)
+{
+    try
+    {
+        LOG() << "rpc call <createrawtransaction>";
+
+        Array params;
+
+        // inputs
+        {
+            Array inpArr;
+            for (const Unspent & u : inputs)
+            {
+                Object o;
+                o.push_back(Pair("txid", u.txId));
+                o.push_back(Pair("vout", u.vout));
+
+                inpArr.push_back(o);
+            }
+            params.push_back(inpArr);
+        }
+
+        // outputs
+        {
+            Object outObj;
+            for (const Destination & d : outputs)
+            {
+                outObj.push_back(Pair(d.addr, d.amount));
+            }
+            params.push_back(outObj);
+        }
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "createrawtransaction", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != obj_type)
+        {
+            // Result
+            LOG() << "result not an object " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        Object obj = result.get_obj();
+        const Value & tx = find_value(obj, "hex");
+
+        if (tx.type() != str_type)
+        {
+            LOG() << "bad hex " <<
+                     (tx.type() == null_type ? "" :
+                      tx.type() == str_type  ? tx.get_str() :
+                                                   write_string(tx, true));
+            return false;
+        }
+
+        rawtx = tx.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "createrawtransaction exception " << e.what();
+        return false;
+    }
+    catch (...)
+    {
+        LOG() << "createrawtransaction unknown exception";
         return false;
     }
 
@@ -673,6 +780,11 @@ bool signRawTransaction(const std::string & rpcuser,
         LOG() << "signrawtransaction exception " << e.what();
         return false;
     }
+    catch (...)
+    {
+        LOG() << "signrawtransaction unknown exception";
+        return false;
+    }
 
     return true;
 }
@@ -709,6 +821,11 @@ bool sendRawTransaction(const std::string & rpcuser,
     catch (std::exception & e)
     {
         LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+    catch (...)
+    {
+        LOG() << "sendrawtransaction unknown exception";
         return false;
     }
 
@@ -756,7 +873,12 @@ bool getNewAddress(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "signrawtransaction exception " << e.what();
+        LOG() << "getnewaddress exception " << e.what();
+        return false;
+    }
+    catch (...)
+    {
+        LOG() << "getnewaddress unknown exception";
         return false;
     }
 

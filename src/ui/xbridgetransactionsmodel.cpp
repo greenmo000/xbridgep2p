@@ -172,8 +172,8 @@ bool XBridgeTransactionsModel::isMyTransaction(const unsigned int index) const
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> & from,
-                                              const std::vector<unsigned char> & to,
+bool XBridgeTransactionsModel::newTransaction(const std::string & from,
+                                              const std::string & to,
                                               const std::string & fromCurrency,
                                               const std::string & toCurrency,
                                               const double fromAmount,
@@ -206,8 +206,8 @@ bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> &
 //******************************************************************************
 //******************************************************************************
 bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
-                                                         const std::vector<unsigned char> & from,
-                                                         const std::vector<unsigned char> & to)
+                                                         const std::string & from,
+                                                         const std::string & to)
 {
     for (unsigned int i = 0; i < m_transactions.size(); ++i)
     {

@@ -46,10 +46,10 @@ public:
     int exec();
 
 
-    uint256 sendXBridgeTransaction(const std::vector<unsigned char> & from,
+    uint256 sendXBridgeTransaction(const std::string & from,
                                    const std::string & fromCurrency,
                                    const boost::uint64_t fromAmount,
-                                   const std::vector<unsigned char> & to,
+                                   const std::string & to,
                                    const std::string & toCurrency,
                                    const boost::uint64_t toAmount);
     bool sendPendingTransaction(XBridgeTransactionDescrPtr & ptr);

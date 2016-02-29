@@ -43,10 +43,12 @@ struct XBridgeTransactionDescr
 
     uint256                    id;
 
-    std::vector<unsigned char> from;
+    // std::vector<unsigned char> from;
+    std::string                from;
     std::string                fromCurrency;
     boost::uint64_t            fromAmount;
-    std::vector<unsigned char> to;
+    // std::vector<unsigned char> to;
+    std::string                to;
     std::string                toCurrency;
     boost::uint64_t            toAmount;
 

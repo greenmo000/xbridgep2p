@@ -3,6 +3,7 @@
 
 #include "util.h"
 #include "logger.h"
+#include "bitcoinrpc.h"
 
 #include <boost/locale.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
@@ -165,6 +166,23 @@ std::string base64_decode(const std::string& s)
     {
     }
     return std::string();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool toXBridgeAddress(const std::string & addr, std::vector<unsigned char> xaddr)
+{
+    xaddr.clear();
+
+    std::vector<unsigned char> vaddr;
+    if (!rpc::DecodeBase58Check(addr.c_str(), vaddr))
+    {
+        return false;
+    }
+
+
+    std::copy(vaddr.begin()+1, vaddr.end(), xaddr.begin());
+    return true;
 }
 
 } // namespace util
