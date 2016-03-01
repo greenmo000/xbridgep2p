@@ -2029,7 +2029,7 @@ bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
     }
 
     // rollback, commit revert transaction
-    if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->payTx))
+    if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->revTx))
     {
         // not commited....send cancel???
         // sendCancelTransaction(id);
