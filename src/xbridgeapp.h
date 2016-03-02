@@ -104,6 +104,8 @@ public:// slots:
 
     void getAddressBook();
 
+    void checkUnconfirmedTx();
+
 public:
     static void sleep(const unsigned int umilliseconds);
 
@@ -162,6 +164,9 @@ public:
     static boost::mutex                                  m_txLocker;
     static std::map<uint256, XBridgeTransactionDescrPtr> m_pendingTransactions;
     static std::map<uint256, XBridgeTransactionDescrPtr> m_transactions;
+
+    static boost::mutex                                  m_txUnconfirmedLocker;
+    static std::map<uint256, XBridgeTransactionDescrPtr> m_unconfirmed;
 
 #ifndef NO_GUI
     std::shared_ptr<QCoreApplication> m_app;

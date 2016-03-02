@@ -340,16 +340,17 @@ bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPt
 
 //*****************************************************************************
 //*****************************************************************************
-//bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx)
-//{
-//    // update transaction state
-//    if (tx->increaseStateCounter(XBridgeTransaction::trCommited) == XBridgeTransaction::trFinished)
-//    {
-//        return true;
-//    }
+bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx,
+                                                             const std::vector<unsigned char> & from)
+{
+    // update transaction state
+    if (tx->increaseStateCounter(XBridgeTransaction::trCommited, from) == XBridgeTransaction::trFinished)
+    {
+        return true;
+    }
 
-//    return false;
-//}
+    return false;
+}
 
 //*****************************************************************************
 //*****************************************************************************

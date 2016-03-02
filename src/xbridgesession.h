@@ -11,6 +11,8 @@
 #include "util/uint256.h"
 
 #include <memory>
+#include <set>
+#include <boost/thread/mutex.hpp>
 #include <boost/noncopyable.hpp>
 
 //*****************************************************************************
@@ -52,6 +54,9 @@ public:
 
     void getAddressBook();
     void requestAddressBook();
+
+    void checkUnconfirmedTx();
+    void requestUnconfirmedTx();
 
 private:
     void init();
@@ -97,7 +102,8 @@ private:
     bool processTransactionCreated(XBridgePacketPtr packet);
     bool processTransactionSigned(XBridgePacketPtr packet);
     bool processTransactionCommited(XBridgePacketPtr packet);
-    // bool processTransactionConfirmed(XBridgePacketPtr packet);
+    bool processTransactionConfirm(XBridgePacketPtr packet);
+    bool processTransactionConfirmed(XBridgePacketPtr packet);
     bool processTransactionCancel(XBridgePacketPtr packet);
 
     bool finishTransaction(XBridgeTransactionPtr tr);
@@ -125,13 +131,13 @@ private:
     typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
     PacketProcessorsMap m_processors;
 
-    std::string     m_currency;
-    std::string     m_address;
-    std::string     m_port;
-    std::string     m_user;
-    std::string     m_passwd;
-    std::string     m_prefix;
-    boost::uint64_t m_COIN;
+    std::string       m_currency;
+    std::string       m_address;
+    std::string       m_port;
+    std::string       m_user;
+    std::string       m_passwd;
+    std::string       m_prefix;
+    boost::uint64_t   m_COIN;
 };
 
 typedef std::shared_ptr<XBridgeSession> XBridgeSessionPtr;

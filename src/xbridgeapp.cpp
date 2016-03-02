@@ -34,6 +34,8 @@ UIConnector uiConnector;
 boost::mutex                                  XBridgeApp::m_txLocker;
 std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_pendingTransactions;
 std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_transactions;
+boost::mutex                                  XBridgeApp::m_txUnconfirmedLocker;
+std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_unconfirmed;
 
 //*****************************************************************************
 //*****************************************************************************
@@ -958,6 +960,18 @@ void XBridgeApp::getAddressBook()
     for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
     {
         i->second->requestAddressBook();
+    }
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::checkUnconfirmedTx()
+{
+    boost::mutex::scoped_lock l(m_addressBookLock);
+
+    for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
+    {
+        i->second->requestUnconfirmedTx();
     }
 }
 

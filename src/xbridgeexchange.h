@@ -75,7 +75,8 @@ public:
     bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
                                                const std::vector<unsigned char> & from,
                                                const uint256 & txhash);
-    // bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx);
+    bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx,
+                                                const std::vector<unsigned char> & from);
 
     bool updateTransaction(const uint256 & hash);
 
