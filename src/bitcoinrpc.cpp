@@ -774,12 +774,12 @@ bool getTransaction(const std::string & rpcuser,
 {
     try
     {
-        LOG() << "rpc call <getnewaddress>";
+        LOG() << "rpc call <gettransaction>";
 
         Array params;
         params.push_back(txid);
         Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
-                               "getnewaddress", params);
+                               "gettransaction", params);
 
         // Parse reply
         const Value & result = find_value(reply, "result");

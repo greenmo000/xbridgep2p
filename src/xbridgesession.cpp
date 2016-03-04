@@ -1900,7 +1900,8 @@ void XBridgeSession::requestUnconfirmedTx()
 
     for (std::map<uint256, XBridgeTransactionDescrPtr>::iterator i = utx.begin(); i != utx.end(); ++i)
     {
-        if (rpc::getTransaction(m_user, m_passwd, m_address, m_port, i->first.GetHex()))
+        if (rpc::getTransaction(m_user, m_passwd, m_address, m_port,
+                                i->second->payTxId.GetHex()))
         {
             {
                 boost::mutex::scoped_lock l(XBridgeApp::m_txUnconfirmedLocker);
