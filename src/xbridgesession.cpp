@@ -1892,6 +1892,8 @@ void XBridgeSession::checkUnconfirmedTx()
 //*****************************************************************************
 void XBridgeSession::requestUnconfirmedTx()
 {
+    DEBUG_TRACE_LOG(currencyToLog());
+
     std::map<uint256, XBridgeTransactionDescrPtr> utx;
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txUnconfirmedLocker);
@@ -1900,6 +1902,7 @@ void XBridgeSession::requestUnconfirmedTx()
 
     for (std::map<uint256, XBridgeTransactionDescrPtr>::iterator i = utx.begin(); i != utx.end(); ++i)
     {
+        LOG() << "check transaction " << i->second->payTxId.GetHex();
         if (rpc::getTransaction(m_user, m_passwd, m_address, m_port,
                                 i->second->payTxId.GetHex()))
         {
@@ -2068,6 +2071,8 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 //******************************************************************************
 bool XBridgeSession::processTransactionFinished(XBridgePacketPtr packet)
 {
+    DEBUG_TRACE_LOG(currencyToLog());
+
     if (packet->size() != 32)
     {
         ERR() << "incorrect packet size for xbcTransactionFinished" << __FUNCTION__;
@@ -2102,6 +2107,8 @@ bool XBridgeSession::processTransactionFinished(XBridgePacketPtr packet)
 //******************************************************************************
 bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
 {
+    DEBUG_TRACE_LOG(currencyToLog());
+
     // TODO temporary implementation
     XBridgeTransactionDescrPtr xtx;
     {
@@ -2139,6 +2146,8 @@ bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
 //******************************************************************************
 bool XBridgeSession::processTransactionRollback(XBridgePacketPtr packet)
 {
+    DEBUG_TRACE_LOG(currencyToLog());
+
     if (packet->size() != 52)
     {
         ERR() << "incorrect packet size for xbcTransactionRollback" << __FUNCTION__;
