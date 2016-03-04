@@ -132,6 +132,14 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 {
     DEBUG_TRACE();
 
+//    {
+//        boost::mutex::scoped_lock l(m_knownTxLock);
+//        if (m_knownTransactions.count(transactionId))
+//        {
+//            return false;
+//        }
+//        m_knownTransactions.insert(transactionId);
+//    }
     // transactionId = id;
 
     XBridgeTransactionPtr tr(new XBridgeTransaction(id,

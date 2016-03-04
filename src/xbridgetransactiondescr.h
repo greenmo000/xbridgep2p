@@ -124,6 +124,10 @@ private:
         {
             created = d.created;
         }
+
+        payTxId     = d.payTxId;
+        hubAddress  = d.hubAddress;
+        myAddress   = d.myAddress;
     }
 };
 

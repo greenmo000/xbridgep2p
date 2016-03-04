@@ -106,6 +106,9 @@ private:
 
     // TODO use deque and limit size
     std::set<uint256>                        m_walletTransactions;
+
+    mutable boost::mutex                     m_knownTxLock;
+    std::set<uint256>                        m_knownTransactions;
 };
 
 #endif // XBRIDGEEXCHANGE_H
