@@ -1017,9 +1017,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // serialize
     std::string unsignedTx1 = (m_currency == "BTC") ?  txToStringBTC(tx1) : txToString(tx1);
-    LOG() << "created payment tx";
-    LOG() << unsignedTx1;
-
     std::string signedTx1 = unsignedTx1;
 
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
@@ -1029,12 +1026,17 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         return false;
     }
 
-    xtx->payTxId = tx1.GetHash();
+    tx1 = (m_currency == "BTC") ?  txFromStringBTC(signedTx1) : txFromString(signedTx1);
+
+    LOG() << "payment tx " << (m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx1)->GetHash().GetHex() : tx1.GetHash().GetHex();
+    LOG() << signedTx1;
+
+    xtx->payTxId = (m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx1)->GetHash() : tx1.GetHash();
     xtx->payTx   = signedTx1;
 
     // create tx2, inputs
     CTransaction tx2;
-    CTxIn in(COutPoint(tx1.GetHash(), 0));
+    CTxIn in(COutPoint((m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx1)->GetHash() : tx1.GetHash(), 0));
     tx2.vin.push_back(in);
 
     // outputs
@@ -1060,8 +1062,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // serialize
     std::string unsignedTx2 = (m_currency == "BTC") ?  txToStringBTC(tx2) : txToString(tx2);
-    LOG() << "created revert tx";
-    LOG() << unsignedTx1;
+    LOG() << "revert tx (unsigned) " << (m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx2)->GetHash().GetHex() : tx2.GetHash().GetHex();
+    LOG() << unsignedTx2;
 
     // store
     xtx->revTx = unsignedTx2;
@@ -1908,7 +1910,7 @@ void XBridgeSession::requestUnconfirmedTx()
         {
             {
                 boost::mutex::scoped_lock l(XBridgeApp::m_txUnconfirmedLocker);
-                XBridgeApp::m_unconfirmed.erase(i);
+                XBridgeApp::m_unconfirmed.erase(i->first);
             }
 
             XBridgeTransactionDescrPtr & tx = i->second;

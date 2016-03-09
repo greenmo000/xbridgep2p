@@ -248,7 +248,7 @@ public:
         return (vin.empty() && vout.empty());
     }
 
-    uint256 GetHash() const
+    virtual uint256 GetHash() const
     {
         return SerializeHash(*this);
     }
@@ -496,6 +496,24 @@ protected:
 class CTransaction : public CBTCTransaction
 {
 public:
+    CTransaction() : CBTCTransaction()
+    {
+
+    }
+
+    CTransaction(CBTCTransaction & o)
+    {
+        // OMG :(
+        // CTransaction diff from CBTCTransaction only methods of serialisation
+        *this = reinterpret_cast<CTransaction &>(o);
+    }
+
+    CTransaction & operator = (const CBTCTransaction & o)
+    {
+        *this = reinterpret_cast<const CTransaction &>(o);
+        return *this;
+    }
+
     IMPLEMENT_SERIALIZE
     (
         READWRITE(this->nVersion);
@@ -513,6 +531,11 @@ public:
                 a.vin       == b.vin &&
                 a.vout      == b.vout &&
                 a.nLockTime == b.nLockTime);
+    }
+
+    virtual uint256 GetHash() const
+    {
+        return SerializeHash(*this);
     }
 };
 
