@@ -39,8 +39,8 @@ struct PrintErrorCode
 
 //*****************************************************************************
 //*****************************************************************************
-std::string txToString(const CTransaction & tx);
-CTransaction txFromString(const std::string & str);
+// std::string txToString(const CTransaction & tx);
+// CTransaction txFromString(const std::string & str);
 
 //*****************************************************************************
 //*****************************************************************************
@@ -92,7 +92,15 @@ void XBridgeSession::init()
         m_processors[xbcTransactionInit]       .bind(this, &XBridgeSession::processTransactionInit);
         m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processTransactionInitialized);
 
-        m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSession::processTransactionCreate);
+        if (m_currency == "BTC")
+        {
+            m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSession::processTransactionCreateBTC);
+        }
+        else
+        {
+            m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSession::processTransactionCreate);
+        }
+
         m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSession::processTransactionCreated);
 
         m_processors[xbcTransactionSign]       .bind(this, &XBridgeSession::processTransactionSign);
@@ -1016,7 +1024,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // serialize
-    std::string unsignedTx1 = (m_currency == "BTC") ?  txToStringBTC(tx1) : txToString(tx1);
+    std::string unsignedTx1 = txToString(tx1);
     std::string signedTx1 = unsignedTx1;
 
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
@@ -1026,17 +1034,17 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         return false;
     }
 
-    tx1 = (m_currency == "BTC") ?  txFromStringBTC(signedTx1) : txFromString(signedTx1);
+    tx1 = txFromString(signedTx1);
 
-    LOG() << "payment tx " << (m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx1)->GetHash().GetHex() : tx1.GetHash().GetHex();
+    LOG() << "payment tx " << tx1.GetHash().GetHex();
     LOG() << signedTx1;
 
-    xtx->payTxId = (m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx1)->GetHash() : tx1.GetHash();
+    xtx->payTxId = tx1.GetHash();
     xtx->payTx   = signedTx1;
 
     // create tx2, inputs
     CTransaction tx2;
-    CTxIn in(COutPoint((m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx1)->GetHash() : tx1.GetHash(), 0));
+    CTxIn in(COutPoint(tx1.GetHash(), 0));
     tx2.vin.push_back(in);
 
     // outputs
@@ -1061,8 +1069,187 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // serialize
-    std::string unsignedTx2 = (m_currency == "BTC") ?  txToStringBTC(tx2) : txToString(tx2);
-    LOG() << "revert tx (unsigned) " << (m_currency == "BTC") ? reinterpret_cast<CBTCTransaction*>(&tx2)->GetHash().GetHex() : tx2.GetHash().GetHex();
+    std::string unsignedTx2 = txToString(tx2);
+    LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
+    LOG() << unsignedTx2;
+
+    // store
+    xtx->revTx = unsignedTx2;
+
+    xtx->state = XBridgeTransactionDescr::trCreated;
+    uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);
+
+    // send reply
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCreated));
+    reply->append(hubAddress);
+    reply->append(thisAddress);
+    reply->append(id.begin(), 32);
+    reply->append(unsignedTx1);
+    reply->append(unsignedTx2);
+
+    if (!sendPacketBroadcast(reply))
+    {
+        ERR() << "error sending created transactions packet " << __FUNCTION__;
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
+{
+    DEBUG_TRACE_LOG(currencyToLog());
+
+    if (packet->size() != 100)
+    {
+        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
+        return false;
+    }
+
+    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
+    std::vector<unsigned char> hubAddress(packet->data()+20, packet->data()+40);
+
+    // transaction id
+    uint256 id   (packet->data()+40);
+
+    // destination address
+    std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
+
+    // lock time
+    boost::uint32_t lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
+    boost::uint32_t lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
+
+    XBridgeTransactionDescrPtr xtx;
+    {
+        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
+
+        if (!XBridgeApp::m_transactions.count(id))
+        {
+            // wtf? unknown transaction
+            // TODO log
+            return false;
+        }
+
+        xtx = XBridgeApp::m_transactions[id];
+    }
+
+
+    std::vector<rpc::Unspent> entries;
+    if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
+    {
+        LOG() << "rpc::listUnspent failed" << __FUNCTION__;
+        return false;
+    }
+
+    boost::uint64_t fee = m_COIN*XBridgeTransactionDescr::MIN_TX_FEE/XBridgeTransactionDescr::COIN;
+    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+fee;
+    boost::uint64_t inAmount  = 0;
+
+    std::vector<rpc::Unspent> usedInTx;
+    for (const rpc::Unspent & entry : entries)
+    {
+        usedInTx.push_back(entry);
+        inAmount += entry.amount*m_COIN;
+
+        // check amount
+        if (inAmount >= outAmount)
+        {
+            break;
+        }
+    }
+
+    // check amount
+    if (inAmount < outAmount)
+    {
+        // no money, cancel transaction
+        sendCancelTransaction(id);
+        return false;
+    }
+
+    // create tx1, locked
+    CBTCTransaction tx1;
+
+    // lock time
+    {
+        time_t local = time(NULL);// GetAdjustedTime();
+        tx1.nLockTime = local + lockTimeTx1;
+    }
+
+    // inputs
+    for (const rpc::Unspent & entry : usedInTx)
+    {
+        CTxIn in(COutPoint(uint256(entry.txId), entry.vout));
+        tx1.vin.push_back(in);
+    }
+
+    // outputs
+    tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress, m_prefix[0])));
+
+    if (inAmount > outAmount)
+    {
+        std::string addr;
+        if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
+        {
+            // cancel transaction
+            sendCancelTransaction(id);
+            return false;
+        }
+
+        // rest
+        CScript script = destination(addr);
+        tx1.vout.push_back(CTxOut(inAmount-outAmount, script));
+    }
+
+    // serialize
+    std::string unsignedTx1 = txToStringBTC(tx1);
+    std::string signedTx1 = unsignedTx1;
+
+    if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
+    {
+        // do not sign, cancel
+        sendCancelTransaction(id);
+        return false;
+    }
+
+    tx1 = txFromStringBTC(signedTx1);
+
+    LOG() << "payment tx " << tx1.GetHash().GetHex();
+    LOG() << signedTx1;
+
+    xtx->payTxId = tx1.GetHash();
+    xtx->payTx   = signedTx1;
+
+    // create tx2, inputs
+    CTransaction tx2;
+    CTxIn in(COutPoint(tx1.GetHash(), 0));
+    tx2.vin.push_back(in);
+
+    // outputs
+    {
+        std::string addr;
+        if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
+        {
+            // cancel transaction
+            sendCancelTransaction(id);
+            return false;
+        }
+
+        // rest
+        CScript script = destination(addr);
+        tx2.vout.push_back(CTxOut(outAmount-2*fee, script));
+    }
+
+    // lock time for tx2
+    {
+        time_t local = time(0); // GetAdjustedTime();
+        tx2.nLockTime = local + lockTimeTx2;
+    }
+
+    // serialize
+    std::string unsignedTx2 = txToStringBTC(tx2);
+    LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
 
     // store

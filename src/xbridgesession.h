@@ -119,6 +119,7 @@ private:
     bool processTransactionHold(XBridgePacketPtr packet);
     bool processTransactionInit(XBridgePacketPtr packet);
     bool processTransactionCreate(XBridgePacketPtr packet);
+    bool processTransactionCreateBTC(XBridgePacketPtr packet);
     bool processTransactionSign(XBridgePacketPtr packet);
     bool processTransactionCommit(XBridgePacketPtr packet);
     bool processTransactionFinished(XBridgePacketPtr packet);

@@ -501,18 +501,18 @@ public:
 
     }
 
-    CTransaction(CBTCTransaction & o)
-    {
-        // OMG :(
-        // CTransaction diff from CBTCTransaction only methods of serialisation
-        *this = reinterpret_cast<CTransaction &>(o);
-    }
+//    CTransaction(CBTCTransaction & o)
+//    {
+//        // OMG :(
+//        // CTransaction diff from CBTCTransaction only methods of serialisation
+//        *this = reinterpret_cast<CTransaction &>(o);
+//    }
 
-    CTransaction & operator = (const CBTCTransaction & o)
-    {
-        *this = reinterpret_cast<const CTransaction &>(o);
-        return *this;
-    }
+//    CTransaction & operator = (const CBTCTransaction & o)
+//    {
+//        *this = reinterpret_cast<const CTransaction &>(o);
+//        return *this;
+//    }
 
     IMPLEMENT_SERIALIZE
     (
