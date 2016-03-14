@@ -1731,25 +1731,32 @@ bool XBridgeSession::processTransactionConfirmed(XBridgePacketPtr packet)
     {
         if (tr->state() == XBridgeTransaction::trFinished)
         {
+
+            LOG() << "broadcast send xbcTransactionFinished";
+
+            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
+            reply->append(txid.begin(), 32);
+            sendPacketBroadcast(reply);
+
             // send transaction state to clients
-            std::vector<std::vector<unsigned char> > rcpts;
-            rcpts.push_back(tr->firstAddress());
-            rcpts.push_back(tr->firstDestination());
-            rcpts.push_back(tr->secondAddress());
-            rcpts.push_back(tr->secondDestination());
+//            std::vector<std::vector<unsigned char> > rcpts;
+//            rcpts.push_back(tr->firstAddress());
+//            rcpts.push_back(tr->firstDestination());
+//            rcpts.push_back(tr->secondAddress());
+//            rcpts.push_back(tr->secondDestination());
 
-            foreach (const std::vector<unsigned char> & to, rcpts)
-            {
-                // TODO remove this log
-                LOG() << "send xbcTransactionFinished to "
-                      << util::base64_encode(std::string((char *)&to[0], 20));
+//            foreach (const std::vector<unsigned char> & to, rcpts)
+//            {
+//                // TODO remove this log
+//                LOG() << "send xbcTransactionFinished to "
+//                      << util::base64_encode(std::string((char *)&to[0], 20));
 
-                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
-                reply->append(to);
-                reply->append(txid.begin(), 32);
+//                XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
+//                reply->append(to);
+//                reply->append(txid.begin(), 32);
 
-                sendPacket(to, reply);
-            }
+//                sendPacket(to, reply);
+//            }
         }
     }
 
