@@ -1731,7 +1731,6 @@ bool XBridgeSession::processTransactionConfirmed(XBridgePacketPtr packet)
     {
         if (tr->state() == XBridgeTransaction::trFinished)
         {
-
             LOG() << "broadcast send xbcTransactionFinished";
 
             XBridgePacketPtr reply(new XBridgePacket(xbcTransactionFinished));
