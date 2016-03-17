@@ -34,15 +34,14 @@ public:
     std::string appPath() const    { return m_appPath; }
 
     unsigned short dhtPort() const    { return m_dhtPort; }
-    unsigned short bridgePort() const { return m_bridgePort; }
-
-    const std::vector<std::string> peers() const { return m_peers; }
 
     std::string logPath() const
     {
         try { return m_pt.get<std::string>("Main.LogPath"); }
         catch (std::exception &) {} return std::string();
     }
+
+    std::vector<std::string> peers() const;
 
     std::vector<std::string> exchangeWallets() const;
 
@@ -90,7 +89,6 @@ private:
     boost::property_tree::ptree m_pt;
 
     unsigned short              m_dhtPort;
-    unsigned short              m_bridgePort;
 
     std::vector<std::string>    m_peers;
 

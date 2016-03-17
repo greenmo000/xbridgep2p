@@ -4,12 +4,31 @@
 #
 #-------------------------------------------------
 
-#QT       += core concurrent
-#greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+#-------------------------------------------------
+!include($$PWD/config.pri) {
+    error(Failed to include config.pri)
+}
+
+#-------------------------------------------------
+withoutgui {
+
+message(no gui build)
 
 CONFIG   -= qt
 CONFIG   += console
-CONFIG   -= app_bundle
+
+DEFINES += NO_GUI
+
+}
+else {
+
+QT       += core gui
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+}
+
+#CONFIG   -= app_bundle
+CONFIG   += app
 CONFIG   += static
 
 #-------------------------------------------------
@@ -22,10 +41,7 @@ else:CONFIG(debug, debug|release){
 }
 
 
-#-------------------------------------------------
-!include($$PWD/config.pri) {
-    error(Failed to include config.pri)
-}
+windows:DEFINES += WIN32
 
 #-------------------------------------------------
 withbreakpad {
@@ -35,6 +51,7 @@ message("msvc build, breakpad enabled")
 DEFINES += BREAKPAD_ENABLED
 
 INCLUDEPATH += \
+    $$PWD/src \
     $$PWD/src/3rdparty/breakpad/src
 
 QMAKE_CFLAGS_RELEASE += -Zi
@@ -67,7 +84,17 @@ SOURCES += \
     src/xbridgeexchange.cpp \
     src/xbridgetransaction.cpp \
     src/util/settings.cpp \
-    src/xbridgetransactionmember.cpp
+    src/xbridgetransactionmember.cpp \
+    src/bitcoinrpc.cpp \
+    src/json/json_spirit_reader.cpp \
+    src/json/json_spirit_value.cpp \
+    src/json/json_spirit_writer.cpp \
+    src/ctransaction.cpp \
+    src/script.cpp \
+    src/key.cpp \
+    src/keystore.cpp \
+    src/sync.cpp \
+    src/crypter.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -84,7 +111,50 @@ HEADERS += \
     src/util/settings.h \
     src/xbridgetransactionmember.h \
     src/version.h \
-    src/config.h
+    src/config.h \
+    src/xbridgetransactiondescr.h \
+    src/bitcoinrpc.h \
+    src/json/json_spirit.h \
+    src/json/json_spirit_error_position.h \
+    src/json/json_spirit_reader.h \
+    src/json/json_spirit_reader_template.h \
+    src/json/json_spirit_stream_reader.h \
+    src/json/json_spirit_utils.h \
+    src/json/json_spirit_value.h \
+    src/json/json_spirit_writer.h \
+    src/json/json_spirit_writer_template.h \
+    src/bignum.h \
+    src/uiconnector.h \
+    src/ctransaction.h \
+    src/script.h \
+    src/key.h \
+    src/serialize.h \
+    src/allocators.h \
+    src/keystore.h \
+    src/sync.h \
+    src/crypter.h \
+    src/base58.h
+
+#-------------------------------------------------
+!withoutgui {
+
+SOURCES += \
+    src/ui/mainwindow.cpp \
+    src/ui/xbridgetransactionsview.cpp \
+    src/ui/xbridgetransactionsmodel.cpp \
+    src/ui/xbridgetransactiondialog.cpp \
+    src/ui/xbridgeaddressbookview.cpp \
+    src/ui/xbridgeaddressbookmodel.cpp
+
+HEADERS += \
+    src/ui/xbridgetransactionsview.h \
+    src/ui/xbridgetransactionsmodel.h \
+    src/ui/xbridgetransactiondialog.h \
+    src/ui/xbridgeaddressbookview.h \
+    src/ui/xbridgeaddressbookmodel.h \
+    src/ui/mainwindow.h
+
+} #withoutgui
 
 #-------------------------------------------------
 DISTFILES += \
@@ -118,3 +188,8 @@ LIBS += \
     -lcrash_report_sender
 
 } #withbreakpad
+
+RESOURCES += \
+    resource.qrc
+
+win32:RC_FILE = xbridgep2p.rc

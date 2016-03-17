@@ -47,29 +47,38 @@ bool XBridgeExchange::init()
     {
         std::string label   = s.get<std::string>(*i + ".Title");
         std::string address = s.get<std::string>(*i + ".Address");
+        std::string ip      = s.get<std::string>(*i + ".Ip");
+        unsigned int port   = s.get<unsigned int>(*i + ".Port");
+        std::string user    = s.get<std::string>(*i + ".Username");
+        std::string passwd  = s.get<std::string>(*i + ".Password");
 
-        if (address.empty())
+        if (/*address.empty() || */ip.empty() || port == 0 ||
+                user.empty() || passwd.empty())
         {
-            LOG() << "read wallet " << *i << " with empty address>";
+            LOG() << "read wallet " << *i << " with empty parameters>";
             continue;
         }
 
-        std::string decoded = util::base64_decode(address);
-        if (address.empty())
-        {
-            LOG() << "incorrect wallet address for " << *i;
-            continue;
-        }
+//        std::string decoded = util::base64_decode(address);
+//        if (address.empty())
+//        {
+//            LOG() << "incorrect wallet address for " << *i;
+//            continue;
+//        }
 
-        std::copy(decoded.begin(), decoded.end(), std::back_inserter(m_wallets[*i].address));
-        if (m_wallets[*i].address.size() != 20)
-        {
-            LOG() << "incorrect wallet address size for " << *i;
-            m_wallets.erase(*i);
-            continue;
-        }
+//        std::copy(decoded.begin(), decoded.end(), std::back_inserter(m_wallets[*i].address));
+//        if (m_wallets[*i].address.size() != 20)
+//        {
+//            LOG() << "incorrect wallet address size for " << *i;
+//            m_wallets.erase(*i);
+//            continue;
+//        }
 
         m_wallets[*i].title   = label;
+        m_wallets[*i].ip      = ip;
+        m_wallets[*i].port    = port;
+        m_wallets[*i].user    = user;
+        m_wallets[*i].passwd  = passwd;
 
         LOG() << "read wallet " << *i << " \"" << label << "\" address <" << address << ">";
     }
@@ -123,6 +132,14 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 {
     DEBUG_TRACE();
 
+//    {
+//        boost::mutex::scoped_lock l(m_knownTxLock);
+//        if (m_knownTransactions.count(transactionId))
+//        {
+//            return false;
+//        }
+//        m_knownTransactions.insert(transactionId);
+//    }
     // transactionId = id;
 
     XBridgeTransactionPtr tr(new XBridgeTransaction(id,
@@ -130,6 +147,10 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
                                                     destAmount));
+
+    LOG() << tr->hash1().ToString();
+    LOG() << tr->hash2().ToString();
+
     if (!tr->isValid())
     {
         return false;
@@ -327,24 +348,23 @@ bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPt
 
 //*****************************************************************************
 //*****************************************************************************
-//bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx)
-//{
-//    // update transaction state
-//    if (tx->increaseStateCounter(XBridgeTransaction::trCommited) == XBridgeTransaction::trFinished)
-//    {
-//        return true;
-//    }
+bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx,
+                                                             const std::vector<unsigned char> & from)
+{
+    // update transaction state
+    if (tx->increaseStateCounter(XBridgeTransaction::trCommited, from) == XBridgeTransaction::trFinished)
+    {
+        return true;
+    }
 
-//    return false;
-//}
+    return false;
+}
 
 //*****************************************************************************
 //*****************************************************************************
 bool XBridgeExchange::updateTransaction(const uint256 & hash)
 {
     // DEBUG_TRACE();
-
-    LOG() << "            " << hash.GetHex();
 
     // store
     m_walletTransactions.insert(hash);
@@ -497,10 +517,35 @@ std::list<XBridgeTransactionPtr> XBridgeExchange::finishedTransactions() const
 //*****************************************************************************
 std::vector<StringPair> XBridgeExchange::listOfWallets() const
 {
+    // TODO only enabled wallets
+//    std::vector<StringPair> result;
+//    for (WalletList::const_iterator i = m_wallets.begin(); i != m_wallets.end(); ++i)
+//    {
+//        result.push_back(std::make_pair(i->first, i->second.title));
+//    }
+//    return result;
+
+    Settings & s = settings();
+
     std::vector<StringPair> result;
-    for (WalletList::const_iterator i = m_wallets.begin(); i != m_wallets.end(); ++i)
+    std::vector<std::string> wallets = s.exchangeWallets();
+    for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
     {
-        result.push_back(std::make_pair(i->first, i->second.title));
+        std::string label   = s.get<std::string>(*i + ".Title");
+//        std::string address = s.get<std::string>(*i + ".Address");
+//        std::string ip      = s.get<std::string>(*i + ".Ip");
+//        unsigned int port   = s.get<unsigned int>(*i + ".Port");
+//        std::string user    = s.get<std::string>(*i + ".Username");
+//        std::string passwd  = s.get<std::string>(*i + ".Password");
+
+//        if (address.empty() || ip.empty() || port == 0 ||
+//                user.empty() || passwd.empty())
+//        {
+//            LOG() << "read wallet " << *i << " with empty parameters>";
+//            continue;
+//        }
+
+        result.push_back(std::make_pair(*i, label));
     }
     return result;
 }

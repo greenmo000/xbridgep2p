@@ -9,6 +9,11 @@
 #include "dht/dht.h"
 #include "version.h"
 #include "config.h"
+#include "uiconnector.h"
+
+#ifndef NO_GUI
+#include "ui/mainwindow.h"
+#endif
 
 #include <thread>
 #include <chrono>
@@ -19,6 +24,18 @@
 
 #include <openssl/rand.h>
 #include <openssl/md5.h>
+
+//*****************************************************************************
+//*****************************************************************************
+UIConnector uiConnector;
+
+//*****************************************************************************
+//*****************************************************************************
+boost::mutex                                  XBridgeApp::m_txLocker;
+std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_pendingTransactions;
+std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_transactions;
+boost::mutex                                  XBridgeApp::m_txUnconfirmedLocker;
+std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_unconfirmed;
 
 //*****************************************************************************
 //*****************************************************************************
@@ -38,7 +55,6 @@ XBridgeApp::XBridgeApp()
     , m_ipv4(true)
     , m_ipv6(true)
     , m_dhtPort(Config::DHT_PORT)
-    , m_bridgePort(Config::BRIDGE_PORT)
 {
 }
 
@@ -77,8 +93,16 @@ std::string XBridgeApp::version()
 //*****************************************************************************
 int XBridgeApp::exec()
 {
+#ifdef NO_GUI
     m_threads.join_all();
     return 0;
+
+#else
+    MainWindow view;
+    view.show();
+
+    return m_app->exec();
+#endif
 }
 
 //*****************************************************************************
@@ -88,6 +112,16 @@ const unsigned char hash[20] =
     0x54, 0x57, 0x87, 0x89, 0xdf, 0xc4, 0x23, 0xee, 0xf6, 0x03,
     0x1f, 0x81, 0x94, 0xa9, 0x3a, 0x16, 0x98, 0x8b, 0x72, 0x7b
 };
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::init(int argc, char *argv[])
+{
+#ifndef NO_GUI
+    m_app.reset(new QApplication(argc, argv));
+#endif
+    return true;
+}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -107,7 +141,6 @@ bool XBridgeApp::initDht()
 
     Settings & s = settings();
     m_dhtPort    = s.dhtPort();
-    m_bridgePort = s.bridgePort();
 
     std::vector<std::string> peers = s.peers();
     for (std::vector<std::string>::iterator i = peers.begin(); i != peers.end(); ++i)
@@ -150,7 +183,7 @@ bool XBridgeApp::initDht()
     }
 
     // start xbrige
-    m_bridge = XBridgePtr(new XBridge(m_bridgePort));
+    m_bridge = XBridgePtr(new XBridge());
 
     // start dht
     memset(&m_sin, 0, sizeof(m_sin));
@@ -168,7 +201,7 @@ bool XBridgeApp::initDht()
     m_dhtStop    = false;
 
     m_threads.create_thread(boost::bind(&XBridgeApp::dhtThreadProc, this));
-    m_threads.create_thread(boost::bind(&XBridgeApp::bridgeThreadProc, this));
+    // m_threads.create_thread(boost::bind(&XBridgeApp::bridgeThreadProc, this));
 
     return true;
 }
@@ -183,7 +216,6 @@ bool XBridgeApp::stopDht()
 
     // LOG() << "stopping bridge thread";
     // m_bridge->stop();
-    // m_bridgeThread.join();
 
     return true;
 }
@@ -271,11 +303,13 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
     }
 
     boost::mutex::scoped_lock l(m_sessionsLock);
-    if (m_sessions.count(id))
+    if (m_sessionAddrs.count(id))
     {
         // found local client
-        XBridgeSessionPtr ptr = m_sessions[id];
-        ptr->sendXBridgeMessage(message);
+        XBridgeSessionPtr ptr = m_sessionAddrs[id];
+        ptr->processPacket(packet);
+
+        // ptr->sendXBridgeMessage(message);
     }
 
     // check local address
@@ -603,8 +637,10 @@ void XBridgeApp::dhtThreadProc()
                     std::vector<unsigned char> & id      = std::get<0>(mpair);
                     std::vector<unsigned char> & message = std::get<1>(mpair);
 
-                    // std::string id      = util::base64_decode(mpair.first);
-                    // std ::string message = mpair.second;
+                    if (isKnownMessage(message))
+                    {
+                        continue;
+                    }
 
                     // check broadcast
                     if (id.empty())
@@ -612,7 +648,7 @@ void XBridgeApp::dhtThreadProc()
                         // send to all local clients
                         {
                             boost::mutex::scoped_lock l(m_sessionsLock);
-                            for (SessionMap::iterator i = m_sessions.begin(); i != m_sessions.end(); ++i)
+                            for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
                             {
                                 std::get<1>(*i)->sendXBridgeMessage(message);
                             }
@@ -633,10 +669,10 @@ void XBridgeApp::dhtThreadProc()
                         // check local
                         {
                             boost::mutex::scoped_lock l(m_sessionsLock);
-                            if (m_sessions.count(id))
+                            if (m_sessionAddrs.count(id))
                             {
                                 // found local client
-                                XBridgeSessionPtr ptr = m_sessions[id];
+                                XBridgeSessionPtr ptr = m_sessionAddrs[id];
                                 ptr->sendXBridgeMessage(message);
 
                                 isFoundLocal = true;
@@ -702,9 +738,11 @@ void XBridgeApp::dhtThreadProc()
     {
         struct sockaddr_in sin[500];
         struct sockaddr_in6 sin6[500];
-        int num = 500, num6 = 500;
-        int i = dht_get_nodes(sin, &num, sin6, &num6);
-        LOG() << "Found " << i << "(" << num << " + " << num6 << ") good nodes";
+        int tmpNodes  = 500;
+        int tmpNodes6 = 500;
+
+        int i = dht_get_nodes(sin, &tmpNodes, sin6, &tmpNodes6);
+        LOG() << "Found " << i << "(" << tmpNodes << " + " << tmpNodes6 << ") good nodes";
     }
 
     dht_uninit();
@@ -792,6 +830,14 @@ void XBridgeApp::bridgeThreadProc()
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeApp::addSession(XBridgeSessionPtr session)
+{
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    m_sessionIds[session->currency()] = session;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeApp::storageStore(XBridgeSessionPtr session, const unsigned char * data)
 {
     if (!data)
@@ -802,10 +848,11 @@ void XBridgeApp::storageStore(XBridgeSessionPtr session, const unsigned char * d
     std::vector<unsigned char> id(data, data+20);
 
     // TODO :)
-    // if (m_sessions.contains(id))
+    // if (m_sessionAddrs.contains(id))
 
     boost::mutex::scoped_lock l(m_sessionsLock);
-    m_sessions[id] = session;
+    m_sessionAddrs[id] = session;
+    m_sessionIds[session->currency()] = session;
 
     dht_storage_store(data, (sockaddr *)&m_sin, m_dhtPort);
     dht_storage_store(data, (sockaddr *)&m_sin6, m_dhtPort);
@@ -816,11 +863,22 @@ void XBridgeApp::storageStore(XBridgeSessionPtr session, const unsigned char * d
 void XBridgeApp::storageClean(XBridgeSessionPtr session)
 {
     boost::mutex::scoped_lock l(m_sessionsLock);
-    for (auto i = m_sessions.begin(); i != m_sessions.end();)
+    for (auto i = m_sessionAddrs.begin(); i != m_sessionAddrs.end();)
     {
         if (i->second == session)
         {
-            m_sessions.erase(i++);
+            m_sessionAddrs.erase(i++);
+        }
+        else
+        {
+            ++i;
+        }
+    }
+    for (auto i = m_sessionIds.begin(); i != m_sessionIds.end();)
+    {
+        if (i->second == session)
+        {
+            m_sessionIds.erase(i++);
         }
         else
         {
@@ -836,7 +894,7 @@ bool XBridgeApp::isLocalAddress(const std::vector<unsigned char> & id)
     static UcharVector localid(m_myid, m_myid+20);
 
     boost::mutex::scoped_lock l(m_sessionsLock);
-    if (m_sessions.count(id))
+    if (m_sessionAddrs.count(id))
     {
         return true;
     }
@@ -884,11 +942,153 @@ void XBridgeApp::resendAddressBook()
 {
     boost::mutex::scoped_lock l(m_addressBookLock);
 
-    for (SessionMap::iterator i = m_sessions.begin(); i != m_sessions.end(); ++i)
+    for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
     {
         for (AddressBook::iterator ii = m_addressBook.begin(); ii != m_addressBook.end(); ++ii)
         {
             i->second->sendAddressbookEntry(std::get<0>(*ii), std::get<1>(*ii), std::get<2>(*ii));
         }
     }
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::getAddressBook()
+{
+    boost::mutex::scoped_lock l(m_addressBookLock);
+
+    for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
+    {
+        i->second->requestAddressBook();
+    }
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::checkUnconfirmedTx()
+{
+    boost::mutex::scoped_lock l(m_addressBookLock);
+
+    for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
+    {
+        i->second->requestUnconfirmedTx();
+    }
+}
+
+//******************************************************************************
+//******************************************************************************
+uint256 XBridgeApp::sendXBridgeTransaction(const std::vector<unsigned char> & from,
+                                           const std::string & fromCurrency,
+                                           const boost::uint64_t fromAmount,
+                                           const std::vector<unsigned char> & to,
+                                           const std::string & toCurrency,
+                                           const boost::uint64_t toAmount)
+{
+    if (fromCurrency.size() > 8 || toCurrency.size() > 8)
+    {
+        assert(false || "invalid currency");
+        return uint256();
+    }
+
+    boost::uint32_t timestamp = time(0);
+    uint256 id = util::hash(from.begin(), from.end(),
+                            fromCurrency.begin(), fromCurrency.end(),
+                            BEGIN(fromAmount), END(fromAmount),
+                            to.begin(), to.end(),
+                            toCurrency.begin(), toCurrency.end(),
+                            BEGIN(toAmount), END(toAmount),
+                            BEGIN(timestamp), END(timestamp));
+
+    XBridgeTransactionDescrPtr ptr(new XBridgeTransactionDescr);
+    ptr->id           = id;
+    ptr->from         = from;
+    ptr->fromCurrency = fromCurrency;
+    ptr->fromAmount   = fromAmount;
+    ptr->to           = to;
+    ptr->toCurrency   = toCurrency;
+    ptr->toAmount     = toAmount;
+
+    {
+        boost::mutex::scoped_lock l(m_txLocker);
+        m_pendingTransactions[id] = ptr;
+    }
+
+    // try send immediatelly
+    sendPendingTransaction(ptr);
+
+    return id;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
+{
+    // if (!ptr->packet)
+    {
+        ptr->packet.reset(new XBridgePacket(xbcTransaction));
+
+        // field length must be 8 bytes
+        std::vector<unsigned char> fc(8, 0);
+        std::copy(ptr->fromCurrency.begin(), ptr->fromCurrency.end(), fc.begin());
+
+        // field length must be 8 bytes
+        std::vector<unsigned char> tc(8, 0);
+        std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
+
+        // 20 bytes - id of transaction
+        // 2x
+        // 20 bytes - address
+        //  8 bytes - currency
+        //  4 bytes - amount
+        ptr->packet->append(ptr->id.begin(), 32);
+        ptr->packet->append(ptr->from);
+        ptr->packet->append(fc);
+        ptr->packet->append(ptr->fromAmount);
+        ptr->packet->append(ptr->to);
+        ptr->packet->append(tc);
+        ptr->packet->append(ptr->toAmount);
+    }
+
+    onSend(ptr->packet);
+
+    ptr->state = XBridgeTransactionDescr::trPending;
+    uiConnector.NotifyXBridgeTransactionStateChanged(ptr->id, XBridgeTransactionDescr::trPending);
+
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id)
+{
+    {
+        boost::mutex::scoped_lock l(m_txLocker);
+        m_pendingTransactions.erase(id);
+        if (m_transactions.count(id))
+        {
+            m_transactions[id]->state = XBridgeTransactionDescr::trCancelled;
+        }
+    }
+
+    return sendCancelTransaction(id);
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeApp::sendCancelTransaction(const uint256 & txid)
+{
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
+    reply->append(txid.begin(), 32);
+
+    onSend(reply);
+
+    // cancelled
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+int XBridgeApp::peersCount() const
+{
+    return dht_get_count(0, 0);
 }

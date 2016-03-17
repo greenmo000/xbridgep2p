@@ -23,7 +23,6 @@ Settings & settings()
 Settings::Settings()
     : m_isExchangeEnabled(false)
     , m_dhtPort(Config::DHT_PORT)
-    , m_bridgePort(Config::BRIDGE_PORT)
 {
 }
 
@@ -58,10 +57,6 @@ bool Settings::parseCmdLine(int argc, char * argv[])
     if (options.count("dhtport"))
     {
         m_dhtPort = options["dhtport"].as<unsigned short>();
-    }
-    if (options.count("bridgeport"))
-    {
-        m_bridgePort = options["bridgeport"].as<unsigned short>();
     }
     if (options.count("peer"))
     {
@@ -124,6 +119,23 @@ bool Settings::write(const char * fileName)
     }
 
     return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+std::vector<std::string> Settings::peers() const
+{
+    std::string list;
+    TRY(list = m_pt.get<std::string>("Main.Peers"));
+
+    std::vector<std::string> strs;
+    if (list.size() > 0)
+    {
+        boost::split(strs, list, boost::is_any_of(",;"));
+    }
+
+    std::copy(m_peers.begin(), m_peers.end(), std::back_inserter(strs));
+    return strs;
 }
 
 //******************************************************************************

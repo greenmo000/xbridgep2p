@@ -7,6 +7,7 @@
 #include "xbridge.h"
 #include "xbridgesession.h"
 #include "util/uint256.h"
+#include "xbridgetransactiondescr.h"
 
 #include <thread>
 #include <atomic>
@@ -16,7 +17,11 @@
 #include <set>
 
 #ifdef WIN32
-#include <Ws2tcpip.h>
+// #include <Ws2tcpip.h>
+#endif
+
+#ifndef NO_GUI
+#include <QApplication>
 #endif
 
 //*****************************************************************************
@@ -40,6 +45,20 @@ public:
 
     int exec();
 
+
+    uint256 sendXBridgeTransaction(const std::vector<unsigned char> & from,
+                                   const std::string & fromCurrency,
+                                   const boost::uint64_t fromAmount,
+                                   const std::vector<unsigned char> & to,
+                                   const std::string & toCurrency,
+                                   const boost::uint64_t toAmount);
+    bool sendPendingTransaction(XBridgeTransactionDescrPtr & ptr);
+
+    bool cancelXBridgeTransaction(const uint256 & id);
+    bool sendCancelTransaction(const uint256 & txid);
+
+    int peersCount() const;
+
 //signals:
 //    void showLogMessage(const QString & msg);
 
@@ -51,6 +70,8 @@ public:
 
     // void logMessage(const QString & msg);
 
+    // store session
+    void addSession(XBridgeSessionPtr session);
     // store session addresses in local table
     void storageStore(XBridgeSessionPtr session, const unsigned char * data);
     // clear local table
@@ -80,6 +101,10 @@ public:// slots:
                                const std::string & name,
                                const std::string & address);
     void resendAddressBook();
+
+    void getAddressBook();
+
+    void checkUnconfirmedTx();
 
 public:
     static void sleep(const unsigned int umilliseconds);
@@ -116,13 +141,14 @@ private:
 
     std::vector<sockaddr_storage> m_nodes;
 
-    // std::thread       m_bridgeThread;
-    unsigned short    m_bridgePort;
+    // unsigned short    m_bridgePort;
     XBridgePtr        m_bridge;
 
     boost::mutex m_sessionsLock;
-    typedef std::map<std::vector<unsigned char>, XBridgeSessionPtr> SessionMap;
-    SessionMap m_sessions;
+    typedef std::map<std::vector<unsigned char>, XBridgeSessionPtr> SessionAddrMap;
+    SessionAddrMap m_sessionAddrs;
+    typedef std::map<std::string, XBridgeSessionPtr> SessionIdMap;
+    SessionIdMap m_sessionIds;
 
     boost::mutex m_messagesLock;
     typedef std::set<uint256> ProcessedMessages;
@@ -133,6 +159,18 @@ private:
     typedef std::vector<AddressBookEntry> AddressBook;
     AddressBook m_addressBook;
     std::set<std::string> m_addresses;
+
+public:
+    static boost::mutex                                  m_txLocker;
+    static std::map<uint256, XBridgeTransactionDescrPtr> m_pendingTransactions;
+    static std::map<uint256, XBridgeTransactionDescrPtr> m_transactions;
+
+    static boost::mutex                                  m_txUnconfirmedLocker;
+    static std::map<uint256, XBridgeTransactionDescrPtr> m_unconfirmed;
+
+#ifndef NO_GUI
+    std::shared_ptr<QCoreApplication> m_app;
+#endif
 };
 
 #endif // XBRIDGEAPP_H
