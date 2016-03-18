@@ -3,6 +3,7 @@
 
 #include "logger.h"
 #include "settings.h"
+#include "../uiconnector.h"
 
 #include <string>
 #include <fstream>
@@ -41,6 +42,8 @@ LOG::~LOG()
 
     try
     {
+        uiConnector.NotifyLogMessage(str().c_str());
+
         if (logToFile)
         {
             boost::gregorian::date tmpday =
