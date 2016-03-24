@@ -897,11 +897,24 @@ std::string txToString(const CTransaction & tx)
 //******************************************************************************
 CBTCTransaction txFromStringBTC(const std::string & str)
 {
-    std::vector<char> txdata = ParseHex(str);
-    CDataStream stream(txdata,
-                       SER_NETWORK, PROTOCOL_VERSION);
     CBTCTransaction tx;
-    stream >> tx;
+
+    try
+    {
+        std::vector<char> txdata = ParseHex(str);
+        CDataStream stream(txdata,
+                           SER_NETWORK, PROTOCOL_VERSION);
+        stream >> tx;
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "exception " << e.what() << " in " << __FUNCTION__;
+    }
+    catch (...)
+    {
+        LOG() << "unknown exception in " << __FUNCTION__;
+    }
+
     return tx;
 }
 
@@ -909,11 +922,22 @@ CBTCTransaction txFromStringBTC(const std::string & str)
 //******************************************************************************
 CTransaction txFromString(const std::string & str)
 {
-    std::vector<char> txdata = ParseHex(str);
-    CDataStream stream(txdata,
-                       SER_NETWORK, PROTOCOL_VERSION);
     CTransaction tx;
-    stream >> tx;
+    try
+    {
+        std::vector<char> txdata = ParseHex(str);
+        CDataStream stream(txdata,
+                           SER_NETWORK, PROTOCOL_VERSION);
+        stream >> tx;
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "exception " << e.what() << " in " << __FUNCTION__;
+    }
+    catch (...)
+    {
+        LOG() << "unknown exception in " << __FUNCTION__;
+    }
     return tx;
 }
 
