@@ -6,7 +6,7 @@
 // #include "xbridgetransactiondialog.h"
 #include "../util/verify.h"
 #include "../uiconnector.h"
-#include "util/logger.h"
+#include "../util/logger.h"
 
 #include <QTableView>
 #include <QHeaderView>
