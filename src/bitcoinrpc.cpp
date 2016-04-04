@@ -618,6 +618,69 @@ bool listUnspent(const std::string & rpcuser,
 
 //*****************************************************************************
 //*****************************************************************************
+bool decodeRawTransaction(const std::string & rpcuser,
+                          const std::string & rpcpasswd,
+                          const std::string & rpcip,
+                          const std::string & rpcport,
+                          const std::string & rawtx,
+                          std::string & tx)
+{
+    try
+    {
+        LOG() << "rpc call <decoderawtransaction>";
+
+        Array params;
+        params.push_back(rawtx);
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "decoderawtransaction", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != obj_type)
+        {
+            // Result
+            LOG() << "result not an object " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+//        Object obj = result.get_obj();
+
+//        const Value & tx = find_value(obj, "hex");
+
+//        if (tx.type() != str_type)
+//        {
+//            LOG() << "bad hex " <<
+//                     (tx.type() == null_type ? "" :
+//                      tx.type() == str_type  ? tx.get_str() :
+//                                                   write_string(tx, true));
+//            return false;
+//        }
+
+//        rawtx = tx.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "signrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool signRawTransaction(const std::string & rpcuser,
                         const std::string & rpcpasswd,
                         const std::string & rpcip,

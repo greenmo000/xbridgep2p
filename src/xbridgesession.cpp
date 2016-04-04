@@ -1062,6 +1062,15 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     LOG() << "payment tx " << tx1.GetHash().GetHex();
     LOG() << signedTx1;
+    std::string json;
+    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1, json))
+    {
+        LOG() << json;
+    }
+    else
+    {
+        LOG() << "decore rawtransaction failed";
+    }
 
     xtx->payTxId = tx1.GetHash();
     xtx->payTx   = signedTx1;
@@ -1096,6 +1105,15 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     std::string unsignedTx2 = txToString(tx2);
     LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
+
+    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, unsignedTx2, json))
+    {
+        LOG() << json;
+    }
+    else
+    {
+        LOG() << "decore rawtransaction failed";
+    }
 
     // store
     xtx->revTx = unsignedTx2;

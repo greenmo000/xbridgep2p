@@ -30,6 +30,13 @@ namespace rpc
                      const std::string & rpcport,
                      std::vector<Unspent> & entries);
 
+    bool decodeRawTransaction(const std::string & rpcuser,
+                              const std::string & rpcpasswd,
+                              const std::string & rpcip,
+                              const std::string & rpcport,
+                              const std::string & rawtx,
+                              std::string & tx);
+
     bool signRawTransaction(const std::string & rpcuser,
                             const std::string & rpcpasswd,
                             const std::string & rpcip,
