@@ -655,20 +655,7 @@ bool decodeRawTransaction(const std::string & rpcuser,
             return false;
         }
 
-//        Object obj = result.get_obj();
-
-//        const Value & tx = find_value(obj, "hex");
-
-//        if (tx.type() != str_type)
-//        {
-//            LOG() << "bad hex " <<
-//                     (tx.type() == null_type ? "" :
-//                      tx.type() == str_type  ? tx.get_str() :
-//                                                   write_string(tx, true));
-//            return false;
-//        }
-
-//        rawtx = tx.get_str();
+        tx = write_string(result, false);
     }
     catch (std::exception & e)
     {

@@ -11,6 +11,7 @@
 #include "uiconnector.h"
 #include "util/util.h"
 #include "util/logger.h"
+#include "util/txlog.h"
 #include "dht/dht.h"
 #include "bitcoinrpc.h"
 #include "ctransaction.h"
@@ -1065,11 +1066,12 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     std::string json;
     if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1, json))
     {
-        LOG() << json;
+        TXLOG() << "payment  " << json;
     }
     else
     {
-        LOG() << "decore rawtransaction failed";
+        TXLOG() << "decoderawtransaction failed";
+        TXLOG() << signedTx1;
     }
 
     xtx->payTxId = tx1.GetHash();
@@ -1108,11 +1110,12 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, unsignedTx2, json))
     {
-        LOG() << json;
+        TXLOG() << "rollback " << json;
     }
     else
     {
-        LOG() << "decore rawtransaction failed";
+        TXLOG() << "decoderawtransaction failed";
+        TXLOG() << unsignedTx2;
     }
 
     // store
@@ -1260,6 +1263,17 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     LOG() << "payment tx " << tx1.GetHash().GetHex();
     LOG() << signedTx1;
 
+    std::string json;
+    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1, json))
+    {
+        TXLOG() << "payment  " << json;
+    }
+    else
+    {
+        TXLOG() << "decoderawtransaction failed";
+        TXLOG() << signedTx1;
+    }
+
     xtx->payTxId = tx1.GetHash();
     xtx->payTx   = signedTx1;
 
@@ -1293,6 +1307,16 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     std::string unsignedTx2 = txToStringBTC(tx2);
     LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
+
+    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, unsignedTx2, json))
+    {
+        TXLOG() << "rollback " << json;
+    }
+    else
+    {
+        TXLOG() << "decoderawtransaction failed";
+        TXLOG() << unsignedTx2;
+    }
 
     // store
     xtx->revTx = unsignedTx2;
