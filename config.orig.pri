@@ -101,7 +101,8 @@ LIBS += \
     -lboost_system \
     -lboost_thread \
     -lboost_date_time \
-    -lboost_program_options
+    -lboost_program_options \
+    -lboost_filesystem
 }
 
 ###############################################################
@@ -121,5 +122,6 @@ LIBS += \
     -lboost_system \
     -lboost_thread \
     -lboost_date_time \
-    -lboost_program_options
+    -lboost_program_options \
+    -lboost_filesystem
 }

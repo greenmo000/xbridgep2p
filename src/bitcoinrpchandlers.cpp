@@ -421,7 +421,8 @@ void XBridgeApp::rpcHandlerProc(rpc::AcceptedConnection * conn)
             static bool isShortPassword = settings().rpcServerPasswd().size() < 20;
             if (isShortPassword)
             {
-                Sleep(250);
+                // Sleep(250);
+                boost::this_thread::sleep(boost::posix_time::milliseconds(250));
             }
 
             conn->stream() << rpc::httpReply(HTTP_UNAUTHORIZED, "", false) << std::flush;

@@ -125,6 +125,11 @@ bool clientAllowed(const boost::asio::ip::address & /*address*/)
     return true;
 }
 
+template <typename Protocol, typename SocketAcceptorService>
+static void listen(boost::shared_ptr< basic_socket_acceptor<Protocol, SocketAcceptorService> > acceptor,
+                      ssl::context & context,
+                      const bool fUseSSL);
+
 //*****************************************************************************
 // Accept and handle incoming connection.
 //*****************************************************************************
@@ -138,7 +143,7 @@ static void acceptHandler(boost::shared_ptr< basic_socket_acceptor<Protocol, Soc
     // Immediately start accepting new connections, except when we're cancelled or our socket is closed.
     if (error != asio::error::operation_aborted && acceptor->is_open())
     {
-        listen(acceptor, context, fUseSSL);
+        rpc::listen(acceptor, context, fUseSSL);
     }
 
     AcceptedConnectionImpl<ip::tcp>* tcp_conn = dynamic_cast< AcceptedConnectionImpl<ip::tcp>* >(conn);

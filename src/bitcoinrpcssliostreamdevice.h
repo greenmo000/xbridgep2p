@@ -42,17 +42,17 @@ public:
     }
     std::streamsize write(const char* s, std::streamsize n)
     {
-        handshake(ssl::stream_base::client); // HTTPS clients write first
-        if (fUseSSL) return asio::write(stream, asio::buffer(s, n));
-        return boost::asio::write(stream.next_layer(), asio::buffer(s, n));
+        handshake(boost::asio::ssl::stream_base::client); // HTTPS clients write first
+        if (fUseSSL) return boost::asio::write(stream, boost::asio::buffer(s, n));
+        return boost::asio::write(stream.next_layer(), boost::asio::buffer(s, n));
     }
     bool connect(const std::string& server, const std::string& port)
     {
         boost::asio::ip::tcp::resolver resolver(stream.get_io_service());
-        ip::tcp::resolver::query query(server.c_str(), port.c_str());
-        ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-        ip::tcp::resolver::iterator end;
-        boost::system::error_code error = asio::error::host_not_found;
+        boost::asio::ip::tcp::resolver::query query(server.c_str(), port.c_str());
+        boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator end;
+        boost::system::error_code error = boost::asio::error::host_not_found;
         while (error && endpoint_iterator != end)
         {
             stream.lowest_layer().close();
