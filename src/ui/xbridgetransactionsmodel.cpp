@@ -181,7 +181,7 @@ bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> &
 {
     XBridgeApp & app = XBridgeApp::instance();
     XBridgeSessionPtr ptr = app.sessionByCurrency(fromCurrency);
-    if (ptr && ptr->minAmount() < fromAmount)
+    if (ptr && ptr->minAmount() > fromAmount)
     {
         return false;
     }
