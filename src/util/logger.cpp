@@ -92,7 +92,7 @@ std::string LOG::makeFileName()
                                         settings().appPath();
 
     return path +
-            "/xbridgep2p_" +
+            "xbridgep2p_" +
             boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time()) +
             ".log";
 }
