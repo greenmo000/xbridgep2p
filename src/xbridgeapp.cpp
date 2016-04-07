@@ -830,6 +830,19 @@ void XBridgeApp::bridgeThreadProc()
 
 //*****************************************************************************
 //*****************************************************************************
+XBridgeSessionPtr XBridgeApp::sessionByCurrency(const std::string & currency) const
+{
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    if (m_sessionIds.count(currency))
+    {
+        return m_sessionIds.at(currency);
+    }
+
+    return XBridgeSessionPtr();
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeApp::addSession(XBridgeSessionPtr session)
 {
     boost::mutex::scoped_lock l(m_sessionsLock);

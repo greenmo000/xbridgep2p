@@ -38,14 +38,15 @@ XBridge::XBridge()
             std::vector<std::string> wallets = s.exchangeWallets();
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
-                // std::string label   = s.get<std::string>(*i + ".Title");
-                // std::string address = s.get<std::string>(*i + ".Address");
-                std::string ip       = s.get<std::string>(*i + ".Ip");
-                std::string port     = s.get<std::string>(*i + ".Port");
-                std::string user     = s.get<std::string>(*i + ".Username");
-                std::string passwd   = s.get<std::string>(*i + ".Password");
-                std::string prefix   = s.get<std::string>(*i + ".AddressPrefix");
-                boost::uint64_t COIN = s.get<boost::uint64_t>(*i + ".COIN", 0);
+                // std::string label        = s.get<std::string>(*i + ".Title");
+                // std::string address      = s.get<std::string>(*i + ".Address");
+                std::string ip            = s.get<std::string>(*i + ".Ip");
+                std::string port          = s.get<std::string>(*i + ".Port");
+                std::string user          = s.get<std::string>(*i + ".Username");
+                std::string passwd        = s.get<std::string>(*i + ".Password");
+                std::string prefix        = s.get<std::string>(*i + ".AddressPrefix");
+                boost::uint64_t COIN      = s.get<boost::uint64_t>(*i + ".COIN", 0);
+                boost::uint64_t minAmount = s.get<boost::uint64_t>(*i + ".MinimumAmount", 0);
 
                 if (ip.empty() || port.empty() ||
                     user.empty() || passwd.empty() ||
@@ -55,7 +56,7 @@ XBridge::XBridge()
                     continue;
                 }
 
-                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
+                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN, minAmount));
                 app.addSession(session);
                 // session->requestAddressBook();
             }

@@ -179,6 +179,12 @@ bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> &
                                               const double fromAmount,
                                               const double toAmount)
 {
+    XBridgeApp & app = XBridgeApp::instance();
+    XBridgeSessionPtr ptr = app.sessionByCurrency(fromCurrency);
+    if (ptr && ptr->minAmount() < fromAmount)
+    {
+        return false;
+    }
 
     // TODO check amount
     uint256 id = XBridgeApp::instance().sendXBridgeTransaction
