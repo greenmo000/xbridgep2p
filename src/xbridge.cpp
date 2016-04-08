@@ -3,6 +3,7 @@
 
 #include "xbridge.h"
 #include "xbridgesession.h"
+#include "xbridgesessionetherium.h"
 #include "xbridgeapp.h"
 #include "util/logger.h"
 #include "util/settings.h"
@@ -55,7 +56,15 @@ XBridge::XBridge()
                     continue;
                 }
 
-                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
+                XBridgeSessionPtr session;
+                if (*i == "ETHER")
+                {
+                    session.reset(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
+                }
+                else
+                {
+                    session.reset(new XBridgeSessionEtherium(*i, ip, port, user, passwd, prefix, COIN));
+                }
                 app.addSession(session);
                 // session->requestAddressBook();
             }

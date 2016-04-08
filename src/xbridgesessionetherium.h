@@ -21,7 +21,6 @@
 class XBridgeSessionEtherium
         : public XBridgeSession
         , public std::enable_shared_from_this<XBridgeSessionEtherium>
-        , private boost::noncopyable
 {
 public:
     XBridgeSessionEtherium();
@@ -32,6 +31,8 @@ public:
                    const std::string & passwd,
                    const std::string & prefix,
                    const boost::uint64_t & COIN);
+
+    virtual ~XBridgeSessionEtherium();
 
     virtual void sendListOfWallets();
     virtual void sendListOfTransactions();
@@ -80,7 +81,6 @@ private:
     virtual bool processTransactionHold(XBridgePacketPtr packet);
     virtual bool processTransactionInit(XBridgePacketPtr packet);
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionCreateBTC(XBridgePacketPtr packet);
     virtual bool processTransactionSign(XBridgePacketPtr packet);
     virtual bool processTransactionCommit(XBridgePacketPtr packet);
     virtual bool processTransactionFinished(XBridgePacketPtr packet);

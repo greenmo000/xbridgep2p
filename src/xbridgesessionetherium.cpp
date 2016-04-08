@@ -72,6 +72,13 @@ XBridgeSessionEtherium::XBridgeSessionEtherium(const std::string & currency,
 
 //*****************************************************************************
 //*****************************************************************************
+XBridgeSessionEtherium::~XBridgeSessionEtherium()
+{
+
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeSessionEtherium::init()
 {
     assert(!m_processors.size());
@@ -93,15 +100,7 @@ void XBridgeSessionEtherium::init()
         m_processors[xbcTransactionInit]       .bind(this, &XBridgeSessionEtherium::processTransactionInit);
         m_processors[xbcTransactionInitialized].bind(this, &XBridgeSessionEtherium::processTransactionInitialized);
 
-        if (m_currency == "BTC")
-        {
-            m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionEtherium::processTransactionCreateBTC);
-        }
-        else
-        {
-            m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionEtherium::processTransactionCreate);
-        }
-
+        m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionEtherium::processTransactionCreate);
         m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSessionEtherium::processTransactionCreated);
 
         m_processors[xbcTransactionSign]       .bind(this, &XBridgeSessionEtherium::processTransactionSign);
@@ -194,19 +193,6 @@ bool XBridgeSessionEtherium::processXChatMessage(XBridgePacketPtr packet)
 //    app.onSend(daddr, std::vector<unsigned char>(packet->header(), packet->header()+packet->allSize()));
 
 //    return true;
-}
-
-//*****************************************************************************
-// retranslate packets from wallet to xbridge network
-//*****************************************************************************
-bool XBridgeSessionEtherium::sendPacketBroadcast(XBridgePacketPtr packet)
-{
-    // DEBUG_TRACE();
-
-    XBridgeApp & app = XBridgeApp::instance();
-    app.onSend(packet);
-
-    return true;
 }
 
 //*****************************************************************************
@@ -1351,6 +1337,7 @@ bool XBridgeSessionEtherium::processTransactionCancel(XBridgePacketPtr packet)
 //    // ..and retranslate
 //    sendPacketBroadcast(packet);
 //    return true;
+    return false;
 }
 
 //*****************************************************************************
@@ -1528,7 +1515,6 @@ void XBridgeSessionEtherium::sendListOfWallets()
 //    packet->setData(boost::algorithm::join(list, "|"));
 
 //    sendPacket(std::vector<unsigned char>(), packet);
-    return false;
 }
 
 //*****************************************************************************
@@ -1591,7 +1577,6 @@ void XBridgeSessionEtherium::sendListOfTransactions()
 
 //        sendPacket(std::vector<unsigned char>(), packet);
 //    }
-    return false;
 }
 
 //*****************************************************************************
@@ -1618,7 +1603,6 @@ void XBridgeSessionEtherium::eraseExpiredPendingTransactions()
 //            e.deletePendingTransactions(ptr->hash1());
 //        }
 //    }
-    return false;
 }
 
 //*****************************************************************************
@@ -1680,7 +1664,6 @@ void XBridgeSessionEtherium::checkFinishedTransactions()
 //            rollbackTransaction(ptr);
 //        }
 //    }
-    return false;
 }
 
 //*****************************************************************************
@@ -1724,7 +1707,6 @@ void XBridgeSessionEtherium::requestAddressBook()
 //            }
 //        }
 //    }
-    return false;
 }
 
 //*****************************************************************************
