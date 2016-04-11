@@ -210,12 +210,14 @@ bool XBridgeApp::initDht()
 //*****************************************************************************
 bool XBridgeApp::stopDht()
 {
-    // LOG() << "stopping dht thread";
-    // m_dhtStop = true;
-    // m_dhtThread.join();
+    LOG() << "stopping dht thread";
+    m_dhtStop = true;
+//    m_dhtThread.join();
 
-    // LOG() << "stopping bridge thread";
-    // m_bridge->stop();
+    LOG() << "stopping bridge thread";
+    m_bridge->stop();
+
+    m_threads.join_all();
 
     return true;
 }

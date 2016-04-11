@@ -19,7 +19,8 @@ class XBridge
         TIMER_INTERVAL = 20
     };
 
-    typedef std::shared_ptr<boost::asio::io_service>      IoServicePtr;
+    typedef std::shared_ptr<boost::asio::io_service>       IoServicePtr;
+    typedef std::shared_ptr<boost::asio::io_service::work> WorkPtr;
 
 public:
     typedef boost::asio::ip::tcp::socket                  Socket;
@@ -36,11 +37,11 @@ private:
 
 private:
     std::deque<IoServicePtr>                        m_services;
-    std::deque<boost::asio::io_service::work>       m_works;
+    std::deque<WorkPtr>                             m_works;
     boost::thread_group                             m_threads;
 
     boost::asio::io_service                         m_timerIo;
-    boost::asio::io_service::work                   m_timerIoWork;
+    std::shared_ptr<boost::asio::io_service::work>  m_timerIoWork;
     boost::thread                                   m_timerThread;
     boost::asio::deadline_timer                     m_timer;
 };

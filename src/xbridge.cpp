@@ -12,7 +12,7 @@
 //*****************************************************************************
 //*****************************************************************************
 XBridge::XBridge()
-    : m_timerIoWork(m_timerIo)
+    : m_timerIoWork(new boost::asio::io_service::work(m_timerIo))
     , m_timerThread(boost::bind(&boost::asio::io_service::run, &m_timerIo))
     , m_timer(m_timerIo, boost::posix_time::seconds(TIMER_INTERVAL))
 {
@@ -24,7 +24,7 @@ XBridge::XBridge()
             IoServicePtr ios(new boost::asio::io_service);
 
             m_services.push_back(ios);
-            m_works.push_back(boost::asio::io_service::work(*ios));
+            m_works.push_back(WorkPtr(new boost::asio::io_service::work(*ios)));
 
             m_threads.create_thread(boost::bind(&boost::asio::io_service::run, ios));
         }
@@ -82,11 +82,18 @@ void XBridge::stop()
 {
     m_timer.cancel();
     m_timerIo.stop();
+    m_timerIoWork.reset();
 
     for (auto i = m_services.begin(); i != m_services.end(); ++i)
     {
         (*i)->stop();
     }
+    for (std::shared_ptr<boost::asio::io_service::work> & i : m_works)
+    {
+        i.reset();
+    }
+
+    m_threads.join_all();
 }
 
 //******************************************************************************
