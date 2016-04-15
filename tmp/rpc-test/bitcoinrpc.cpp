@@ -241,6 +241,7 @@ string JSONRPCRequest(const string& strMethod, const Array& params, const Value&
 {
     Object request;
     request.push_back(Pair("method", strMethod));
+    request.push_back(Pair("jsonrpc", "2.0"));
     request.push_back(Pair("params", params));
     request.push_back(Pair("id", id));
     return write_string(Value(request), false) + "\n";
@@ -877,12 +878,13 @@ bool sendRawTransaction()
 
     try
     {
-        LOG() << "rpc call <sendrawtransaction>";
+        LOG() << "rpc call <eth_sendTransaction>";
 
         Array params;
         params.push_back(rawtx);
+
         Object reply = CallRPC("rpcuser", "rpcpasswd", "127.0.0.1", "8545",
-                               "sendrawtransaction", params);
+                               "eth_sendTransaction", params);
 
         // Parse reply
         // const Value & result = find_value(reply, "result");
