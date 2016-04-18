@@ -1001,6 +1001,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
 
+        LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout;
+
         // check amount
         if (inAmount >= outAmount)
         {
@@ -1199,6 +1201,8 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
+
+        LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout;
 
         // check amount
         if (inAmount >= outAmount)
