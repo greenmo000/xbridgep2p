@@ -1037,6 +1037,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // outputs
     tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress, m_prefix[0])));
 
+    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << outAmount-fee;
+
     if (inAmount > outAmount)
     {
         std::string addr;
@@ -1046,6 +1048,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             sendCancelTransaction(id);
             return false;
         }
+
+        LOG() << "OUTPUTS <" << addr << "> amount " << inAmount-outAmount;
 
         // rest
         CScript script = destination(addr);
@@ -1238,6 +1242,8 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     // outputs
     tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress, m_prefix[0])));
 
+    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << outAmount-fee;
+
     if (inAmount > outAmount)
     {
         std::string addr;
@@ -1247,6 +1253,8 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
             sendCancelTransaction(id);
             return false;
         }
+
+        LOG() << "OUTPUTS <" << addr << "> amount " << inAmount-outAmount;
 
         // rest
         CScript script = destination(addr);
@@ -1297,6 +1305,8 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
             sendCancelTransaction(id);
             return false;
         }
+
+        LOG() << "OUTPUTS <" << addr << "> amount " << inAmount-outAmount;
 
         // rest
         CScript script = destination(addr);
