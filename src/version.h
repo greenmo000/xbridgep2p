@@ -2,7 +2,7 @@
 #define VERSION
 
 #define XBRIDGE_VERSION_MAJOR 0
-#define XBRIDGE_VERSION_MINOR 33
+#define XBRIDGE_VERSION_MINOR 34
 #define XBRIDGE_VERSION_DESCR "rpc-btc-fix"
 
 #define MAKE_VERSION(major,minor) (( major << 16 ) + minor )
