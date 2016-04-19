@@ -38,7 +38,7 @@ XBridge::XBridge()
             std::vector<std::string> wallets = s.exchangeWallets();
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
-                // std::string label        = s.get<std::string>(*i + ".Title");
+                std::string label        = s.get<std::string>(*i + ".Title");
                 // std::string address      = s.get<std::string>(*i + ".Address");
                 std::string ip            = s.get<std::string>(*i + ".Ip");
                 std::string port          = s.get<std::string>(*i + ".Port");
@@ -54,6 +54,10 @@ XBridge::XBridge()
                 {
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
+                }
+                else
+                {
+                    LOG() << "read wallet " << *i << " [" << label << "] " << ip << ":" << port << " COIN=" << COIN;
                 }
 
                 XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN, minAmount));
