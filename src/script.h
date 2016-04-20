@@ -41,8 +41,8 @@ enum txnouttype
 
 class CNoDestination {
 public:
-    friend bool operator==(const CNoDestination &a, const CNoDestination &b) { return true; }
-    friend bool operator<(const CNoDestination &a, const CNoDestination &b) { return true; }
+    friend bool operator==(const CNoDestination &/*a*/, const CNoDestination &/*b*/) { return true; }
+    friend bool operator<(const CNoDestination &/*a*/, const CNoDestination &/*b*/) { return true; }
 };
 
 /** A txout script template with a specific destination. It is either:
