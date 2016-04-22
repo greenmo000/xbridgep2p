@@ -62,6 +62,16 @@ namespace rpc
                         const std::string & txid);
                         // std::string & tx);
 
+    // ethereum rpc
+    bool eth_accounts(const std::string & rpcip,
+                      const std::string & rpcport,
+                      std::vector<std::string> & addresses);
+    bool eth_sendTransaction(const std::string & rpcip,
+                             const std::string & rpcport,
+                             const std::string & from,
+                             const std::string & to);
+
+
 } // namespace rpc
 
 #endif
