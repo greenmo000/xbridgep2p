@@ -30,7 +30,8 @@ public:
                    const std::string & user,
                    const std::string & passwd,
                    const std::string & prefix,
-                   const boost::uint64_t & COIN);
+                   const boost::uint64_t & COIN,
+                   const boost::uint64_t & minAmount);
 
     virtual ~XBridgeSessionEtherium();
 
@@ -100,6 +101,7 @@ private:
     std::string       m_passwd;
     std::string       m_prefix;
     boost::uint64_t   m_COIN;
+    boost::uint64_t   m_minAmount;
 };
 
 typedef std::shared_ptr<XBridgeSessionEtherium> XBridgeSessionEtheriumPtr;

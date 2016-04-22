@@ -58,7 +58,8 @@ XBridgeSessionEtherium::XBridgeSessionEtherium(const std::string & currency,
                                const std::string & user,
                                const std::string & passwd,
                                const std::string & prefix,
-                               const boost::uint64_t & COIN)
+                               const boost::uint64_t & COIN,
+                               const boost::uint64_t & minAmount)
     : m_currency(currency)
     , m_address(address)
     , m_port(port)
@@ -66,6 +67,7 @@ XBridgeSessionEtherium::XBridgeSessionEtherium(const std::string & currency,
     , m_passwd(passwd)
     , m_prefix(prefix)
     , m_COIN(COIN)
+    , m_minAmount(minAmount)
 {
     init();
 }

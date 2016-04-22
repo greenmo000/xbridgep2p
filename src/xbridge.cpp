@@ -64,11 +64,11 @@ XBridge::XBridge()
                 XBridgeSessionPtr session;
                 if (*i == "ETHER")
                 {
-                    session.reset(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
+                    session.reset(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN, minAmount));
                 }
                 else
                 {
-                    session.reset(new XBridgeSessionEtherium(*i, ip, port, user, passwd, prefix, COIN));
+                    session.reset(new XBridgeSessionEtherium(*i, ip, port, user, passwd, prefix, COIN, minAmount));
                 }
                 app.addSession(session);
                 // session->requestAddressBook();
