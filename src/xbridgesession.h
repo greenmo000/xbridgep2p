@@ -29,10 +29,12 @@ public:
                    const std::string & user,
                    const std::string & passwd,
                    const std::string & prefix,
-                   const boost::uint64_t & COIN);
+                   const boost::uint64_t & COIN,
+                   const boost::uint64_t & minAmount);
     virtual ~XBridgeSession();
 
-    std::string currency() const { return m_currency; }
+    std::string currency() const  { return m_currency; }
+    double      minAmount() const { return (double)m_minAmount / m_COIN; }
 
     void start(XBridge::SocketPtr socket);
 
@@ -140,6 +142,7 @@ private:
     std::string       m_passwd;
     std::string       m_prefix;
     boost::uint64_t   m_COIN;
+    boost::uint64_t   m_minAmount;
 };
 
 typedef std::shared_ptr<XBridgeSession> XBridgeSessionPtr;

@@ -289,7 +289,11 @@ void XBridgeTransactionDialog::onSendTransaction()
     else
     {
         // new tx
-        m_model.newTransaction(from, to, fromCurrency, toCurrency, fromAmount, toAmount);
+        if (!m_model.newTransaction(from, to, fromCurrency, toCurrency, fromAmount, toAmount))
+        {
+            QMessageBox::warning(this, trUtf8("check parameters"), trUtf8("Invalid amount (less than minimum)"));
+            return;
+        }
     }
 
     accept();

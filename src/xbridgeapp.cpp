@@ -210,12 +210,14 @@ bool XBridgeApp::initDht()
 //*****************************************************************************
 bool XBridgeApp::stopDht()
 {
-    // LOG() << "stopping dht thread";
-    // m_dhtStop = true;
-    // m_dhtThread.join();
+    LOG() << "stopping dht thread";
+    m_dhtStop = true;
+//    m_dhtThread.join();
 
-    // LOG() << "stopping bridge thread";
-    // m_bridge->stop();
+    LOG() << "stopping bridge thread";
+    m_bridge->stop();
+
+    m_threads.join_all();
 
     return true;
 }
@@ -826,6 +828,19 @@ int dht_random_bytes(unsigned char * buf, size_t size)
 void XBridgeApp::bridgeThreadProc()
 {
     m_bridge->run();
+}
+
+//*****************************************************************************
+//*****************************************************************************
+XBridgeSessionPtr XBridgeApp::sessionByCurrency(const std::string & currency) const
+{
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    if (m_sessionIds.count(currency))
+    {
+        return m_sessionIds.at(currency);
+    }
+
+    return XBridgeSessionPtr();
 }
 
 //*****************************************************************************
