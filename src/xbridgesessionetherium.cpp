@@ -1686,29 +1686,21 @@ void XBridgeSessionEtherium::getAddressBook()
 //*****************************************************************************
 void XBridgeSessionEtherium::requestAddressBook()
 {
-//    std::vector<rpc::AddressBookEntry> entries;
-//    if (!rpc::requestAddressBook(m_user, m_passwd, m_address, m_port, entries))
-//    {
-//        return;
-//    }
+    std::vector<std::string> addrs;
+    if (!rpc::eth_accounts(m_address, m_port, addrs))
+    {
+        return;
+    }
 
-//    XBridgeApp & app = XBridgeApp::instance();
+    XBridgeApp & app = XBridgeApp::instance();
 
-//    for (const rpc::AddressBookEntry & e : entries)
-//    {
-//        for (const std::string & addr : e.second)
-//        {
-//            std::vector<unsigned char> vaddr;
-//            if (rpc::DecodeBase58Check(addr.c_str(), vaddr))
-//            {
-//                app.storageStore(shared_from_this(), &vaddr[1]);
+    for (const std::string & addr : addrs)
+    {
+        app.storageStore(shared_from_this(), reinterpret_cast<const unsigned char *>(addr.substr(2).c_str()));
 
-//                uiConnector.NotifyXBridgeAddressBookEntryReceived
-//                        (m_currency, e.first,
-//                         util::base64_encode(std::string((char *)&vaddr[1], vaddr.size()-1)));
-//            }
-//        }
-//    }
+        uiConnector.NotifyXBridgeAddressBookEntryReceived
+                (m_currency, "", addr.substr(2));
+    }
 }
 
 //*****************************************************************************
@@ -1717,15 +1709,15 @@ void XBridgeSessionEtherium::sendAddressbookEntry(const std::string & currency,
                                           const std::string & name,
                                           const std::string & address)
 {
-//    if (m_socket->is_open())
-//    {
-//        XBridgePacketPtr p(new XBridgePacket(xbcAddressBookEntry));
-//        p->append(currency);
-//        p->append(name);
-//        p->append(address);
+    if (m_socket->is_open())
+    {
+        XBridgePacketPtr p(new XBridgePacket(xbcAddressBookEntry));
+        p->append(currency);
+        p->append(name);
+        p->append(address);
 
-//        sendXBridgeMessage(p);
-//    }
+        sendXBridgeMessage(p);
+    }
 }
 
 //******************************************************************************
