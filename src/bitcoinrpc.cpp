@@ -923,6 +923,63 @@ bool eth_accounts(const std::string   & rpcip,
 
 //*****************************************************************************
 //*****************************************************************************
+bool eth_getBalance(const std::string & rpcip,
+                    const std::string & rpcport,
+                    std::map<string, uint64_t> & accountBalances)
+{
+    try
+    {
+        LOG() << "rpc call <eth_getBalance>";
+
+        std::vector<std::string> accounts;
+        rpc::eth_accounts(rpcip, rpcport, accounts);
+
+        for (const std::string & acc : accounts)
+        {
+            Array params;
+            params.push_back(acc);
+            params.push_back("latest");
+            Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                                   "eth_getBalance", params);
+
+            // Parse reply
+            // const Value & result = find_value(reply, "result");
+            const Value & error  = find_value(reply, "error");
+
+            if (error.type() != null_type)
+            {
+                // Error
+                LOG() << "error: " << write_string(error, false);
+                // int code = find_value(error.get_obj(), "code").get_int();
+                continue;
+            }
+
+            const Value & result = find_value(reply, "result");
+
+            if (result.type() != str_type)
+            {
+                // Result
+                LOG() << "result not an string " <<
+                         (result.type() == null_type ? "" :
+                          write_string(result, true));
+                return false;
+            }
+
+            std::string value = result.get_str();
+            accountBalances[acc] = strtoll(value.substr(2).c_str(), nullptr, 16);
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool eth_sendTransaction(const std::string & rpcip,
                          const std::string & rpcport,
                          const std::string & from,

@@ -6,7 +6,10 @@
 
 #include <vector>
 #include <string>
+#include <cstdint>
 
+//******************************************************************************
+//******************************************************************************
 namespace rpc
 {
     bool DecodeBase58Check(const char * psz, std::vector<unsigned char> & vchRet);
@@ -66,6 +69,9 @@ namespace rpc
     bool eth_accounts(const std::string & rpcip,
                       const std::string & rpcport,
                       std::vector<std::string> & addresses);
+    bool eth_getBalance(const std::string & rpcip,
+                        const std::string & rpcport,
+                        std::map<std::string, uint64_t> & accountBalances);
     bool eth_sendTransaction(const std::string & rpcip,
                              const std::string & rpcport,
                              const std::string & from,
