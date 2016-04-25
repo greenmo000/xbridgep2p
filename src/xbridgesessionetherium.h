@@ -23,6 +23,9 @@ class XBridgeSessionEtherium
         , public std::enable_shared_from_this<XBridgeSessionEtherium>
 {
 public:
+    using std::enable_shared_from_this<XBridgeSessionEtherium>::shared_from_this;
+
+public:
     XBridgeSessionEtherium();
     XBridgeSessionEtherium(const std::string & currency,
                    const std::string & address,
