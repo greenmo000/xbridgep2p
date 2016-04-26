@@ -864,6 +864,56 @@ bool getTransaction(const std::string & rpcuser,
 
 }
 
+
+//*****************************************************************************
+//*****************************************************************************
+bool eth_gasPrice(const std::string & rpcip,
+                  const std::string & rpcport,
+                  uint64_t & gasPrice)
+{
+    try
+    {
+        LOG() << "rpc call <eth_gasPrice>";
+
+        Array params;
+        Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                               "eth_gasPrice", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+
+        const Value & result = find_value(reply, "result");
+
+        if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an array " <<
+                     (result.type() == null_type ? "" :
+                       write_string(result, true));
+            return false;
+        }
+
+        std::string value = result.get_str();
+        gasPrice = strtoll(value.substr(2).c_str(), nullptr, 16);
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "eth_accounts exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
 //*****************************************************************************
 //*****************************************************************************
 bool eth_accounts(const std::string   & rpcip,

@@ -66,6 +66,9 @@ namespace rpc
                         // std::string & tx);
 
     // ethereum rpc
+    bool eth_gasPrice(const std::string & rpcip,
+                      const std::string & rpcport,
+                      uint64_t & gasPrice);
     bool eth_accounts(const std::string & rpcip,
                       const std::string & rpcport,
                       std::vector<std::string> & addresses);
