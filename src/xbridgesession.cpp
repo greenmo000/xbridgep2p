@@ -972,10 +972,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // destination address
     std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
 
-    // lock time
-    boost::uint32_t lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
-    boost::uint32_t lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
-
     XBridgeTransactionDescrPtr xtx;
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
@@ -990,6 +986,9 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[id];
     }
 
+    // lock time
+    xtx->lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
+    xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
 
     std::vector<rpc::Unspent> entries;
     if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
@@ -1009,11 +1008,10 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
-
-        LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout;
-
         fee = m_COIN * minTxFee(usedInTx.size(), 2) / XBridgeTransactionDescr::COIN;
         fee = fee + xfee; // increase base fee with static fee value for debug
+
+        LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
         // check amount
         if (inAmount >= outAmount+fee)
@@ -1037,7 +1035,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // lock time
     {
         time_t local = time(NULL);// GetAdjustedTime();
-        tx1.nLockTime = local + lockTimeTx1;
+        tx1.nLockTime = local + xtx->lockTimeTx1;
     }
 
     // inputs
@@ -1126,7 +1124,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // lock time for tx2
     {
         time_t local = time(0); // GetAdjustedTime();
-        tx2.nLockTime = local + lockTimeTx2;
+        tx2.nLockTime = local + xtx->lockTimeTx2;
     }
 
     // serialize
@@ -1188,10 +1186,6 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     // destination address
     std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
 
-    // lock time
-    boost::uint32_t lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
-    boost::uint32_t lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
-
     XBridgeTransactionDescrPtr xtx;
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
@@ -1206,6 +1200,9 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[id];
     }
 
+    // lock time
+    xtx->lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
+    xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
 
     std::vector<rpc::Unspent> entries;
     if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
@@ -1224,10 +1221,9 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
-
-        LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout;
-
         fee = m_COIN * minTxFee(usedInTx.size(), 2) / XBridgeTransactionDescr::COIN;
+
+        LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
         // check amount
         if (inAmount >= outAmount+fee)
@@ -1251,7 +1247,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     // lock time
     {
         time_t local = time(NULL);// GetAdjustedTime();
-        tx1.nLockTime = local + lockTimeTx1;
+        tx1.nLockTime = local + xtx->lockTimeTx1;
     }
 
     // inputs
@@ -1341,7 +1337,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     // lock time for tx2
     {
         time_t local = time(0); // GetAdjustedTime();
-        tx2.nLockTime = local + lockTimeTx2;
+        tx2.nLockTime = local + xtx->lockTimeTx2;
     }
 
     // serialize

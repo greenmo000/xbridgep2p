@@ -53,6 +53,9 @@ struct XBridgeTransactionDescr
     std::string                toCurrency;
     boost::uint64_t            toAmount;
 
+    boost::uint32_t            lockTimeTx1;
+    boost::uint32_t            lockTimeTx2;
+
     State                      state;
 
     boost::posix_time::ptime   created;
@@ -68,6 +71,8 @@ struct XBridgeTransactionDescr
         : state(trNew)
         , created(boost::posix_time::second_clock::universal_time())
         , txtime(boost::posix_time::second_clock::universal_time())
+        , lockTimeTx1(0)
+        , lockTimeTx2(0)
     {}
 
 //    bool operator == (const XBridgeTransactionDescr & d) const
@@ -116,6 +121,8 @@ private:
         to           = d.to;
         toCurrency   = d.toCurrency;
         toAmount     = d.toAmount;
+        lockTimeTx1  = d.lockTimeTx1;
+        lockTimeTx2  = d.lockTimeTx2;
         state        = d.state;
         payTx        = d.payTx;
         revTx        = d.revTx;
