@@ -91,9 +91,10 @@ private:
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
 
-    std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
+protected:
+    virtual std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
 
-private:
+protected:
     virtual bool processInvalid(XBridgePacketPtr packet);
     virtual bool processZero(XBridgePacketPtr packet);
     virtual bool processAnnounceAddresses(XBridgePacketPtr packet);
