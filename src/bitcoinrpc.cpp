@@ -16,6 +16,7 @@
 //#include <boost/filesystem/fstream.hpp>
 //#include <boost/shared_ptr.hpp>
 //#include <list>
+#include <stdio.h>
 
 #include "bitcoinrpc.h"
 #include "bignum.h"
@@ -975,19 +976,20 @@ bool eth_accounts(const std::string   & rpcip,
 //*****************************************************************************
 bool eth_getBalance(const std::string & rpcip,
                     const std::string & rpcport,
-                    std::map<string, uint64_t> & accountBalances)
+                    const std::string & account,
+                    uint64_t & amount)
 {
     try
     {
         LOG() << "rpc call <eth_getBalance>";
 
-        std::vector<std::string> accounts;
-        rpc::eth_accounts(rpcip, rpcport, accounts);
+//        std::vector<std::string> accounts;
+//        rpc::eth_accounts(rpcip, rpcport, accounts);
 
-        for (const std::string & acc : accounts)
+//        for (const std::string & account : accounts)
         {
             Array params;
-            params.push_back(acc);
+            params.push_back(account);
             params.push_back("latest");
             Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
                                    "eth_getBalance", params);
@@ -1001,7 +1003,7 @@ bool eth_getBalance(const std::string & rpcip,
                 // Error
                 LOG() << "error: " << write_string(error, false);
                 // int code = find_value(error.get_obj(), "code").get_int();
-                continue;
+                return false;
             }
 
             const Value & result = find_value(reply, "result");
@@ -1016,7 +1018,7 @@ bool eth_getBalance(const std::string & rpcip,
             }
 
             std::string value = result.get_str();
-            accountBalances[acc] = strtoll(value.substr(2).c_str(), nullptr, 16);
+            amount = strtoll(value.substr(2).c_str(), nullptr, 16);
         }
     }
     catch (std::exception & e)
@@ -1033,7 +1035,9 @@ bool eth_getBalance(const std::string & rpcip,
 bool eth_sendTransaction(const std::string & rpcip,
                          const std::string & rpcport,
                          const std::string & from,
-                         const std::string & to)
+                         const std::string & to,
+                         const uint64_t & amount,
+                         const uint64_t & /*fee*/)
 {
     try
     {
@@ -1047,8 +1051,13 @@ bool eth_sendTransaction(const std::string & rpcip,
         o.push_back(Pair("to",         to));
         o.push_back(Pair("gas",        "0x76c0"));
         o.push_back(Pair("gasPrice",   "0x9184e72a000"));
-        o.push_back(Pair("value",      "0x9184e72a"));
-        o.push_back(Pair("data",       "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"));
+        // o.push_back(Pair("value",      "0x9184e72a"));
+
+        char buf[64];
+        sprintf(buf, "%ullx", amount);
+        o.push_back(Pair("value", buf));
+
+        // o.push_back(Pair("data",       "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"));
 
         params.push_back(o);
 

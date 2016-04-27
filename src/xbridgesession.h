@@ -24,6 +24,7 @@ class XBridgeSession
 public:
     XBridgeSession();
     XBridgeSession(const std::string & currency,
+                   const std::string & walletAddress,
                    const std::string & address,
                    const std::string & port,
                    const std::string & user,
@@ -80,10 +81,11 @@ private:
                     const boost::system::error_code & error,
                     std::size_t transferred);
 
-    const unsigned char * myaddr() const;
-
     bool encryptPacket(XBridgePacketPtr packet);
     bool decryptPacket(XBridgePacketPtr packet);
+
+protected:
+    const unsigned char * myaddr() const;
 
     void sendPacket(const std::vector<unsigned char> & to, XBridgePacketPtr packet);
     bool sendPacketBroadcast(XBridgePacketPtr packet);
@@ -91,7 +93,6 @@ private:
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
 
-protected:
     virtual std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
 
 protected:
@@ -136,7 +137,9 @@ private:
     typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
     PacketProcessorsMap m_processors;
 
+protected:
     std::string       m_currency;
+    std::string       m_walletAddress;
     std::string       m_address;
     std::string       m_port;
     std::string       m_user;

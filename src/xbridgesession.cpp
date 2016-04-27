@@ -53,6 +53,7 @@ XBridgeSession::XBridgeSession()
 //*****************************************************************************
 //*****************************************************************************
 XBridgeSession::XBridgeSession(const std::string & currency,
+                               const std::string & walletAddress,
                                const std::string & address,
                                const std::string & port,
                                const std::string & user,
@@ -61,6 +62,7 @@ XBridgeSession::XBridgeSession(const std::string & currency,
                                const boost::uint64_t & COIN,
                                const uint64_t & minAmount)
     : m_currency(currency)
+    , m_walletAddress(walletAddress)
     , m_address(address)
     , m_port(port)
     , m_user(user)

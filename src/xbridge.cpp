@@ -39,8 +39,8 @@ XBridge::XBridge()
             std::vector<std::string> wallets = s.exchangeWallets();
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
-                std::string label        = s.get<std::string>(*i + ".Title");
-                // std::string address      = s.get<std::string>(*i + ".Address");
+                std::string label         = s.get<std::string>(*i + ".Title");
+                std::string address       = s.get<std::string>(*i + ".Address");
                 std::string ip            = s.get<std::string>(*i + ".Ip");
                 std::string port          = s.get<std::string>(*i + ".Port");
                 std::string user          = s.get<std::string>(*i + ".Username");
@@ -64,11 +64,17 @@ XBridge::XBridge()
                 XBridgeSessionPtr session;
                 if (*i == "ETHER")
                 {
-                    session.reset(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN, minAmount));
+                    session.reset(new XBridgeSession(*i, address,
+                                                     ip, port,
+                                                     user, passwd,
+                                                     prefix, COIN, minAmount));
                 }
                 else
                 {
-                    session.reset(new XBridgeSessionEtherium(*i, ip, port, user, passwd, prefix, COIN, minAmount));
+                    session.reset(new XBridgeSessionEtherium(*i, address,
+                                                             ip, port,
+                                                             user, passwd,
+                                                             prefix, COIN, minAmount));
                 }
                 app.addSession(session);
                 // session->requestAddressBook();
