@@ -1009,7 +1009,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
         fee = m_COIN * minTxFee(usedInTx.size(), 2) / XBridgeTransactionDescr::COIN;
-        fee = fee + xfee; // increase base fee with static fee value for debug
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
