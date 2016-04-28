@@ -20,11 +20,7 @@
 //*****************************************************************************
 class XBridgeSessionEtherium
         : public XBridgeSession
-        , public std::enable_shared_from_this<XBridgeSessionEtherium>
 {
-public:
-    using std::enable_shared_from_this<XBridgeSessionEtherium>::shared_from_this;
-
 public:
     XBridgeSessionEtherium();
     XBridgeSessionEtherium(const std::string & currency,
@@ -38,6 +34,12 @@ public:
                            const boost::uint64_t & minAmount);
 
     virtual ~XBridgeSessionEtherium();
+
+public:
+    std::shared_ptr<XBridgeSessionEtherium> shared_from_this()
+    {
+        return std::static_pointer_cast<XBridgeSessionEtherium>(XBridgeSession::shared_from_this());
+    }
 
 private:
     virtual void init();

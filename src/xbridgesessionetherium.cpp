@@ -333,6 +333,35 @@ bool XBridgeSessionEtherium::processTransactionCommit(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
+std::vector<unsigned char> toXBridgeAddr(const std::string & etherAddress)
+{
+    std::string waddr = etherAddress.substr(2);
+
+    assert(etherAddress.size() == 42 || "incorrect address length");
+    assert(etherAddress[0] == '0' || etherAddress[1] == 'x' || "incorrect address prefix");
+    assert(waddr.size() == 40 || "incorrect address length");
+
+    std::vector<unsigned char> ucaddr;
+
+    if (waddr.size() == 40)
+    {
+        char ch[4];
+        memset(ch, 0, 4);
+
+        for (size_t i = 0; i < waddr.size(); i += 2)
+        {
+            ch[0] = waddr[i];
+            ch[1] = waddr[i+1];
+            int a = strtol(ch, 0, 16);
+            ucaddr.push_back(a);
+        }
+    }
+
+    return ucaddr;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeSessionEtherium::requestAddressBook()
 {
 //    std::vector<std::string> addrs;
@@ -351,11 +380,13 @@ void XBridgeSessionEtherium::requestAddressBook()
 //                (m_currency, "ETHEREUM", util::base64_encode(addr.substr(2)));
 //    }
 
+    std::vector<unsigned char> addr = toXBridgeAddr(m_walletAddress);
+
     XBridgeApp & app = XBridgeApp::instance();
-    app.storageStore(shared_from_this(), reinterpret_cast<const unsigned char *>(m_walletAddress.substr(2).c_str()));
+    app.storageStore(shared_from_this(), &addr[0]);
 
     uiConnector.NotifyXBridgeAddressBookEntryReceived
-            (m_currency, "ETHEREUM", util::base64_encode(m_walletAddress.substr(2)));
+            (m_currency, "ETHEREUM", util::base64_encode(addr));
 }
 
 //******************************************************************************

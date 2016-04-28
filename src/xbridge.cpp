@@ -62,7 +62,7 @@ XBridge::XBridge()
                 }
 
                 XBridgeSessionPtr session;
-                if (*i == "ETHER")
+                if (*i != "ETHER")
                 {
                     session.reset(new XBridgeSession(*i, address,
                                                      ip, port,
