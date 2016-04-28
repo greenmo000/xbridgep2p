@@ -94,7 +94,8 @@ SOURCES += \
     src/key.cpp \
     src/keystore.cpp \
     src/sync.cpp \
-    src/crypter.cpp
+    src/crypter.cpp \
+    src/util/txlog.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -133,7 +134,8 @@ HEADERS += \
     src/keystore.h \
     src/sync.h \
     src/crypter.h \
-    src/base58.h
+    src/base58.h \
+    src/util/txlog.h
 
 #-------------------------------------------------
 !withoutgui {

@@ -29,9 +29,11 @@ public:
                    const std::string & user,
                    const std::string & passwd,
                    const std::string & prefix,
-                   const boost::uint64_t & COIN);
+                   const boost::uint64_t & COIN,
+                   const boost::uint64_t & minAmount);
 
-    std::string currency() const { return m_currency; }
+    std::string currency() const  { return m_currency; }
+    double      minAmount() const { return (double)m_minAmount / m_COIN; }
 
     void start(XBridge::SocketPtr socket);
 
@@ -88,9 +90,10 @@ private:
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
 
-    std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
+protected:
+    virtual std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
 
-private:
+protected:
     bool processInvalid(XBridgePacketPtr packet);
     bool processZero(XBridgePacketPtr packet);
     bool processAnnounceAddresses(XBridgePacketPtr packet);
@@ -139,6 +142,7 @@ private:
     std::string       m_passwd;
     std::string       m_prefix;
     boost::uint64_t   m_COIN;
+    boost::uint64_t   m_minAmount;
 };
 
 typedef std::shared_ptr<XBridgeSession> XBridgeSessionPtr;

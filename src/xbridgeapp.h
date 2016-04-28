@@ -70,6 +70,8 @@ public:
 
     // void logMessage(const QString & msg);
 
+    XBridgeSessionPtr sessionByCurrency(const std::string & currency) const;
+
     // store session
     void addSession(XBridgeSessionPtr session);
     // store session addresses in local table
@@ -144,7 +146,7 @@ private:
     // unsigned short    m_bridgePort;
     XBridgePtr        m_bridge;
 
-    boost::mutex m_sessionsLock;
+    mutable boost::mutex m_sessionsLock;
     typedef std::map<std::vector<unsigned char>, XBridgeSessionPtr> SessionAddrMap;
     SessionAddrMap m_sessionAddrs;
     typedef std::map<std::string, XBridgeSessionPtr> SessionIdMap;

@@ -1,7 +1,7 @@
 //******************************************************************************
 //******************************************************************************
 
-#include "logger.h"
+#include "txlog.h"
 #include "settings.h"
 #include "../uiconnector.h"
 
@@ -13,21 +13,20 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
-boost::mutex logLocker;
+boost::mutex txlogLocker;
 
 //******************************************************************************
 //******************************************************************************
 // static
-std::string LOG::m_logFileName;
+std::string TXLOG::m_logFileName;
 
 //******************************************************************************
 //******************************************************************************
-LOG::LOG(const char reason)
+TXLOG::TXLOG()
     : std::basic_stringstream<char, std::char_traits<char>,
                     boost::pool_allocator<char> >()
-    , m_r(reason)
 {
-    *this << "\n" << "[" << (char)std::toupper(m_r) << "] "
+    *this << "\n"
           << boost::posix_time::second_clock::local_time()
           << " [0x" << boost::this_thread::get_id() << "] ";
 }
@@ -35,16 +34,16 @@ LOG::LOG(const char reason)
 //******************************************************************************
 //******************************************************************************
 // static
-std::string LOG::logFileName()
+std::string TXLOG::logFileName()
 {
     return m_logFileName;
 }
 
 //******************************************************************************
 //******************************************************************************
-LOG::~LOG()
+TXLOG::~TXLOG()
 {
-    boost::mutex::scoped_lock l(logLocker);
+    boost::mutex::scoped_lock l(txlogLocker);
 
     // const static std::string path     = settings().logPath().size() ? settings().logPath() : settings().appPath();
     const static bool logToFile       = true; // !path.empty();
@@ -59,9 +58,6 @@ LOG::~LOG()
 
     try
     {
-        std::string copy(str().c_str());
-        uiConnector.NotifyLogMessage(copy);
-
         if (logToFile)
         {
             boost::gregorian::date tmpday =
@@ -85,14 +81,14 @@ LOG::~LOG()
 //******************************************************************************
 //******************************************************************************
 // static
-std::string LOG::makeFileName()
+std::string TXLOG::makeFileName()
 {
     const static std::string path     = settings().logPath().size() ?
                                         settings().logPath() :
                                         settings().appPath();
 
     return path +
-            "xbridgep2p_" +
+            "/xbridgep2p_tx_" +
             boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time()) +
             ".log";
 }

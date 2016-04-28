@@ -12,7 +12,7 @@
 //*****************************************************************************
 //*****************************************************************************
 XBridge::XBridge()
-    : m_timerIoWork(m_timerIo)
+    : m_timerIoWork(new boost::asio::io_service::work(m_timerIo))
     , m_timerThread(boost::bind(&boost::asio::io_service::run, &m_timerIo))
     , m_timer(m_timerIo, boost::posix_time::seconds(TIMER_INTERVAL))
 {
@@ -24,7 +24,7 @@ XBridge::XBridge()
             IoServicePtr ios(new boost::asio::io_service);
 
             m_services.push_back(ios);
-            m_works.push_back(boost::asio::io_service::work(*ios));
+            m_works.push_back(WorkPtr(new boost::asio::io_service::work(*ios)));
 
             m_threads.create_thread(boost::bind(&boost::asio::io_service::run, ios));
         }
@@ -38,14 +38,15 @@ XBridge::XBridge()
             std::vector<std::string> wallets = s.exchangeWallets();
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
-                // std::string label   = s.get<std::string>(*i + ".Title");
-                // std::string address = s.get<std::string>(*i + ".Address");
-                std::string ip       = s.get<std::string>(*i + ".Ip");
-                std::string port     = s.get<std::string>(*i + ".Port");
-                std::string user     = s.get<std::string>(*i + ".Username");
-                std::string passwd   = s.get<std::string>(*i + ".Password");
-                std::string prefix   = s.get<std::string>(*i + ".AddressPrefix");
-                boost::uint64_t COIN = s.get<boost::uint64_t>(*i + ".COIN", 0);
+                std::string label        = s.get<std::string>(*i + ".Title");
+                // std::string address      = s.get<std::string>(*i + ".Address");
+                std::string ip            = s.get<std::string>(*i + ".Ip");
+                std::string port          = s.get<std::string>(*i + ".Port");
+                std::string user          = s.get<std::string>(*i + ".Username");
+                std::string passwd        = s.get<std::string>(*i + ".Password");
+                std::string prefix        = s.get<std::string>(*i + ".AddressPrefix");
+                boost::uint64_t COIN      = s.get<boost::uint64_t>(*i + ".COIN", 0);
+                boost::uint64_t minAmount = s.get<boost::uint64_t>(*i + ".MinimumAmount", 0);
 
                 if (ip.empty() || port.empty() ||
                     user.empty() || passwd.empty() ||
@@ -54,8 +55,12 @@ XBridge::XBridge()
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
                 }
+                else
+                {
+                    LOG() << "read wallet " << *i << " [" << label << "] " << ip << ":" << port << " COIN=" << COIN;
+                }
 
-                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
+                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN, minAmount));
                 app.addSession(session);
                 // session->requestAddressBook();
             }
@@ -81,11 +86,18 @@ void XBridge::stop()
 {
     m_timer.cancel();
     m_timerIo.stop();
+    m_timerIoWork.reset();
 
     for (auto i = m_services.begin(); i != m_services.end(); ++i)
     {
         (*i)->stop();
     }
+    for (std::shared_ptr<boost::asio::io_service::work> & i : m_works)
+    {
+        i.reset();
+    }
+
+    m_threads.join_all();
 }
 
 //******************************************************************************

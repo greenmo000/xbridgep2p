@@ -19,11 +19,13 @@ int main(int argc, char *argv[])
 
     {
         std::string path(*argv);
+#ifdef Q_OS_WIN
         std::string::size_type pos = path.rfind(".");
         if (pos != std::string::npos)
         {
             path = path.substr(0, pos);
         }
+#endif
         path += ".conf";
 
         s.read(path.c_str());
