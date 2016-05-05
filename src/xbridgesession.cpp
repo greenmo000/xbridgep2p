@@ -1000,7 +1000,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
-    boost::uint64_t xfee = 0.001;  // static minimum fee to add for debug
     boost::uint64_t inAmount  = 0;
 
     std::vector<rpc::Unspent> usedInTx;
@@ -1009,7 +1008,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
         fee = m_COIN * minTxFee(usedInTx.size(), 2) / XBridgeTransactionDescr::COIN;
-        fee = fee + xfee; // increase base fee with static fee value for debug
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
