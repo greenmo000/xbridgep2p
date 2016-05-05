@@ -6,6 +6,7 @@
 #include "util/logger.h"
 #include "util/settings.h"
 #include "util/util.h"
+#include "bitcoinrpc.h"
 
 #include <algorithm>
 
@@ -48,11 +49,11 @@ bool XBridgeExchange::init()
         std::string label   = s.get<std::string>(*i + ".Title");
         std::string address = s.get<std::string>(*i + ".Address");
         std::string ip      = s.get<std::string>(*i + ".Ip");
-        unsigned int port   = s.get<unsigned int>(*i + ".Port");
+        std::string port    = s.get<std::string>(*i + ".Port");
         std::string user    = s.get<std::string>(*i + ".Username");
         std::string passwd  = s.get<std::string>(*i + ".Password");
 
-        if (/*address.empty() || */ip.empty() || port == 0 ||
+        if (/*address.empty() || */ip.empty() || port.empty() ||
                 user.empty() || passwd.empty())
         {
             LOG() << "read wallet " << *i << " with empty parameters>";
@@ -74,11 +75,36 @@ bool XBridgeExchange::init()
 //            continue;
 //        }
 
+        // get new addres for receive fee
+        std::string feeAddress;
+        if (!rpc::getNewAddress(user, passwd, ip, port, feeAddress))
+        {
+            LOG() << "wallet not connected " << *i;
+            continue;
+        }
+
+        std::string fa = util::base64_decode(feeAddress);
+        if (fa.empty())
+        {
+            LOG() << "incorrect address for tax for " << *i;
+            continue;
+        }
+
+        std::copy(fa.begin(), fa.end(), std::back_inserter(m_wallets[*i].feeaddr));
+        if (m_wallets[*i].feeaddr.size() != 20)
+        {
+            LOG() << "incorrect wallet address size for tax for " << *i;
+            m_wallets.erase(*i);
+            continue;
+        }
+
         m_wallets[*i].title   = label;
         m_wallets[*i].ip      = ip;
         m_wallets[*i].port    = port;
         m_wallets[*i].user    = user;
         m_wallets[*i].passwd  = passwd;
+
+        m_wallets[*i].fee     = 1000 * .3; // 0.3 %
 
         LOG() << "read wallet " << *i << " \"" << label << "\" address <" << address << ">";
     }
@@ -142,11 +168,21 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 //    }
     // transactionId = id;
 
+    if (!haveConnectedWallet(sourceCurrency) || !haveConnectedWallet(destCurrency))
+    {
+        LOG() << "no active wallet for transaction "
+              << util::base64_encode(std::string((char *)id.begin(), 32));
+        return false;
+    }
+
+    const WalletParam & wp = m_wallets[sourceCurrency];
+
     XBridgeTransactionPtr tr(new XBridgeTransaction(id,
                                                     sourceAddr, sourceCurrency,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
-                                                    destAmount));
+                                                    destAmount,
+                                                    wp.fee, wp.feeaddr));
 
     LOG() << tr->hash1().ToString();
     LOG() << tr->hash2().ToString();

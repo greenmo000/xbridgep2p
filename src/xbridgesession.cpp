@@ -510,12 +510,12 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
               << "    to   " << util::base64_encode(std::string((char *)&daddr[0], 20)) << std::endl
               << "             " << dcurrency << " : " << damount << std::endl;
 
-        if (!e.haveConnectedWallet(scurrency) || !e.haveConnectedWallet(dcurrency))
-        {
-            LOG() << "no active wallet for transaction "
-                  << util::base64_encode(std::string((char *)id.begin(), 32));
-        }
-        else
+//        if (!e.haveConnectedWallet(scurrency) || !e.haveConnectedWallet(dcurrency))
+//        {
+//            LOG() << "no active wallet for transaction "
+//                  << util::base64_encode(std::string((char *)id.begin(), 32));
+//        }
+//        else
         {
             // float rate = (float) destAmount / sourceAmount;
             uint256 transactionId;
@@ -829,6 +829,8 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply1->append(tr->secondDestination());
             reply1->append((boost::uint32_t)(XBridgeTransaction::TTL * 2));
             reply1->append((boost::uint32_t)24*60*60);
+            reply1->append(tr->firstTaxAddress());
+            reply1->append(tr->firstTax());
 
             sendPacket(tr->firstAddress(), reply1);
 
@@ -844,6 +846,8 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(tr->firstDestination());
             reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
             reply2->append((boost::uint32_t)48*60*60);
+            reply1->append(tr->secondTaxAddress());
+            reply1->append(tr->secondTax());
 
             sendPacket(tr->secondAddress(), reply2);
         }
@@ -957,7 +961,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 100)
+    if (packet->size() != 124)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
         return false;
@@ -971,6 +975,10 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // destination address
     std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
+
+    // tax
+    std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
+    const uint32_t tax = reinterpret_cast<uint32_t>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
@@ -998,9 +1006,9 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
-    boost::uint64_t xfee = 0.001;  // static minimum fee to add for debug
     boost::uint64_t inAmount  = 0;
 
     std::vector<rpc::Unspent> usedInTx;
@@ -1008,21 +1016,19 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
-        fee = m_COIN * minTxFee(usedInTx.size(), 2) / XBridgeTransactionDescr::COIN;
-        fee = fee + xfee; // increase base fee with static fee value for debug
+        fee = m_COIN * minTxFee(usedInTx.size(), 3) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
         // check amount
-        if (inAmount >= outAmount+fee)
+        if (inAmount >= outAmount+fee+taxAmount)
         {
-            outAmount += fee;
             break;
         }
     }
 
     // check amount
-    if (inAmount < outAmount)
+    if (inAmount < outAmount+fee+taxAmount)
     {
         // no money, cancel transaction
         sendCancelTransaction(id);
@@ -1046,9 +1052,10 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress, m_prefix[0])));
+    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
+    tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
 
-    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount-fee) / m_COIN;
+    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount) / m_COIN;
 
     if (inAmount > outAmount)
     {
@@ -1060,11 +1067,11 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return false;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxAmount) / m_COIN;
 
         // rest
         CScript script = destination(addr);
-        tx1.vout.push_back(CTxOut(inAmount-outAmount, script));
+        tx1.vout.push_back(CTxOut(inAmount-outAmount-fee-taxAmount, script));
     }
 
     // serialize
@@ -1114,11 +1121,11 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return false;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee-fee2) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_COIN;
 
         // rest
         CScript script = destination(addr);
-        tx2.vout.push_back(CTxOut(outAmount-fee-fee2, script));
+        tx2.vout.push_back(CTxOut(outAmount-fee2, script));
     }
 
     // lock time for tx2
@@ -1171,7 +1178,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 100)
+    if (packet->size() != 124)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
         return false;
@@ -1185,6 +1192,10 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 
     // destination address
     std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
+
+    // tax
+    std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
+    const uint32_t tax = reinterpret_cast<uint32_t>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
@@ -1212,6 +1223,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     }
 
     boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
     boost::uint64_t inAmount  = 0;
@@ -1221,20 +1233,19 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
-        fee = m_COIN * minTxFee(usedInTx.size(), 2) / XBridgeTransactionDescr::COIN;
+        fee = m_COIN * minTxFee(usedInTx.size(), 3) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
         // check amount
-        if (inAmount >= outAmount+fee)
+        if (inAmount >= outAmount+fee+taxAmount)
         {
-            outAmount += fee;
             break;
         }
     }
 
     // check amount
-    if (inAmount < outAmount)
+    if (inAmount < outAmount+fee+taxAmount)
     {
         // no money, cancel transaction
         sendCancelTransaction(id);
@@ -1258,9 +1269,10 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount-fee, destination(destAddress, m_prefix[0])));
+    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
+    tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
 
-    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount-fee) / m_COIN;
+    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount) / m_COIN;
 
     if (inAmount > outAmount)
     {
@@ -1272,11 +1284,11 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
             return false;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxAmount) / m_COIN;
 
         // rest
         CScript script = destination(addr);
-        tx1.vout.push_back(CTxOut(inAmount-outAmount, script));
+        tx1.vout.push_back(CTxOut(inAmount-outAmount-fee-taxAmount, script));
     }
 
     // serialize
@@ -1327,11 +1339,11 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
             return false;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee-fee2) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_COIN;
 
         // rest
         CScript script = destination(addr);
-        tx2.vout.push_back(CTxOut(outAmount-fee-fee2, script));
+        tx2.vout.push_back(CTxOut(outAmount-fee2, script));
     }
 
     // lock time for tx2

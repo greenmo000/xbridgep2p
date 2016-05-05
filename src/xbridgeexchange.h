@@ -26,9 +26,11 @@ struct WalletParam
     std::string                title;
     std::vector<unsigned char> address;
     std::string                ip;
-    unsigned int               port;
+    std::string                port;
     std::string                user;
     std::string                passwd;
+    std::vector<unsigned char> feeaddr;
+    unsigned int               fee;
 };
 
 //*****************************************************************************

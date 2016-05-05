@@ -13,7 +13,7 @@
 
 //******************************************************************************
 //******************************************************************************
-#define XBRIDGE_PROTOCOL_VERSION 0xff000003
+#define XBRIDGE_PROTOCOL_VERSION 0xff000004
 
 //******************************************************************************
 //******************************************************************************
@@ -107,6 +107,8 @@ enum XBridgeCommand
     //    uint160  destination address
     //    uint32_t tx1 lock time (in seconds)
     //    uint32_t tx2 lock time (in seconds)
+    //    uint160  hub wallet address (for fee)
+    //    uint32_t fee in percent, *1000 (0.3% == 300)
     xbcTransactionCreate = 8,
     //
     // xbcTransactionCreated
