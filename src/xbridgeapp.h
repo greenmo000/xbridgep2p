@@ -28,6 +28,8 @@
 //*****************************************************************************
 class XBridgeApp
 {
+    typedef std::vector<unsigned char> UcharVector;
+
     friend void callback(void * closure, int event,
                          const unsigned char * info_hash,
                          const void * data, size_t data_len);
@@ -63,7 +65,7 @@ public:
 //    void showLogMessage(const QString & msg);
 
 public:
-    const unsigned char * myid() const { return m_myid; }
+    // const unsigned char * myid() const { return m_myid; }
 
     bool initDht();
     bool stopDht();
@@ -90,10 +92,10 @@ public:// slots:
     // search id
     void onSearch(const std::string & id);
     // send messave via xbridge
-    void onSend(const std::vector<unsigned char> & message);
-    void onSend(const XBridgePacketPtr packet);
-    void onSend(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
-    void onSend(const std::vector<unsigned char> & id, const XBridgePacketPtr packet);
+    void onSend(const UcharVector & from, const UcharVector & message);
+    void onSend(const UcharVector & from, const XBridgePacketPtr packet);
+    void onSend(const UcharVector & from, const UcharVector & id, const std::vector<unsigned char> & message);
+    void onSend(const UcharVector & from, const UcharVector & id, const XBridgePacketPtr packet);
     // call when message from xbridge network received
     void onMessageReceived(const std::vector<unsigned char> & id, const std::vector<unsigned char> & message);
     // broadcast message
@@ -128,8 +130,8 @@ private:
     std::atomic<bool> m_signalSearch;
     std::atomic<bool> m_signalSend;
 
-    typedef std::vector<unsigned char> UcharVector;
-    typedef std::tuple<UcharVector, UcharVector, bool> MessagePair;
+    // from, to, packet, resend_flag
+    typedef std::tuple<UcharVector, UcharVector, UcharVector, bool> MessagePair;
 
     std::list<std::string> m_searchStrings;
     std::list<MessagePair> m_messages;
