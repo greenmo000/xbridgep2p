@@ -4,6 +4,7 @@
 #include "xbridgetransactionsview.h"
 #include "../xbridgeapp.h"
 // #include "xbridgetransactiondialog.h"
+#include "../xbridgeexchange.h"
 #include "../util/verify.h"
 #include "../uiconnector.h"
 #include "../util/logger.h"
@@ -84,10 +85,19 @@ void XBridgeTransactionsView::setupUi()
 
     QHBoxLayout * hbox = new QHBoxLayout;
 
-    QPushButton * addTxBtn = new QPushButton(trUtf8("New Transaction"), this);
-    // addTxBtn->setIcon(QIcon("qrc://"))
-    VERIFY(connect(addTxBtn, SIGNAL(clicked()), this, SLOT(onNewTransaction())));
-    hbox->addWidget(addTxBtn);
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        QPushButton * addTxBtn = new QPushButton(trUtf8("New Transaction"), this);
+        // addTxBtn->setIcon(QIcon("qrc://"))
+        VERIFY(connect(addTxBtn, SIGNAL(clicked()), this, SLOT(onNewTransaction())));
+        hbox->addWidget(addTxBtn);
+    }
+    else
+    {
+        QPushButton * addTxBtn = new QPushButton(trUtf8("Exchange node"), this);
+        addTxBtn->setEnabled(false);
+    }
 
     hbox->addStretch();
 

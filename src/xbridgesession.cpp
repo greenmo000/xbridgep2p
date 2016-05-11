@@ -2278,6 +2278,13 @@ void XBridgeSession::getAddressBook()
 //*****************************************************************************
 void XBridgeSession::requestAddressBook()
 {
+    // no address book for exchange node
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (e.isEnabled())
+    {
+        return;
+    }
+
     std::vector<rpc::AddressBookEntry> entries;
     if (!rpc::requestAddressBook(m_user, m_passwd, m_address, m_port, entries))
     {
