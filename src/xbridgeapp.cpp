@@ -657,13 +657,13 @@ void XBridgeApp::dhtThreadProc()
                         continue;
                     }
 
-                    // add to known
-                    boost::mutex::scoped_lock l(m_messagesLock);
-                    m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
-
                     // check broadcast
                     if (id.empty())
                     {
+                        // add to known
+                        boost::mutex::scoped_lock l(m_messagesLock);
+                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+
                         // send to all local clients
                         {
                             boost::mutex::scoped_lock l(m_sessionsLock);
@@ -703,12 +703,12 @@ void XBridgeApp::dhtThreadProc()
                         {
                             // not local
                             int err = dht_send_message(&id[0], &message[0], message.size());
-//                            if (!err)
-//                            {
-//                                // add to known
-//                                boost::mutex::scoped_lock l(m_messagesLock);
-//                                m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
-//                            }
+                            if (!err)
+                            {
+                                // add to known
+                                boost::mutex::scoped_lock l(m_messagesLock);
+                                m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                            }
 
                             if (err != 0 && err != DHT_NETWORK_BUFFER_OWERFLOW)
                             {
