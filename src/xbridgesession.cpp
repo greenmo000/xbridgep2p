@@ -69,11 +69,6 @@ XBridgeSession::XBridgeSession(const std::string & currency,
     , m_COIN(COIN)
     , m_minAmount(minAmount)
 {
-    dht_random_bytes(m_myid, sizeof(m_myid));
-    LOG() << "session <" << currency << "> generated id <"
-             << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
-             << ">";
-
     init();
 }
 
@@ -81,6 +76,12 @@ XBridgeSession::XBridgeSession(const std::string & currency,
 //*****************************************************************************
 void XBridgeSession::init()
 {
+    dht_random_bytes(m_myid, sizeof(m_myid));
+    LOG() << "session <" << m_currency << "> generated id <"
+             << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
+             << ">";
+
+
     assert(!m_processors.size());
 
     // process invalid
