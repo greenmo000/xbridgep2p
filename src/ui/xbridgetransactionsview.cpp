@@ -97,6 +97,7 @@ void XBridgeTransactionsView::setupUi()
     {
         QPushButton * addTxBtn = new QPushButton(trUtf8("Exchange node"), this);
         addTxBtn->setEnabled(false);
+        hbox->addWidget(addTxBtn);
     }
 
     hbox->addStretch();
