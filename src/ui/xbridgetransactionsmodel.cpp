@@ -37,7 +37,14 @@ XBridgeTransactionsModel::XBridgeTransactionsModel()
 //******************************************************************************
 XBridgeTransactionsModel::~XBridgeTransactionsModel()
 {
+    uiConnector.NotifyXBridgePendingTransactionReceived.disconnect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionReceived, this, _1));
 
+    uiConnector.NotifyXBridgeTransactionStateChanged.disconnect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionStateChanged, this, _1, _2));
+
+    uiConnector.NotifyXBridgeTransactionIdChanged.disconnect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
 }
 
 //******************************************************************************
