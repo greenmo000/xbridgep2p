@@ -138,6 +138,8 @@ private:
     typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
     PacketProcessorsMap m_processors;
 
+    std::set<std::vector<unsigned char> > m_addressBook;
+
     std::string       m_currency;
     std::string       m_address;
     std::string       m_port;

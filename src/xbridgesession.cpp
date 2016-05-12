@@ -315,17 +315,32 @@ bool XBridgeSession::relayPacket(XBridgePacketPtr packet)
     }
 
     // check address
-    XBridgeApp & app = XBridgeApp::instance();
-    if (memcmp(packet->data(), m_myid, 20) != 0)
+    // XBridgeApp & app = XBridgeApp::instance();
+    if (memcmp(packet->data(), m_myid, 20) == 0)
     {
-        // not for me, retranslate packet
-//        app.onSend(std::vector<unsigned char>(m_myid, m_myid + 20),
-//                   std::vector<unsigned char>(packet->data(), packet->data() + 20),
-//                   packet);
-        return true;
+        // not retranslated, need to process
+        return false;
     }
 
-    return false;
+    for (const std::vector<unsigned char> & addr : m_addressBook)
+    {
+        if (addr.size() != 20)
+        {
+            assert(false && "incorrect address length");
+            continue;
+        }
+
+        if (memcmp(packet->data(), &addr[0], 20) == 0)
+        {
+            // not retranslated, need to process
+            return false;
+        }
+    }
+    // not for me, retranslate packet
+//    app.onSend(std::vector<unsigned char>(m_myid, m_myid + 20),
+//               std::vector<unsigned char>(packet->data(), packet->data() + 20),
+//               packet);
+    return true;
 }
 
 //*****************************************************************************
@@ -2300,11 +2315,14 @@ void XBridgeSession::requestAddressBook()
             std::vector<unsigned char> vaddr;
             if (rpc::DecodeBase58Check(addr.c_str(), vaddr))
             {
-                app.storageStore(shared_from_this(), &vaddr[1]);
+                vaddr.erase(vaddr.begin());
+                m_addressBook.insert(vaddr);
+
+                app.storageStore(shared_from_this(), &vaddr[0]);
 
                 uiConnector.NotifyXBridgeAddressBookEntryReceived
                         (m_currency, e.first,
-                         util::base64_encode(std::string((char *)&vaddr[1], vaddr.size()-1)));
+                         util::base64_encode(std::string((char *)&vaddr[0], vaddr.size())));
             }
         }
     }

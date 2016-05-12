@@ -350,8 +350,15 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     XBridgePacketPtr packet(new XBridgePacket);
     packet->copyFrom(message);
 
-    XBridgeSessionPtr ptr(new XBridgeSession);
-    ptr->processPacket(packet);
+    // XBridgeSessionPtr ptr(new XBridgeSession);
+    m_sessionQueue.front()->processPacket(packet);
+
+    // TODO ????
+    // or process all packets in first session?
+    // or create service session?
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    m_sessionQueue.push(m_sessionQueue.front());
+    m_sessionQueue.pop();
 }
 
 //*****************************************************************************
@@ -868,7 +875,7 @@ void XBridgeApp::addSession(XBridgeSessionPtr session)
     storageStore(session, session->sessionAddr());
 
     boost::mutex::scoped_lock l(m_sessionsLock);
-    m_sessionIds[session->currency()] = session;
+    m_sessionQueue.push(session);
 }
 
 //*****************************************************************************

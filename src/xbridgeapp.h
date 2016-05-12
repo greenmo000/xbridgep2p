@@ -15,6 +15,7 @@
 #include <map>
 #include <tuple>
 #include <set>
+#include <queue>
 
 #ifdef WIN32
 // #include <Ws2tcpip.h>
@@ -153,6 +154,8 @@ private:
     SessionAddrMap m_sessionAddrs;
     typedef std::map<std::string, XBridgeSessionPtr> SessionIdMap;
     SessionIdMap m_sessionIds;
+    typedef std::queue<XBridgeSessionPtr> SessionQueue;
+    SessionQueue m_sessionQueue;
 
     boost::mutex m_messagesLock;
     typedef std::set<uint256> ProcessedMessages;
