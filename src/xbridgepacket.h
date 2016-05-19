@@ -77,6 +77,7 @@ enum XBridgeCommand
     //    uint64 source amount
     //    8 bytes destination currency
     //    uint64 destination amount
+    //    uint32_t fee in percent, *1000 (0.3% == 300)
     xbcPendingTransaction = 4,
     //
     // xbcTransactionAccepting

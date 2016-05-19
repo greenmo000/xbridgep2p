@@ -591,7 +591,7 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 64)
+    if (packet->size() != 68)
     {
         ERR() << "incorrect packet size " << __FUNCTION__;
         return false;
