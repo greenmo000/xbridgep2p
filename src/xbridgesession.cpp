@@ -84,8 +84,14 @@ void XBridgeSession::init()
     m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSession::processAnnounceAddresses);
 
     // process transaction from client wallet
-    m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
-    m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSession::processPendingTransaction);
+    if (XBridgeExchange::instance().isEnabled())
+    {
+        m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
+    }
+    else
+    {
+        m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSession::processPendingTransaction);
+    }
 
     // transaction processing
     {
@@ -563,6 +569,29 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 
     // ..and retranslate
     sendPacketBroadcast(packet);
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
+{
+    if (packet->size() != 64)
+    {
+        ERR() << "incorrect packet size " << __FUNCTION__;
+        return false;
+    }
+
+    XBridgeTransactionDescr d;
+    d.id           = uint256(packet->data());
+    d.fromCurrency = std::string(reinterpret_cast<const char *>(packet->data()+32));
+    d.fromAmount   = *reinterpret_cast<boost::uint64_t *>(packet->data()+40);
+    d.toCurrency   = std::string(reinterpret_cast<const char *>(packet->data()+48));
+    d.toAmount     = *reinterpret_cast<boost::uint64_t *>(packet->data()+56);
+    d.state        = XBridgeTransactionDescr::trPending;
+
+    uiConnector.NotifyXBridgePendingTransactionReceived(d);
+
     return true;
 }
 
@@ -2352,29 +2381,6 @@ void XBridgeSession::sendAddressbookEntry(const std::string & currency,
 
         sendXBridgeMessage(p);
     }
-}
-
-//******************************************************************************
-//******************************************************************************
-bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
-{
-    if (packet->size() != 64)
-    {
-        ERR() << "incorrect packet size " << __FUNCTION__;
-        return false;
-    }
-
-    XBridgeTransactionDescr d;
-    d.id           = uint256(packet->data());
-    d.fromCurrency = std::string(reinterpret_cast<const char *>(packet->data()+32));
-    d.fromAmount   = *reinterpret_cast<boost::uint64_t *>(packet->data()+40);
-    d.toCurrency   = std::string(reinterpret_cast<const char *>(packet->data()+48));
-    d.toAmount     = *reinterpret_cast<boost::uint64_t *>(packet->data()+56);
-    d.state        = XBridgeTransactionDescr::trPending;
-
-    uiConnector.NotifyXBridgePendingTransactionReceived(d);
-
-    return true;
 }
 
 //******************************************************************************
