@@ -1101,6 +1101,56 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 
 //******************************************************************************
 //******************************************************************************
+uint256 XBridgeApp::acceptXBridgeTransaction(const std::vector<unsigned char> & from,
+                                             const std::string & fromCurrency,
+                                             const boost::uint64_t fromAmount,
+                                             const std::vector<unsigned char> & to,
+                                             const std::string & toCurrency,
+                                             const boost::uint64_t toAmount)
+{
+    return false;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
+{
+    // if (!ptr->packet)
+    {
+        ptr->packet.reset(new XBridgePacket(xbcTransactionAccepting));
+
+        // field length must be 8 bytes
+        std::vector<unsigned char> fc(8, 0);
+        std::copy(ptr->fromCurrency.begin(), ptr->fromCurrency.end(), fc.begin());
+
+        // field length must be 8 bytes
+        std::vector<unsigned char> tc(8, 0);
+        std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
+
+        // 20 bytes - id of transaction
+        // 2x
+        // 20 bytes - address
+        //  8 bytes - currency
+        //  4 bytes - amount
+        ptr->packet->append(ptr->id.begin(), 32);
+        ptr->packet->append(ptr->from);
+        ptr->packet->append(fc);
+        ptr->packet->append(ptr->fromAmount);
+        ptr->packet->append(ptr->to);
+        ptr->packet->append(tc);
+        ptr->packet->append(ptr->toAmount);
+    }
+
+    onSend(std::vector<unsigned char>(m_myid, m_myid+20), ptr->packet);
+
+    ptr->state = XBridgeTransactionDescr::trPending;
+    uiConnector.NotifyXBridgeTransactionStateChanged(ptr->id, XBridgeTransactionDescr::trPending);
+
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
 bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id)
 {
     {

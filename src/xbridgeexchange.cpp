@@ -158,15 +158,73 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 {
     DEBUG_TRACE();
 
-//    {
-//        boost::mutex::scoped_lock l(m_knownTxLock);
-//        if (m_knownTransactions.count(transactionId))
-//        {
-//            return false;
-//        }
-//        m_knownTransactions.insert(transactionId);
-//    }
-    // transactionId = id;
+    if (!haveConnectedWallet(sourceCurrency) || !haveConnectedWallet(destCurrency))
+    {
+        LOG() << "no active wallet for transaction "
+              << util::base64_encode(std::string((char *)id.begin(), 32));
+        return false;
+    }
+
+    const WalletParam & wp = m_wallets[sourceCurrency];
+
+    XBridgeTransactionPtr tr(new XBridgeTransaction(id,
+                                                    sourceAddr, sourceCurrency,
+                                                    sourceAmount,
+                                                    destAddr, destCurrency,
+                                                    destAmount,
+                                                    wp.fee, wp.feeaddr));
+
+    LOG() << tr->hash1().ToString();
+    LOG() << tr->hash2().ToString();
+
+    if (!tr->isValid())
+    {
+        return false;
+    }
+
+    uint256 h = tr->hash2();
+
+    {
+        boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+
+        if (!m_pendingTransactions.count(h))
+        {
+            // new transaction or update existing (update timestamp)
+            h = tr->hash1();
+            m_pendingTransactions[h] = tr;
+        }
+        else
+        {
+            boost::mutex::scoped_lock l2(m_pendingTransactions[h]->m_lock);
+
+            // found, check if expired
+            if (m_pendingTransactions[h]->isExpired())
+            {
+                // if expired - delete old transaction
+                m_pendingTransactions.erase(h);
+
+                // create new
+                h = tr->hash1();
+                m_pendingTransactions[h] = tr;
+            }
+        }
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeExchange::acceptTransaction(const uint256 & id,
+                                        const std::vector<unsigned char> & sourceAddr,
+                                        const std::string & sourceCurrency,
+                                        const boost::uint64_t & sourceAmount,
+                                        const std::vector<unsigned char> & destAddr,
+                                        const std::string & destCurrency,
+                                        const boost::uint64_t & destAmount,
+                                        uint256 & transactionId)
+{
+    DEBUG_TRACE();
 
     if (!haveConnectedWallet(sourceCurrency) || !haveConnectedWallet(destCurrency))
     {
@@ -201,9 +259,8 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 
         if (!m_pendingTransactions.count(h))
         {
-            // new transaction or update existing (update timestamp)
-            h = tr->hash1();
-            m_pendingTransactions[h] = tr;
+            // no pending
+            return false;
         }
         else
         {

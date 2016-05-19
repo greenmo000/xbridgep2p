@@ -60,6 +60,15 @@ public:
                            const std::string & destCurrency,
                            const boost::uint64_t & destAmount,
                            uint256 & transactionId);
+    bool acceptTransaction(const uint256 & id,
+                           const std::vector<unsigned char> & sourceAddr,
+                           const std::string & sourceCurrency,
+                           const boost::uint64_t & sourceAmount,
+                           const std::vector<unsigned char> & destAddr,
+                           const std::string & destCurrency,
+                           const boost::uint64_t & destAmount,
+                           uint256 & transactionId);
+
     bool deletePendingTransactions(const uint256 & id);
     bool deleteTransaction(const uint256 & id);
 

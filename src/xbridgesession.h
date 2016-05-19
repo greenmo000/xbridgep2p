@@ -101,6 +101,8 @@ protected:
     bool processXChatMessage(XBridgePacketPtr packet);
 
     bool processTransaction(XBridgePacketPtr packet);
+    bool processPendingTransaction(XBridgePacketPtr packet);
+    bool processTransactionAccepting(XBridgePacketPtr packet);
     bool processTransactionHoldApply(XBridgePacketPtr packet);
     bool processTransactionInitialized(XBridgePacketPtr packet);
     bool processTransactionCreated(XBridgePacketPtr packet);
@@ -119,7 +121,6 @@ protected:
 
     bool processAddressBookEntry(XBridgePacketPtr packet);
 
-    bool processPendingTransaction(XBridgePacketPtr packet);
     bool processTransactionHold(XBridgePacketPtr packet);
     bool processTransactionInit(XBridgePacketPtr packet);
     bool processTransactionCreate(XBridgePacketPtr packet);

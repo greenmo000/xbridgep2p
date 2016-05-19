@@ -93,6 +93,7 @@ void XBridgeSession::init()
     if (XBridgeExchange::instance().isEnabled())
     {
         m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
+        m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSession::processTransactionAccepting);
     }
     else
     {
@@ -515,18 +516,6 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     std::string dcurrency((const char *)packet->data()+88);
     boost::uint64_t damount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+96));
 
-    {
-        XBridgeTransactionDescr d;
-        d.id           = uint256(packet->data());
-        d.fromCurrency = scurrency;
-        d.fromAmount   = samount;
-        d.toCurrency   = dcurrency;
-        d.toAmount     = damount;
-        d.state        = XBridgeTransactionDescr::trPending;
-
-        uiConnector.NotifyXBridgePendingTransactionReceived(d);
-    }
-
     // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
@@ -600,6 +589,8 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 //******************************************************************************
 bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 {
+    DEBUG_TRACE_LOG(currencyToLog());
+
     if (packet->size() != 64)
     {
         ERR() << "incorrect packet size " << __FUNCTION__;
@@ -616,6 +607,99 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 
     uiConnector.NotifyXBridgePendingTransactionReceived(d);
 
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
+{
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
+
+    // size must be 104 bytes
+    if (packet->size() != 104)
+    {
+        ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
+        return false;
+    }
+
+    // source
+    std::vector<unsigned char> saddr(packet->data()+32, packet->data()+52);
+    std::string scurrency((const char *)packet->data()+52);
+    boost::uint64_t samount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+60));
+
+    // destination
+    std::vector<unsigned char> daddr(packet->data()+68, packet->data()+88);
+    std::string dcurrency((const char *)packet->data()+88);
+    boost::uint64_t damount = *static_cast<boost::uint64_t *>(static_cast<void *>(packet->data()+96));
+
+    // check and process packet if bridge is exchange
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (e.isEnabled())
+    {
+        // read packet data
+        uint256 id(packet->data());
+
+        LOG() << "received transaction " << util::base64_encode(std::string((char *)id.begin(), 32)) << std::endl
+              << "    from " << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
+              << "             " << scurrency << " : " << samount << std::endl
+              << "    to   " << util::base64_encode(std::string((char *)&daddr[0], 20)) << std::endl
+              << "             " << dcurrency << " : " << damount << std::endl;
+
+//        if (!e.haveConnectedWallet(scurrency) || !e.haveConnectedWallet(dcurrency))
+//        {
+//            LOG() << "no active wallet for transaction "
+//                  << util::base64_encode(std::string((char *)id.begin(), 32));
+//        }
+//        else
+        {
+            // float rate = (float) destAmount / sourceAmount;
+            uint256 transactionId;
+            if (e.acceptTransaction(id, saddr, scurrency, samount, daddr, dcurrency, damount, transactionId))
+            {
+                // check transaction state, if trNew - do nothing,
+                // if trJoined = send hold to client
+                XBridgeTransactionPtr tr = e.transaction(transactionId);
+
+                boost::mutex::scoped_lock l(tr->m_lock);
+
+                if (tr && tr->state() == XBridgeTransaction::trJoined)
+                {
+                    // send hold to clients
+
+                    // first
+                    // TODO remove this log
+                    LOG() << "send xbcTransactionHold to "
+                          << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+
+                    XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
+                    reply1->append(tr->firstAddress());
+                    reply1->append(sessionAddr(), 20);
+                    reply1->append(tr->firstId().begin(), 32);
+                    reply1->append(transactionId.begin(), 32);
+
+                    sendPacket(tr->firstAddress(), reply1);
+
+                    // second
+                    // TODO remove this log
+                    LOG() << "send xbcTransactionHold to "
+                          << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
+
+                    XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
+                    reply2->append(tr->secondAddress());
+                    reply2->append(sessionAddr(), 20);
+                    reply2->append(tr->secondId().begin(), 32);
+                    reply2->append(transactionId.begin(), 32);
+
+                    sendPacket(tr->secondAddress(), reply2);
+                }
+            }
+        }
+    }
+
+    // ..and retranslate
+    // sendPacketBroadcast(packet);
     return true;
 }
 
