@@ -21,7 +21,8 @@ XBridgeAddressBookModel::XBridgeAddressBookModel()
 //******************************************************************************
 XBridgeAddressBookModel::~XBridgeAddressBookModel()
 {
-
+    uiConnector.NotifyXBridgeAddressBookEntryReceived.disconnect
+            (boost::bind(&XBridgeAddressBookModel::onAddressBookEntryReceived, this, _1, _2, _3));
 }
 
 //******************************************************************************

@@ -2412,7 +2412,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                         else
                         {
                             // relay message
-                            app.onSend(addr, vmessage);
+                            app.onSend(std::vector<unsigned char>(), addr, vmessage);
                         }
                     }
                 }
@@ -2457,7 +2457,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                         app.onBroadcastReceived(vmessage);
 
                         // relay message
-                        app.onSend(vmessage);
+                        app.onSend(std::vector<unsigned char>(), vmessage);
                     }
                 }
 

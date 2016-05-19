@@ -76,6 +76,12 @@ XBridgeSession::XBridgeSession(const std::string & currency,
 //*****************************************************************************
 void XBridgeSession::init()
 {
+    dht_random_bytes(m_myid, sizeof(m_myid));
+    LOG() << "session <" << m_currency << "> generated id <"
+             << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
+             << ">";
+
+
     assert(!m_processors.size());
 
     // process invalid
@@ -269,11 +275,11 @@ void XBridgeSession::onReadBody(XBridgePacketPtr packet,
 
 //*****************************************************************************
 //*****************************************************************************
-const unsigned char * XBridgeSession::myaddr() const
-{
-    XBridgeApp & app = XBridgeApp::instance();
-    return app.myid();
-}
+//const unsigned char * XBridgeSession::myaddr() const
+//{
+//    XBridgeApp & app = XBridgeApp::instance();
+//    return app.myid();
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -299,7 +305,9 @@ void XBridgeSession::sendPacket(const std::vector<unsigned char> & to,
                                 XBridgePacketPtr packet)
 {
     XBridgeApp & app = XBridgeApp::instance();
-    app.onSend(to, packet->body());
+    app.onSend(std::vector<unsigned char>(m_myid, m_myid + 20),
+               to,
+               packet->body());
 }
 
 //*****************************************************************************
@@ -313,16 +321,32 @@ bool XBridgeSession::relayPacket(XBridgePacketPtr packet)
     }
 
     // check address
-    XBridgeApp & app = XBridgeApp::instance();
-    if (memcmp(packet->data(), app.myid(), 20) != 0)
+    // XBridgeApp & app = XBridgeApp::instance();
+    if (memcmp(packet->data(), m_myid, 20) == 0)
     {
-        // not for me, retranslate packet
-        std::vector<unsigned char> addr(packet->data(), packet->data() + 20);
-        app.onSend(addr, packet);
-        return true;
+        // not retranslated, need to process
+        return false;
     }
 
-    return false;
+    for (const std::vector<unsigned char> & addr : m_addressBook)
+    {
+        if (addr.size() != 20)
+        {
+            assert(false && "incorrect address length");
+            continue;
+        }
+
+        if (memcmp(packet->data(), &addr[0], 20) == 0)
+        {
+            // not retranslated, need to process
+            return false;
+        }
+    }
+    // not for me, retranslate packet
+//    app.onSend(std::vector<unsigned char>(m_myid, m_myid + 20),
+//               std::vector<unsigned char>(packet->data(), packet->data() + 20),
+//               packet);
+    return true;
 }
 
 //*****************************************************************************
@@ -449,7 +473,9 @@ bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
     std::vector<unsigned char> daddr(packet->data(), packet->data() + 20);
 
     XBridgeApp & app = XBridgeApp::instance();
-    app.onSend(daddr, std::vector<unsigned char>(packet->header(), packet->header()+packet->allSize()));
+    app.onSend(std::vector<unsigned char>(m_myid, m_myid + 20),
+               daddr,
+               std::vector<unsigned char>(packet->header(), packet->header()+packet->allSize()));
 
     return true;
 }
@@ -457,14 +483,12 @@ bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
 //*****************************************************************************
 // retranslate packets from wallet to xbridge network
 //*****************************************************************************
-bool XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
+void XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
 
     XBridgeApp & app = XBridgeApp::instance();
-    app.onSend(packet);
-
-    return true;
+    app.onSend(std::vector<unsigned char>(m_myid, m_myid+20), packet);
 }
 
 //*****************************************************************************
@@ -544,7 +568,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 
                     XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
                     reply1->append(tr->firstAddress());
-                    reply1->append(myaddr(), 20);
+                    reply1->append(sessionAddr(), 20);
                     reply1->append(tr->firstId().begin(), 32);
                     reply1->append(transactionId.begin(), 32);
 
@@ -557,7 +581,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 
                     XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
                     reply2->append(tr->secondAddress());
-                    reply2->append(myaddr(), 20);
+                    reply2->append(sessionAddr(), 20);
                     reply2->append(tr->secondId().begin(), 32);
                     reply2->append(transactionId.begin(), 32);
 
@@ -568,7 +592,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     }
 
     // ..and retranslate
-    sendPacketBroadcast(packet);
+    // sendPacketBroadcast(packet);
     return true;
 }
 
@@ -646,11 +670,7 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
     reply->append(thisAddress);
     reply->append(newid.begin(), 32);
 
-    if (!sendPacketBroadcast(reply))
-    {
-        LOG() << "error sending transaction hold reply packet " << __FUNCTION__;
-        return false;
-    }
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -711,7 +731,7 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionInit));
             reply1->append(tr->firstDestination());
-            reply1->append(myaddr(), 20);
+            reply1->append(sessionAddr(), 20);
             reply1->append(id.begin(), 32);
             reply1->append(tr->firstAddress());
             reply1->append(fc);
@@ -729,7 +749,7 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionInit));
             reply2->append(tr->secondDestination());
-            reply2->append(myaddr(), 20);
+            reply2->append(sessionAddr(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(tr->secondAddress());
             reply2->append(sc);
@@ -792,12 +812,7 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
 
-    if (!sendPacketBroadcast(reply))
-    {
-        LOG() << "error sending transaction hold reply packet " << __FUNCTION__;
-        return false;
-    }
-
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -853,7 +868,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             // with nLockTime == TTL*4 for second
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionCreate));
             reply1->append(tr->firstAddress());
-            reply1->append(myaddr(), 20);
+            reply1->append(sessionAddr(), 20);
             reply1->append(id.begin(), 32);
             reply1->append(tr->secondDestination());
             reply1->append((boost::uint32_t)(XBridgeTransaction::TTL * 2));
@@ -870,7 +885,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionCreate));
             reply2->append(tr->secondAddress());
-            reply2->append(myaddr(), 20);
+            reply2->append(sessionAddr(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(tr->firstDestination());
             reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
@@ -1192,12 +1207,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     reply->append(unsignedTx1);
     reply->append(unsignedTx2);
 
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending created transactions packet " << __FUNCTION__;
-        return false;
-    }
-
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -1410,12 +1420,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     reply->append(unsignedTx1);
     reply->append(unsignedTx2);
 
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending created transactions packet " << __FUNCTION__;
-        return false;
-    }
-
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -1475,7 +1480,7 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSign));
             reply->append(tr->firstDestination());
-            reply->append(myaddr(), 20);
+            reply->append(sessionAddr(), 20);
             reply->append(txid.begin(), 32);
             reply->append(tr->secondRawPayTx());
             reply->append(tr->secondRawRevTx());
@@ -1488,7 +1493,7 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionSign));
             reply2->append(tr->secondDestination());
-            reply2->append(myaddr(), 20);
+            reply2->append(sessionAddr(), 20);
             reply2->append(txid.begin(), 32);
             reply2->append(tr->firstRawPayTx());
             reply2->append(tr->firstRawRevTx());
@@ -1574,12 +1579,7 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
     reply->append(txid.begin(), 32);
     reply->append(rawtxrev);
 
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending created transactions packet " << __FUNCTION__;
-        return false;
-    }
-
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -1631,7 +1631,7 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommit));
             reply->append(tr->firstAddress());
-            reply->append(myaddr(), 20);
+            reply->append(sessionAddr(), 20);
             reply->append(txid.begin(), 32);
             reply->append(tr->firstRawRevTx());
 
@@ -1643,7 +1643,7 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionCommit));
             reply2->append(tr->secondAddress());
-            reply2->append(myaddr(), 20);
+            reply2->append(sessionAddr(), 20);
             reply2->append(txid.begin(), 32);
             reply2->append(tr->secondRawRevTx());
 
@@ -1711,13 +1711,8 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
     reply->append(xtx->payTxId.begin(), 32);
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending transaction commited packet "
-                 << __FUNCTION__;
-        return false;
-    }
 
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -1774,7 +1769,7 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply(new XBridgePacket(xbcTransactionConfirm));
             reply->append(tr->firstDestination());
-            reply->append(myaddr(), 20);
+            reply->append(sessionAddr(), 20);
             reply->append(txid.begin(), 32);
             reply->append(tr->secondTxHash().begin(), 32);
 
@@ -1786,7 +1781,7 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
 
             XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionConfirm));
             reply2->append(tr->secondDestination());
-            reply2->append(myaddr(), 20);
+            reply2->append(sessionAddr(), 20);
             reply2->append(txid.begin(), 32);
             reply2->append(tr->firstTxHash().begin(), 32);
 
@@ -1956,7 +1951,7 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
     // ..and retranslate
-    sendPacketBroadcast(packet);
+    // sendPacketBroadcast(packet);
     return true;
 }
 
@@ -2341,6 +2336,13 @@ void XBridgeSession::getAddressBook()
 //*****************************************************************************
 void XBridgeSession::requestAddressBook()
 {
+    // no address book for exchange node
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (e.isEnabled())
+    {
+        return;
+    }
+
     std::vector<rpc::AddressBookEntry> entries;
     if (!rpc::requestAddressBook(m_user, m_passwd, m_address, m_port, entries))
     {
@@ -2356,11 +2358,14 @@ void XBridgeSession::requestAddressBook()
             std::vector<unsigned char> vaddr;
             if (rpc::DecodeBase58Check(addr.c_str(), vaddr))
             {
-                app.storageStore(shared_from_this(), &vaddr[1]);
+                vaddr.erase(vaddr.begin());
+                m_addressBook.insert(vaddr);
+
+                app.storageStore(shared_from_this(), &vaddr[0]);
 
                 uiConnector.NotifyXBridgeAddressBookEntryReceived
                         (m_currency, e.first,
-                         util::base64_encode(std::string((char *)&vaddr[1], vaddr.size()-1)));
+                         util::base64_encode(std::string((char *)&vaddr[0], vaddr.size())));
             }
         }
     }
