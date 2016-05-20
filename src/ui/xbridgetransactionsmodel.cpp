@@ -243,7 +243,7 @@ bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
 
             // send tx
-            d.id = XBridgeApp::instance().acceptXBridgeTransaction(d.id);
+            d.id = XBridgeApp::instance().acceptXBridgeTransaction(d.id, from, to);
 
             d.txtime = boost::posix_time::second_clock::universal_time();
 
