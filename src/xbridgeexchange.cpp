@@ -89,7 +89,7 @@ bool XBridgeExchange::init()
         m_wallets[*i].user    = user;
         m_wallets[*i].passwd  = passwd;
 
-        m_wallets[*i].fee     = 1000 * .3; // 0.3 %
+        m_wallets[*i].fee     = s.exchangeTax();
 
         LOG() << "read wallet " << *i << " \"" << label << "\" address <" << address << ">";
     }
@@ -168,6 +168,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
     }
 
     uint256 h = tr->hash2();
+    pendingId = h;
 
     {
         boost::mutex::scoped_lock l(m_pendingTransactionsLock);
