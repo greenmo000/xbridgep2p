@@ -60,21 +60,6 @@ bool XBridgeExchange::init()
             continue;
         }
 
-//        std::string decoded = util::base64_decode(address);
-//        if (address.empty())
-//        {
-//            LOG() << "incorrect wallet address for " << *i;
-//            continue;
-//        }
-
-//        std::copy(decoded.begin(), decoded.end(), std::back_inserter(m_wallets[*i].address));
-//        if (m_wallets[*i].address.size() != 20)
-//        {
-//            LOG() << "incorrect wallet address size for " << *i;
-//            m_wallets.erase(*i);
-//            continue;
-//        }
-
         // get new addres for receive fee
         std::string feeAddress;
         if (!rpc::getNewAddress(user, passwd, ip, port, feeAddress))
@@ -83,14 +68,14 @@ bool XBridgeExchange::init()
             continue;
         }
 
-        std::string fa = util::base64_decode(feeAddress);
-        if (fa.empty())
+        m_wallets[*i].feeaddr.clear();
+        if (!rpc::DecodeBase58Check(feeAddress.c_str(), m_wallets[*i].feeaddr))
         {
-            LOG() << "incorrect address for tax for " << *i;
-            continue;
+            LOG() << "DecodeBase58Check failed for " << feeAddress;
         }
 
-        std::copy(fa.begin(), fa.end(), std::back_inserter(m_wallets[*i].feeaddr));
+        m_wallets[*i].feeaddr.erase(m_wallets[*i].feeaddr.begin());
+
         if (m_wallets[*i].feeaddr.size() != 20)
         {
             LOG() << "incorrect wallet address size for tax for " << *i;
