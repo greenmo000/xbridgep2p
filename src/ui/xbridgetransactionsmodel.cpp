@@ -132,7 +132,7 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
             }
             case Tax:
             {
-                return QString("%1%%").arg(QString::number((double)d.tax / 1000, 10, 2));
+                return QString("%1%").arg(QString::number((double)d.tax / 1000, 10, 2));
             }
 
             default:
