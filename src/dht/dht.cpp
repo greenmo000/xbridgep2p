@@ -2418,7 +2418,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 }
                 else
                 {
-                    ptr += 8;
+                    ptr += 10;
 
                     size_t len = atoi(ptr);
                     while (isdigit(*ptr))
@@ -2472,7 +2472,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 }
                 else
                 {
-                    ptr += 10;
+                    ptr += 12;
 
                     size_t len = atoi(ptr);
                     while (isdigit(*ptr))
