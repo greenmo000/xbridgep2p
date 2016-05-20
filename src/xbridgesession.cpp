@@ -90,12 +90,12 @@ void XBridgeSession::init()
     m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSession::processAnnounceAddresses);
 
     // process transaction from client wallet
-    if (XBridgeExchange::instance().isEnabled())
+    // if (XBridgeExchange::instance().isEnabled())
     {
         m_processors[xbcTransaction]           .bind(this, &XBridgeSession::processTransaction);
         m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSession::processTransactionAccepting);
     }
-    else
+    // else
     {
         m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSession::processPendingTransaction);
     }
@@ -569,6 +569,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
             reply->append(tr->firstAmount());
             reply->append(sc);
             reply->append(tr->secondAmount());
+            reply->append(sessionAddr());
             reply->append(tr->tax());
 
             sendPacketBroadcast(reply);
