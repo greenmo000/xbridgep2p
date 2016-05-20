@@ -601,17 +601,28 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
         return false;
     }
 
-    XBridgeTransactionDescr d;
-    d.id           = uint256(packet->data());
-    d.fromCurrency = std::string(reinterpret_cast<const char *>(packet->data()+32));
-    d.fromAmount   = *reinterpret_cast<boost::uint64_t *>(packet->data()+40);
-    d.toCurrency   = std::string(reinterpret_cast<const char *>(packet->data()+48));
-    d.toAmount     = *reinterpret_cast<boost::uint64_t *>(packet->data()+56);
-    d.hubAddress   = std::vector<unsigned char>(packet->data()+64, packet->data()+84);
-    d.tax          = *reinterpret_cast<boost::uint32_t *>(packet->data()+84);
-    d.state        = XBridgeTransactionDescr::trPending;
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (e.isEnabled())
+    {
+        return true;
+    }
 
-    uiConnector.NotifyXBridgePendingTransactionReceived(d);
+    XBridgeTransactionDescrPtr ptr(new XBridgeTransactionDescr);
+    ptr->id           = uint256(packet->data());
+    ptr->fromCurrency = std::string(reinterpret_cast<const char *>(packet->data()+32));
+    ptr->fromAmount   = *reinterpret_cast<boost::uint64_t *>(packet->data()+40);
+    ptr->toCurrency   = std::string(reinterpret_cast<const char *>(packet->data()+48));
+    ptr->toAmount     = *reinterpret_cast<boost::uint64_t *>(packet->data()+56);
+    ptr->hubAddress   = std::vector<unsigned char>(packet->data()+64, packet->data()+84);
+    ptr->tax          = *reinterpret_cast<boost::uint32_t *>(packet->data()+84);
+    ptr->state        = XBridgeTransactionDescr::trPending;
+
+    {
+        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
+        XBridgeApp::m_pendingTransactions[ptr->id] = ptr;
+    }
+
+    uiConnector.NotifyXBridgePendingTransactionReceived(*ptr);
 
     return true;
 }

@@ -57,7 +57,9 @@ public:
                                    const boost::uint64_t toAmount);
     bool sendPendingTransaction(XBridgeTransactionDescrPtr & ptr);
 
-    uint256 acceptXBridgeTransaction(const uint256 & id);
+    uint256 acceptXBridgeTransaction(const uint256 & id,
+                                     const std::vector<unsigned char> & from,
+                                     const std::vector<unsigned char> & to);
     bool sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr);
 
     bool cancelXBridgeTransaction(const uint256 & id);

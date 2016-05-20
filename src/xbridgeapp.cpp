@@ -1101,7 +1101,9 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 
 //******************************************************************************
 //******************************************************************************
-uint256 XBridgeApp::acceptXBridgeTransaction(const uint256 & id)
+uint256 XBridgeApp::acceptXBridgeTransaction(const uint256 & id,
+                                             const std::vector<unsigned char> & from,
+                                             const std::vector<unsigned char> & to)
 {
     XBridgeTransactionDescrPtr ptr;
 
@@ -1112,6 +1114,10 @@ uint256 XBridgeApp::acceptXBridgeTransaction(const uint256 & id)
             return uint256();
         }
         ptr = m_pendingTransactions[id];
+        ptr->from = from;
+        ptr->to   = to;
+        std::swap(ptr->fromCurrency, ptr->toCurrency);
+        std::swap(ptr->fromAmount,   ptr->toAmount);
     }
 
     // try send immediatelly
