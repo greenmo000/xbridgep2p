@@ -95,9 +95,6 @@ public:
     std::string                firstRawRevTx() const;
     uint256                    firstTxHash() const;
 
-    boost::uint64_t            firstTax() const;
-    std::vector<unsigned char> firstTaxAddress() const;
-
     uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
     std::vector<unsigned char> secondDestination() const;
@@ -107,7 +104,8 @@ public:
     std::string                secondRawRevTx() const;
     uint256                    secondTxHash() const;
 
-    boost::uint64_t            secondTax() const;
+    boost::uint32_t            tax() const;
+    std::vector<unsigned char> firstTaxAddress() const;
     std::vector<unsigned char> secondTaxAddress() const;
 
     bool tryJoin(const XBridgeTransactionPtr other);
@@ -154,9 +152,7 @@ private:
     XBridgeTransactionMember   m_first;
     XBridgeTransactionMember   m_second;
 
-    boost::uint64_t            m_firstTax;
-    boost::uint64_t            m_secondTax;
-
+    boost::uint32_t            m_tax;
     std::vector<unsigned char> m_firstTaxAddress;
     std::vector<unsigned char> m_secondTaxAddress;
 };

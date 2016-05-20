@@ -41,8 +41,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
     , m_sourceAmount(sourceAmount)
     , m_destAmount(destAmount)
     , m_first(id)
-    , m_firstTax(tax)
-    , m_secondTax(0)
+    , m_tax(tax)
     , m_firstTaxAddress(taxAddress)
 {
     m_first.setSource(sourceAddr);
@@ -360,20 +359,6 @@ uint256 XBridgeTransaction::firstTxHash() const
 
 //*****************************************************************************
 //*****************************************************************************
-boost::uint64_t XBridgeTransaction::firstTax() const
-{
-    return m_firstTax;
-}
-
-//*****************************************************************************
-//*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::firstTaxAddress() const
-{
-    return m_firstTaxAddress;
-}
-
-//*****************************************************************************
-//*****************************************************************************
 uint256 XBridgeTransaction::secondId() const
 {
     return m_second.id();
@@ -430,9 +415,16 @@ uint256 XBridgeTransaction::secondTxHash() const
 
 //*****************************************************************************
 //*****************************************************************************
-boost::uint64_t XBridgeTransaction::secondTax() const
+boost::uint32_t XBridgeTransaction::tax() const
 {
-    return m_secondTax;
+    return m_tax;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::vector<unsigned char> XBridgeTransaction::firstTaxAddress() const
+{
+    return m_firstTaxAddress;
 }
 
 //*****************************************************************************
@@ -478,7 +470,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 //    m_second.setDest(other->m_first.dest());
 
     // copy tax data
-    m_secondTax        = other->m_firstTax;
     m_secondTaxAddress = other->m_firstTaxAddress;
 
     // generate new id

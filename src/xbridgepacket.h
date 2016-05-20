@@ -70,20 +70,20 @@ enum XBridgeCommand
     //    uint64 destination amount
     xbcTransaction = 3,
     //
-    // xbcPendingTransaction
+    // xbcPendingTransaction (88 bytes)
     // exchange broadcast send this message, send list of opened transactions
     //    uint256 transaction id
     //    8 bytes source currency
     //    uint64 source amount
     //    8 bytes destination currency
     //    uint64 destination amount
+    //    uint160 hub address
     //    uint32_t fee in percent, *1000 (0.3% == 300)
     xbcPendingTransaction = 4,
     //
-    // xbcTransactionAccepting
+    // xbcTransactionAccepting (124 bytes)
     // client accepting opened tx
     //    uint160 hub address
-    //    uint160 client address
     //    uint256 client transaction id
     //    uint160 source address
     //    8 bytes source currency

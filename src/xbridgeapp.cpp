@@ -1101,50 +1101,57 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 
 //******************************************************************************
 //******************************************************************************
-uint256 XBridgeApp::acceptXBridgeTransaction(const std::vector<unsigned char> & from,
-                                             const std::string & fromCurrency,
-                                             const boost::uint64_t fromAmount,
-                                             const std::vector<unsigned char> & to,
-                                             const std::string & toCurrency,
-                                             const boost::uint64_t toAmount)
+uint256 XBridgeApp::acceptXBridgeTransaction(const uint256 & id)
 {
-    return false;
+    XBridgeTransactionDescrPtr ptr;
+
+    {
+        boost::mutex::scoped_lock l(m_txLocker);
+        if (!m_pendingTransactions.count(id))
+        {
+            return uint256();
+        }
+        ptr = m_pendingTransactions[id];
+    }
+
+    // try send immediatelly
+    sendAcceptingTransaction(ptr);
+
+    return id;
 }
 
 //******************************************************************************
 //******************************************************************************
 bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
 {
-    // if (!ptr->packet)
-    {
-        ptr->packet.reset(new XBridgePacket(xbcTransactionAccepting));
+    ptr->packet.reset(new XBridgePacket(xbcTransactionAccepting));
 
-        // field length must be 8 bytes
-        std::vector<unsigned char> fc(8, 0);
-        std::copy(ptr->fromCurrency.begin(), ptr->fromCurrency.end(), fc.begin());
+    // field length must be 8 bytes
+    std::vector<unsigned char> fc(8, 0);
+    std::copy(ptr->fromCurrency.begin(), ptr->fromCurrency.end(), fc.begin());
 
-        // field length must be 8 bytes
-        std::vector<unsigned char> tc(8, 0);
-        std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
+    // field length must be 8 bytes
+    std::vector<unsigned char> tc(8, 0);
+    std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
 
-        // 20 bytes - id of transaction
-        // 2x
-        // 20 bytes - address
-        //  8 bytes - currency
-        //  4 bytes - amount
-        ptr->packet->append(ptr->id.begin(), 32);
-        ptr->packet->append(ptr->from);
-        ptr->packet->append(fc);
-        ptr->packet->append(ptr->fromAmount);
-        ptr->packet->append(ptr->to);
-        ptr->packet->append(tc);
-        ptr->packet->append(ptr->toAmount);
-    }
+    std::vector<unsigned char> thisAddress(m_myid, m_myid+20);
 
-    onSend(std::vector<unsigned char>(m_myid, m_myid+20), ptr->packet);
+    // 20 bytes - id of transaction
+    // 2x
+    // 20 bytes - address
+    //  8 bytes - currency
+    //  4 bytes - amount
+    ptr->packet->append(ptr->hubAddress);
+    ptr->packet->append(thisAddress);
+    ptr->packet->append(ptr->id.begin(), 32);
+    ptr->packet->append(ptr->from);
+    ptr->packet->append(fc);
+    ptr->packet->append(ptr->fromAmount);
+    ptr->packet->append(ptr->to);
+    ptr->packet->append(tc);
+    ptr->packet->append(ptr->toAmount);
 
-    ptr->state = XBridgeTransactionDescr::trPending;
-    uiConnector.NotifyXBridgeTransactionStateChanged(ptr->id, XBridgeTransactionDescr::trPending);
+    onSend(thisAddress, ptr->hubAddress, ptr->packet);
 
     return true;
 }

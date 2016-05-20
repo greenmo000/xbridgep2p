@@ -18,7 +18,8 @@ XBridgeTransactionsModel::XBridgeTransactionsModel()
     m_columns << trUtf8("Created")
               << trUtf8("From") << trUtf8("Amount")
               << trUtf8("To") << trUtf8("Amount")
-              << trUtf8("State");
+              << trUtf8("State")
+              << trUtf8("Tax");
 
     uiConnector.NotifyXBridgePendingTransactionReceived.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionReceived, this, _1));
@@ -129,6 +130,11 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
             {
                 return QVariant(transactionState(d.state));
             }
+            case Tax:
+            {
+                return QString("%1%%").arg(QString::number((double)d.tax / 1000, 10, 2));
+            }
+
             default:
                 return QVariant();
         }
@@ -237,8 +243,7 @@ bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
 
             // send tx
-            d.id = XBridgeApp::instance().sendXBridgeTransaction(d.from, d.fromCurrency, d.fromAmount,
-                                                                 d.to,   d.toCurrency,   d.toAmount);
+            d.id = XBridgeApp::instance().acceptXBridgeTransaction(d.id);
 
             d.txtime = boost::posix_time::second_clock::universal_time();
 
