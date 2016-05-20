@@ -512,7 +512,7 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
         }
         else
         {
-            assert(false || "cannot find transaction");
+            assert(false && "cannot find transaction");
 
             // unknown transaction
             LOG() << "unknown transaction, id <" << hash.GetHex() << ">";
@@ -528,6 +528,30 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
 //            return m_pendingTransactions[hash];
 //        }
 //    }
+
+    // return XBridgeTransaction::trInvalid;
+    return XBridgeTransactionPtr(new XBridgeTransaction);
+}
+
+//*****************************************************************************
+//*****************************************************************************
+const XBridgeTransactionPtr XBridgeExchange::pendingTransaction(const uint256 & hash)
+{
+    {
+        boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+
+        if (m_pendingTransactions.count(hash))
+        {
+            return m_pendingTransactions[hash];
+        }
+        else
+        {
+            assert(false && "cannot find pending transaction");
+
+            // unknown transaction
+            LOG() << "unknown pending transaction, id <" << hash.GetHex() << ">";
+        }
+    }
 
     // return XBridgeTransaction::trInvalid;
     return XBridgeTransactionPtr(new XBridgeTransaction);

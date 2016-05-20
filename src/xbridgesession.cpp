@@ -548,10 +548,16 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     {
         if (e.createTransaction(id, saddr, scurrency, samount, daddr, dcurrency, damount))
         {
+            XBridgeTransactionPtr tr = e.pendingTransaction(id);
+            if (tr->id() == uint256())
+            {
+                LOG() << "transaction not found after create. "
+                      << util::base64_encode(std::string((char *)id.begin(), 32));
+                return false;
+            }
+
             LOG() << "transaction created, id "
                   << util::base64_encode(std::string((char *)id.begin(), 32));
-
-            XBridgeTransactionPtr tr = e.transaction(id);
 
             boost::mutex::scoped_lock l(tr->m_lock);
 
