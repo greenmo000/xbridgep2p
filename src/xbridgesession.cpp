@@ -569,7 +569,7 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
             reply->append(tr->firstAmount());
             reply->append(sc);
             reply->append(tr->secondAmount());
-            reply->append(sessionAddr());
+            reply->append(sessionAddr(), 20);
             reply->append(tr->tax());
 
             sendPacketBroadcast(reply);
