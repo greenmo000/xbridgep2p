@@ -1148,7 +1148,6 @@ bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
     //  8 bytes - currency
     //  4 bytes - amount
     ptr->packet->append(ptr->hubAddress);
-    ptr->packet->append(thisAddress);
     ptr->packet->append(ptr->id.begin(), 32);
     ptr->packet->append(ptr->from);
     ptr->packet->append(fc);
