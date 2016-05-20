@@ -58,7 +58,8 @@ public:
                            const boost::uint64_t & sourceAmount,
                            const std::vector<unsigned char> & destAddr,
                            const std::string & destCurrency,
-                           const boost::uint64_t & destAmount);
+                           const boost::uint64_t & destAmount,
+                           uint256 & pendingId);
     bool acceptTransaction(const uint256 & id,
                            const std::vector<unsigned char> & sourceAddr,
                            const std::string & sourceCurrency,

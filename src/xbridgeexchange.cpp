@@ -138,7 +138,8 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                                         const boost::uint64_t & sourceAmount,
                                         const std::vector<unsigned char> & destAddr,
                                         const std::string & destCurrency,
-                                        const boost::uint64_t & destAmount)
+                                        const boost::uint64_t & destAmount,
+                                        uint256 & pendingId)
 {
     DEBUG_TRACE();
 
@@ -174,7 +175,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
         if (!m_pendingTransactions.count(h))
         {
             // new transaction or update existing (update timestamp)
-            h = tr->hash1();
+            pendingId = h = tr->hash1();
             m_pendingTransactions[h] = tr;
         }
         else
@@ -188,7 +189,7 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                 m_pendingTransactions.erase(h);
 
                 // create new
-                h = tr->hash1();
+                pendingId = h = tr->hash1();
                 m_pendingTransactions[h] = tr;
             }
         }

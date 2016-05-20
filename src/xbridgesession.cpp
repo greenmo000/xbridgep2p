@@ -546,9 +546,13 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
           << "             " << dcurrency << " : " << damount << std::endl;
 
     {
-        if (e.createTransaction(id, saddr, scurrency, samount, daddr, dcurrency, damount))
+        uint256 pendingId;
+        if (e.createTransaction(id,
+                                saddr, scurrency, samount,
+                                daddr, dcurrency, damount,
+                                pendingId))
         {
-            XBridgeTransactionPtr tr = e.pendingTransaction(id);
+            XBridgeTransactionPtr tr = e.pendingTransaction(pendingId);
             if (tr->id() == uint256())
             {
                 LOG() << "transaction not found after create. "
