@@ -981,7 +981,8 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply1->append((boost::uint32_t)(XBridgeTransaction::TTL * 2));
             reply1->append((boost::uint32_t)24*60*60);
             reply1->append(tr->firstTaxAddress());
-            reply1->append(tr->tax());
+            // reply1->append(tr->tax());
+            reply1->append(static_cast<boost::uint32_t>(0));
 
             sendPacket(tr->firstAddress(), reply1);
 
@@ -1167,7 +1168,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
-        fee = m_COIN * minTxFee(usedInTx.size(), 3) / XBridgeTransactionDescr::COIN;
+        fee = m_COIN * minTxFee(usedInTx.size(), taxAmount > 0 ? 3 : 2) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
@@ -1204,7 +1205,10 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // outputs
     tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
-    tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
+    if (taxAmount)
+    {
+        tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
+    }
 
     LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount) / m_COIN;
 
