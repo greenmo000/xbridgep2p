@@ -59,7 +59,7 @@ enum XBridgeCommand
 
     // exchange transaction
     //
-    // xbcTransaction
+    // xbcTransaction  (104 bytes)
     // clients not process this messages, only exchange
     //    uint256 client transaction id
     //    uint160 source address
