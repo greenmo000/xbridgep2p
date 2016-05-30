@@ -236,7 +236,7 @@ public:
     void SetNull()
     {
         nVersion = CBTCTransaction::CURRENT_VERSION;
-        nTime = time(0);// GetAdjustedTime();
+        nTime = static_cast<unsigned int>(time(0));// GetAdjustedTime();
         vin.clear();
         vout.clear();
         nLockTime = 0;
