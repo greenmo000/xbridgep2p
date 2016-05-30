@@ -114,6 +114,15 @@ struct XBridgeTransactionDescr
         copyFrom(d);
     }
 
+    void updateTimestamp(const XBridgeTransactionDescr & d)
+    {
+        txtime       = boost::posix_time::second_clock::universal_time();
+        if (created > d.created)
+        {
+            created = d.created;
+        }
+    }
+
 private:
     void copyFrom(const XBridgeTransactionDescr & d)
     {
@@ -130,11 +139,8 @@ private:
         state        = d.state;
         payTx        = d.payTx;
         revTx        = d.revTx;
-        txtime       = boost::posix_time::second_clock::universal_time();
-        if (created > d.created)
-        {
-            created = d.created;
-        }
+
+        updateTimestamp(d);
 
         payTxId     = d.payTxId;
         hubAddress  = d.hubAddress;
