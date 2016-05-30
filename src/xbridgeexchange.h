@@ -26,9 +26,11 @@ struct WalletParam
     std::string                title;
     std::vector<unsigned char> address;
     std::string                ip;
-    unsigned int               port;
+    std::string                port;
     std::string                user;
     std::string                passwd;
+    std::vector<unsigned char> feeaddr;
+    unsigned int               fee;
 };
 
 //*****************************************************************************
@@ -57,7 +59,16 @@ public:
                            const std::vector<unsigned char> & destAddr,
                            const std::string & destCurrency,
                            const boost::uint64_t & destAmount,
+                           uint256 & pendingId);
+    bool acceptTransaction(const uint256 & id,
+                           const std::vector<unsigned char> & sourceAddr,
+                           const std::string & sourceCurrency,
+                           const boost::uint64_t & sourceAmount,
+                           const std::vector<unsigned char> & destAddr,
+                           const std::string & destCurrency,
+                           const boost::uint64_t & destAmount,
                            uint256 & transactionId);
+
     bool deletePendingTransactions(const uint256 & id);
     bool deleteTransaction(const uint256 & id);
 
@@ -81,6 +92,7 @@ public:
     bool updateTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
+    const XBridgeTransactionPtr pendingTransaction(const uint256 & hash);
     std::list<XBridgeTransactionPtr> pendingTransactions() const;
     std::list<XBridgeTransactionPtr> transactions() const;
     std::list<XBridgeTransactionPtr> finishedTransactions() const;

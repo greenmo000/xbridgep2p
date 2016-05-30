@@ -53,12 +53,12 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    // init xbridge network
-    a.initDht();
-
     // init exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     e.init();
+
+    // init xbridge network
+    a.initDht();
 
     int retcode = a.exec();
 

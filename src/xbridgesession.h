@@ -34,6 +34,7 @@ public:
                    const boost::uint64_t & minAmount);
     virtual ~XBridgeSession();
 
+    const unsigned char * sessionAddr() const { return m_myid; }
     std::string currency() const  { return m_currency; }
     double      minAmount() const { return (double)m_minAmount / m_COIN; }
 
@@ -81,6 +82,8 @@ private:
                     const boost::system::error_code & error,
                     std::size_t transferred);
 
+    // const unsigned char * myaddr() const;
+
     bool encryptPacket(XBridgePacketPtr packet);
     bool decryptPacket(XBridgePacketPtr packet);
 
@@ -88,7 +91,7 @@ protected:
     const unsigned char * myaddr() const;
 
     void sendPacket(const std::vector<unsigned char> & to, XBridgePacketPtr packet);
-    bool sendPacketBroadcast(XBridgePacketPtr packet);
+    void sendPacketBroadcast(XBridgePacketPtr packet);
 
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
@@ -132,12 +135,16 @@ protected:
     virtual bool processTransactionDropped(XBridgePacketPtr packet);
 
 private:
+    unsigned char     m_myid[20];
+
     XBridge::SocketPtr m_socket;
 
     typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
     PacketProcessorsMap m_processors;
 
 protected:
+    std::set<std::vector<unsigned char> > m_addressBook;
+
     std::string       m_currency;
     std::string       m_walletAddress;
     std::string       m_address;

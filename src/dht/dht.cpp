@@ -2099,6 +2099,42 @@ bucket_maintenance(int af)
 
 //*****************************************************************************
 //*****************************************************************************
+#ifdef HAVE_MEMMEM
+
+static void *
+dht_memmem(const void *haystack, size_t haystacklen,
+           const void *needle, size_t needlelen)
+{
+    return memmem(haystack, haystacklen, needle, needlelen);
+}
+
+#else
+
+//*****************************************************************************
+//*****************************************************************************
+static const unsigned char *
+dht_memmem(const char * haystack, size_t haystacklen,
+           const char * needle, size_t needlelen)
+{
+    const char *h = haystack;
+    const char *n = needle;
+    size_t i;
+
+    /* size_t is unsigned */
+    if(needlelen > haystacklen)
+        return NULL;
+
+    for(i = 0; i <= haystacklen - needlelen; i++) {
+        if(memcmp(h + i, n, needlelen) == 0)
+            return (const unsigned char *)(h + i);
+    }
+    return NULL;
+}
+
+#endif
+
+//*****************************************************************************
+//*****************************************************************************
 int
 dht_periodic(const unsigned char * buf, size_t buflen,
              const struct sockaddr *from, int fromlen,
@@ -2373,7 +2409,8 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 // debugf("Message received!\n");
                 new_node(id, from, fromlen, 1);
 
-                char * ptr = strstr((char *)buf, ":message");
+                // char * ptr = strstr((char *)buf, ":message");
+                char * ptr = (char *)dht_memmem((const char *)buf, buflen, "q7:message", 10);
                 if (!ptr)
                 {
                     // wtf?
@@ -2381,7 +2418,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 }
                 else
                 {
-                    ptr += 8;
+                    ptr += 10;
 
                     size_t len = atoi(ptr);
                     while (isdigit(*ptr))
@@ -2412,7 +2449,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                         else
                         {
                             // relay message
-                            app.onSend(addr, vmessage);
+                            app.onSend(std::vector<unsigned char>(), addr, vmessage);
                         }
                     }
                 }
@@ -2426,7 +2463,8 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 // debugf("Broadcast Message received!\n");
                 new_node(id, from, fromlen, 1);
 
-                char * ptr = strstr((char *)buf, ":broadcast");
+                // char * ptr = strstr((char *)buf, ":broadcast");
+                char * ptr = (char *)dht_memmem((const char *)buf, buflen, "q9:broadcast", 12);
                 if (!ptr)
                 {
                     // wtf?
@@ -2434,7 +2472,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                 }
                 else
                 {
-                    ptr += 10;
+                    ptr += 12;
 
                     size_t len = atoi(ptr);
                     while (isdigit(*ptr))
@@ -2457,7 +2495,7 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                         app.onBroadcastReceived(vmessage);
 
                         // relay message
-                        app.onSend(vmessage);
+                        app.onSend(std::vector<unsigned char>(), vmessage);
                     }
                 }
 
@@ -3282,43 +3320,7 @@ send_error(const struct sockaddr *sa, int salen,
     return DHT_NETWORK_BUFFER_OWERFLOW;
 }
 
-//*****************************************************************************
-//*****************************************************************************
 #undef ADD_V
-
-#ifdef HAVE_MEMMEM
-
-static void *
-dht_memmem(const void *haystack, size_t haystacklen,
-           const void *needle, size_t needlelen)
-{
-    return memmem(haystack, haystacklen, needle, needlelen);
-}
-
-#else
-
-//*****************************************************************************
-//*****************************************************************************
-static const unsigned char *
-dht_memmem(const char * haystack, size_t haystacklen,
-           const char * needle, size_t needlelen)
-{
-    const char *h = haystack;
-    const char *n = needle;
-    size_t i;
-
-    /* size_t is unsigned */
-    if(needlelen > haystacklen)
-        return NULL;
-
-    for(i = 0; i <= haystacklen - needlelen; i++) {
-        if(memcmp(h + i, n, needlelen) == 0)
-            return (const unsigned char *)(h + i);
-    }
-    return NULL;
-}
-
-#endif
 
 //*****************************************************************************
 //*****************************************************************************

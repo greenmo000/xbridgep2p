@@ -6,6 +6,7 @@
 #include "util/logger.h"
 #include "util/settings.h"
 #include "util/util.h"
+#include "bitcoinrpc.h"
 
 #include <algorithm>
 
@@ -48,37 +49,47 @@ bool XBridgeExchange::init()
         std::string label   = s.get<std::string>(*i + ".Title");
         std::string address = s.get<std::string>(*i + ".Address");
         std::string ip      = s.get<std::string>(*i + ".Ip");
-        unsigned int port   = s.get<unsigned int>(*i + ".Port");
+        std::string port    = s.get<std::string>(*i + ".Port");
         std::string user    = s.get<std::string>(*i + ".Username");
         std::string passwd  = s.get<std::string>(*i + ".Password");
 
-        if (/*address.empty() || */ip.empty() || port == 0 ||
+        if (/*address.empty() || */ip.empty() || port.empty() ||
                 user.empty() || passwd.empty())
         {
             LOG() << "read wallet " << *i << " with empty parameters>";
             continue;
         }
 
-//        std::string decoded = util::base64_decode(address);
-//        if (address.empty())
-//        {
-//            LOG() << "incorrect wallet address for " << *i;
-//            continue;
-//        }
+        // get new addres for receive fee
+        std::string feeAddress;
+        if (!rpc::getNewAddress(user, passwd, ip, port, feeAddress))
+        {
+            LOG() << "wallet not connected " << *i;
+            continue;
+        }
 
-//        std::copy(decoded.begin(), decoded.end(), std::back_inserter(m_wallets[*i].address));
-//        if (m_wallets[*i].address.size() != 20)
-//        {
-//            LOG() << "incorrect wallet address size for " << *i;
-//            m_wallets.erase(*i);
-//            continue;
-//        }
+        m_wallets[*i].feeaddr.clear();
+        if (!rpc::DecodeBase58Check(feeAddress.c_str(), m_wallets[*i].feeaddr))
+        {
+            LOG() << "DecodeBase58Check failed for " << feeAddress;
+        }
+
+        m_wallets[*i].feeaddr.erase(m_wallets[*i].feeaddr.begin());
+
+        if (m_wallets[*i].feeaddr.size() != 20)
+        {
+            LOG() << "incorrect wallet address size for tax for " << *i;
+            m_wallets.erase(*i);
+            continue;
+        }
 
         m_wallets[*i].title   = label;
         m_wallets[*i].ip      = ip;
         m_wallets[*i].port    = port;
         m_wallets[*i].user    = user;
         m_wallets[*i].passwd  = passwd;
+
+        m_wallets[*i].fee     = s.exchangeTax();
 
         LOG() << "read wallet " << *i << " \"" << label << "\" address <" << address << ">";
     }
@@ -128,25 +139,94 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
                                         const std::vector<unsigned char> & destAddr,
                                         const std::string & destCurrency,
                                         const boost::uint64_t & destAmount,
-                                        uint256 & transactionId)
+                                        uint256 & pendingId)
 {
     DEBUG_TRACE();
 
-//    {
-//        boost::mutex::scoped_lock l(m_knownTxLock);
-//        if (m_knownTransactions.count(transactionId))
-//        {
-//            return false;
-//        }
-//        m_knownTransactions.insert(transactionId);
-//    }
-    // transactionId = id;
+    if (!haveConnectedWallet(sourceCurrency) || !haveConnectedWallet(destCurrency))
+    {
+        LOG() << "no active wallet for transaction "
+              << util::base64_encode(std::string((char *)id.begin(), 32));
+        return false;
+    }
+
+    const WalletParam & wp = m_wallets[sourceCurrency];
 
     XBridgeTransactionPtr tr(new XBridgeTransaction(id,
                                                     sourceAddr, sourceCurrency,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
-                                                    destAmount));
+                                                    destAmount,
+                                                    wp.fee, wp.feeaddr));
+
+    LOG() << tr->hash1().ToString();
+    LOG() << tr->hash2().ToString();
+
+    if (!tr->isValid())
+    {
+        return false;
+    }
+
+    uint256 h = tr->hash2();
+    pendingId = h;
+
+    {
+        boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+
+        if (!m_pendingTransactions.count(h))
+        {
+            // new transaction or update existing (update timestamp)
+            pendingId = h = tr->hash1();
+            m_pendingTransactions[h] = tr;
+        }
+        else
+        {
+            boost::mutex::scoped_lock l2(m_pendingTransactions[h]->m_lock);
+
+            // found, check if expired
+            if (m_pendingTransactions[h]->isExpired())
+            {
+                // if expired - delete old transaction
+                m_pendingTransactions.erase(h);
+
+                // create new
+                pendingId = h = tr->hash1();
+                m_pendingTransactions[h] = tr;
+            }
+        }
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeExchange::acceptTransaction(const uint256 & id,
+                                        const std::vector<unsigned char> & sourceAddr,
+                                        const std::string & sourceCurrency,
+                                        const boost::uint64_t & sourceAmount,
+                                        const std::vector<unsigned char> & destAddr,
+                                        const std::string & destCurrency,
+                                        const boost::uint64_t & destAmount,
+                                        uint256 & transactionId)
+{
+    DEBUG_TRACE();
+
+    if (!haveConnectedWallet(sourceCurrency) || !haveConnectedWallet(destCurrency))
+    {
+        LOG() << "no active wallet for transaction "
+              << util::base64_encode(std::string((char *)id.begin(), 32));
+        return false;
+    }
+
+    const WalletParam & wp = m_wallets[sourceCurrency];
+
+    XBridgeTransactionPtr tr(new XBridgeTransaction(id,
+                                                    sourceAddr, sourceCurrency,
+                                                    sourceAmount,
+                                                    destAddr, destCurrency,
+                                                    destAmount,
+                                                    wp.fee, wp.feeaddr));
 
     LOG() << tr->hash1().ToString();
     LOG() << tr->hash2().ToString();
@@ -165,9 +245,8 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
 
         if (!m_pendingTransactions.count(h))
         {
-            // new transaction or update existing (update timestamp)
-            h = tr->hash1();
-            m_pendingTransactions[h] = tr;
+            // no pending
+            return false;
         }
         else
         {
@@ -435,7 +514,7 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
         }
         else
         {
-            assert(false || "cannot find transaction");
+            assert(false && "cannot find transaction");
 
             // unknown transaction
             LOG() << "unknown transaction, id <" << hash.GetHex() << ">";
@@ -451,6 +530,30 @@ const XBridgeTransactionPtr XBridgeExchange::transaction(const uint256 & hash)
 //            return m_pendingTransactions[hash];
 //        }
 //    }
+
+    // return XBridgeTransaction::trInvalid;
+    return XBridgeTransactionPtr(new XBridgeTransaction);
+}
+
+//*****************************************************************************
+//*****************************************************************************
+const XBridgeTransactionPtr XBridgeExchange::pendingTransaction(const uint256 & hash)
+{
+    {
+        boost::mutex::scoped_lock l(m_pendingTransactionsLock);
+
+        if (m_pendingTransactions.count(hash))
+        {
+            return m_pendingTransactions[hash];
+        }
+        else
+        {
+            assert(false && "cannot find pending transaction");
+
+            // unknown transaction
+            LOG() << "unknown pending transaction, id <" << hash.GetHex() << ">";
+        }
+    }
 
     // return XBridgeTransaction::trInvalid;
     return XBridgeTransactionPtr(new XBridgeTransaction);

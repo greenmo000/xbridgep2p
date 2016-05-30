@@ -13,7 +13,7 @@
 
 //******************************************************************************
 //******************************************************************************
-#define XBRIDGE_PROTOCOL_VERSION 0xff000003
+#define XBRIDGE_PROTOCOL_VERSION 0xff000005
 
 //******************************************************************************
 //******************************************************************************
@@ -60,6 +60,7 @@ enum XBridgeCommand
     // exchange transaction
     //
     // xbcTransaction
+    // clients not process this messages, only exchange
     //    uint256 client transaction id
     //    uint160 source address
     //    8 bytes source currency
@@ -69,18 +70,41 @@ enum XBridgeCommand
     //    uint64 destination amount
     xbcTransaction = 3,
     //
+    // xbcPendingTransaction (88 bytes)
+    // exchange broadcast send this message, send list of opened transactions
+    //    uint256 transaction id
+    //    8 bytes source currency
+    //    uint64 source amount
+    //    8 bytes destination currency
+    //    uint64 destination amount
+    //    uint160 hub address
+    //    uint32_t fee in percent, *1000 (0.3% == 300)
+    xbcPendingTransaction = 4,
+    //
+    // xbcTransactionAccepting (124 bytes)
+    // client accepting opened tx
+    //    uint160 hub address
+    //    uint256 client transaction id
+    //    uint160 source address
+    //    8 bytes source currency
+    //    uint64 source amount
+    //    uint160 destination address
+    //    8 bytes destination currency
+    //    uint64 destination amount
+    xbcTransactionAccepting = 5,
+    //
     // xbcTransactionHold
     //    uint160 client address
     //    uint160 hub address
     //    uint256 client transaction id
     //    uint256 hub transaction id
-    xbcTransactionHold = 4,
+    xbcTransactionHold = 6,
     //
     // xbcTransactionHoldApply
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionHoldApply = 5,
+    xbcTransactionHoldApply = 7,
     //
     // xbcTransactionInit
     //    uint160 client address
@@ -92,13 +116,13 @@ enum XBridgeCommand
     //    uint160 destination address
     //    8 bytes destination currency
     //    uint64 destination amount
-    xbcTransactionInit = 6,
+    xbcTransactionInit = 8,
     //
     // xbcTransactionInitialized
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionInitialized = 7,
+    xbcTransactionInitialized = 9,
     //
     // xbcTransactionCreate
     //    uint160  client address
@@ -107,77 +131,79 @@ enum XBridgeCommand
     //    uint160  destination address
     //    uint32_t tx1 lock time (in seconds)
     //    uint32_t tx2 lock time (in seconds)
-    xbcTransactionCreate = 8,
+    //    uint160  hub wallet address (for fee)
+    //    uint32_t fee in percent, *1000 (0.3% == 300)
+    xbcTransactionCreate = 10,
     //
     // xbcTransactionCreated
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    string  raw transaction
-    xbcTransactionCreated = 9,
+    xbcTransactionCreated = 11,
     //
     // xbcTransactionSign
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
     //    string  raw transaction
-    xbcTransactionSign = 10,
+    xbcTransactionSign = 12,
     //
     // xbcTransactionSigned
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    string  raw transaction (signed)
-    xbcTransactionSigned = 11,
+    xbcTransactionSigned = 13,
     //
     // xbcTransactionCommit
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    string  raw transaction (signed)
-    xbcTransactionCommit = 12,
+    xbcTransactionCommit = 14,
     //
     // xbcTransactionCommited
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionCommited = 13,
+    xbcTransactionCommited = 15,
     //
     // xbcTransactionConfirm
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionConfirm = 14,
+    xbcTransactionConfirm = 16,
     //
     // xbcTransactionConfirmed
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionConfirmed = 15,
+    xbcTransactionConfirmed = 17,
     //
     // xbcTransactionCancel
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionCancel = 16,
+    xbcTransactionCancel = 18,
     //
     // xbcTransactionRollback
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionRollback = 17,
+    xbcTransactionRollback = 19,
     //
     // xbcTransactionFinished
     //    uint160 client address
     //    uint256 hub transaction id
     //
-    xbcTransactionFinished = 18,
+    xbcTransactionFinished = 20,
     //
     // xbcTransactionDropped
     //    uint160 address
     //    uint256 hub transaction id
     //
-    xbcTransactionDropped = 19,
+    xbcTransactionDropped = 21,
 
     // smart hub periodically send this message for invitations to trading
     // this message contains address of smart hub and
@@ -186,28 +212,18 @@ enum XBridgeCommand
     //
     // xbcExchangeWallets
     //     {wallet id (string)}|{wallet title (string)}|{wallet id (string)}|{wallet title (string)}
-    xbcExchangeWallets = 20,
+    xbcExchangeWallets = 22,
 
     // wallet send transaction hash when transaction received
     //
     // xbcReceivedTransaction
     //     uint256 transaction id (bitcoin transaction hash)
-    xbcReceivedTransaction = 21,
-
-    // smart hub broadcast send this message, send list of opened transactions
-    //
-    // xbcPendingTransaction
-    //    uint256 transaction id
-    //    8 bytes source currency
-    //    uint64 source amount
-    //    8 bytes destination currency
-    //    uint64 destination amount
-    xbcPendingTransaction = 22,
+    xbcReceivedTransaction = 23,
 
     // address book entry
     //
     // xbcAddressBook
-    xbcAddressBookEntry = 23
+    xbcAddressBookEntry = 24
 };
 
 //******************************************************************************

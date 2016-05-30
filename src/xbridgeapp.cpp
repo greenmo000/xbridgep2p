@@ -25,6 +25,11 @@
 #include <openssl/rand.h>
 #include <openssl/md5.h>
 
+#define dht_fromAddress 0
+#define dht_toAddress 1
+#define dht_packet 2
+#define dht_resendFlag 3
+
 //*****************************************************************************
 //*****************************************************************************
 UIConnector uiConnector;
@@ -253,37 +258,44 @@ void XBridgeApp::onSearch(const std::string & id)
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeApp::onSend(const std::vector<unsigned char> & message)
+void XBridgeApp::onSend(const UcharVector & from, const UcharVector & message)
 {
-    m_messages.push_back(std::make_tuple(std::vector<unsigned char>(), message, false));
+//    if (from.size() != 20)
+//    {
+//        return;
+//    }
+
+    // dht_fromAddress, dht_toAddress, dht_packet, dht_resendFlag
+    m_messages.push_back(std::make_tuple(from, UcharVector(), message, false));
     m_signalSend = true;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeApp::onSend(const XBridgePacketPtr packet)
+void XBridgeApp::onSend(const UcharVector & from, const XBridgePacketPtr packet)
 {
     UcharVector v;
     std::copy(packet->header(), packet->header()+packet->allSize(), std::back_inserter(v));
-    onSend(v);
+    onSend(from, v);
 }
 
 //*****************************************************************************
 // send packet to xbridge network to specified id,
 // or broadcast, when id is empty
 //*****************************************************************************
-void XBridgeApp::onSend(const UcharVector & id, const UcharVector & message)
+void XBridgeApp::onSend(const UcharVector & from, const UcharVector & id, const UcharVector & message)
 {
-    m_messages.push_back(std::make_tuple(id, message, false));
+    // dht_toAddress, dht_packet, dht_resendFlag
+    m_messages.push_back(std::make_tuple(from, id, message, false));
     m_signalSend = true;
 }
 
 //*****************************************************************************
-void XBridgeApp::onSend(const std::vector<unsigned char> & id, const XBridgePacketPtr packet)
+void XBridgeApp::onSend(const UcharVector & from, const UcharVector & id, const XBridgePacketPtr packet)
 {
     UcharVector v;
     std::copy(packet->header(), packet->header()+packet->allSize(), std::back_inserter(v));
-    onSend(id, v);
+    onSend(from, id, v);
 }
 
 //*****************************************************************************
@@ -338,8 +350,15 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     XBridgePacketPtr packet(new XBridgePacket);
     packet->copyFrom(message);
 
-    XBridgeSessionPtr ptr(new XBridgeSession);
-    ptr->processPacket(packet);
+    // XBridgeSessionPtr ptr(new XBridgeSession);
+    m_sessionQueue.front()->processPacket(packet);
+
+    // TODO ????
+    // or process all packets in first session?
+    // or create service session?
+    boost::mutex::scoped_lock l(m_sessionsLock);
+    m_sessionQueue.push(m_sessionQueue.front());
+    m_sessionQueue.pop();
 }
 
 //*****************************************************************************
@@ -636,8 +655,9 @@ void XBridgeApp::dhtThreadProc()
                     MessagePair mpair = messages.front();
                     messages.pop_front();
 
-                    std::vector<unsigned char> & id      = std::get<0>(mpair);
-                    std::vector<unsigned char> & message = std::get<1>(mpair);
+                    std::vector<unsigned char> & from    = std::get<dht_fromAddress>(mpair);
+                    std::vector<unsigned char> & id      = std::get<dht_toAddress>(mpair);
+                    std::vector<unsigned char> & message = std::get<dht_packet>(mpair);
 
                     if (isKnownMessage(message))
                     {
@@ -647,21 +667,26 @@ void XBridgeApp::dhtThreadProc()
                     // check broadcast
                     if (id.empty())
                     {
+                        // add to known
+                        boost::mutex::scoped_lock l(m_messagesLock);
+                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+
                         // send to all local clients
                         {
                             boost::mutex::scoped_lock l(m_sessionsLock);
                             for (SessionIdMap::iterator i = m_sessionIds.begin(); i != m_sessionIds.end(); ++i)
                             {
-                                std::get<1>(*i)->sendXBridgeMessage(message);
+                                // not for sender
+                                XBridgeSessionPtr s = std::get<1>(*i);
+                                if ((from.size() != 20) || (memcmp(s->sessionAddr(), &from[0], 20) != 0))
+                                {
+                                    s->sendXBridgeMessage(message);
+                                }
                             }
                         }
 
                         // send to xbridge network
                         dht_send_broadcast(&message[0], message.size());
-
-                        // add to known
-                        boost::mutex::scoped_lock l(m_messagesLock);
-                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
                     }
 
                     else
@@ -698,7 +723,7 @@ void XBridgeApp::dhtThreadProc()
                                 std::string _id;
                                 std::copy(id.begin(), id.end(), std::back_inserter(_id));
 
-                                if (std::get<2>(mpair))
+                                if (std::get<dht_resendFlag>(mpair))
                                 {
                                     // error resend after search, drop this message
                                     LOG() << "drop message to <"
@@ -708,7 +733,7 @@ void XBridgeApp::dhtThreadProc()
                                 else
                                 {
                                     // return message back and try search
-                                    std::get<2>(mpair) = true;
+                                    std::get<dht_resendFlag>(mpair) = true;
                                     m_messages.push_back(mpair);
                                     m_searchStrings.push_back(util::base64_encode(_id));
                                     m_signalSearch = true;
@@ -847,8 +872,10 @@ XBridgeSessionPtr XBridgeApp::sessionByCurrency(const std::string & currency) co
 //*****************************************************************************
 void XBridgeApp::addSession(XBridgeSessionPtr session)
 {
+    storageStore(session, session->sessionAddr());
+
     boost::mutex::scoped_lock l(m_sessionsLock);
-    m_sessionIds[session->currency()] = session;
+    m_sessionQueue.push(session);
 }
 
 //*****************************************************************************
@@ -1064,10 +1091,72 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
         ptr->packet->append(ptr->toAmount);
     }
 
-    onSend(ptr->packet);
+    onSend(std::vector<unsigned char>(m_myid, m_myid+20), ptr->packet);
 
     ptr->state = XBridgeTransactionDescr::trPending;
     uiConnector.NotifyXBridgeTransactionStateChanged(ptr->id, XBridgeTransactionDescr::trPending);
+
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+uint256 XBridgeApp::acceptXBridgeTransaction(const uint256 & id,
+                                             const std::vector<unsigned char> & from,
+                                             const std::vector<unsigned char> & to)
+{
+    XBridgeTransactionDescrPtr ptr;
+
+    {
+        boost::mutex::scoped_lock l(m_txLocker);
+        if (!m_pendingTransactions.count(id))
+        {
+            return uint256();
+        }
+        ptr = m_pendingTransactions[id];
+        ptr->from = from;
+        ptr->to   = to;
+        std::swap(ptr->fromCurrency, ptr->toCurrency);
+        std::swap(ptr->fromAmount,   ptr->toAmount);
+    }
+
+    // try send immediatelly
+    sendAcceptingTransaction(ptr);
+
+    return id;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
+{
+    ptr->packet.reset(new XBridgePacket(xbcTransactionAccepting));
+
+    // field length must be 8 bytes
+    std::vector<unsigned char> fc(8, 0);
+    std::copy(ptr->fromCurrency.begin(), ptr->fromCurrency.end(), fc.begin());
+
+    // field length must be 8 bytes
+    std::vector<unsigned char> tc(8, 0);
+    std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
+
+    std::vector<unsigned char> thisAddress(m_myid, m_myid+20);
+
+    // 20 bytes - id of transaction
+    // 2x
+    // 20 bytes - address
+    //  8 bytes - currency
+    //  4 bytes - amount
+    ptr->packet->append(ptr->hubAddress);
+    ptr->packet->append(ptr->id.begin(), 32);
+    ptr->packet->append(ptr->from);
+    ptr->packet->append(fc);
+    ptr->packet->append(ptr->fromAmount);
+    ptr->packet->append(ptr->to);
+    ptr->packet->append(tc);
+    ptr->packet->append(ptr->toAmount);
+
+    onSend(thisAddress, ptr->hubAddress, ptr->packet);
 
     return true;
 }
@@ -1095,7 +1184,7 @@ bool XBridgeApp::sendCancelTransaction(const uint256 & txid)
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
     reply->append(txid.begin(), 32);
 
-    onSend(reply);
+    onSend(std::vector<unsigned char>(), reply);
 
     // cancelled
     return true;
