@@ -93,14 +93,13 @@ enum XBridgeCommand
     //    uint64 destination amount
     xbcTransactionAccepting = 5,
     //
-    // xbcTransactionHold
+    // xbcTransactionHold (72 bytes)
     //    uint160 client address
     //    uint160 hub address
-    //    uint256 client transaction id
-    //    uint256 hub transaction id
+    //    uint256 transaction id
     xbcTransactionHold = 6,
     //
-    // xbcTransactionHoldApply
+    // xbcTransactionHoldApply (72 bytes)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id

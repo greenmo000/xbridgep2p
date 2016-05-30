@@ -228,6 +228,8 @@ bool XBridgeExchange::acceptTransaction(const uint256 & id,
                                                     destAmount,
                                                     wp.fee, wp.feeaddr));
 
+    transactionId = id;
+
     LOG() << tr->hash1().ToString();
     LOG() << tr->hash2().ToString();
 
@@ -286,9 +288,6 @@ bool XBridgeExchange::acceptTransaction(const uint256 & id,
 
     if (tmp)
     {
-        // new transaction id
-        transactionId = tmp->id();
-
         // move to transactions
         {
             boost::mutex::scoped_lock l(m_transactionsLock);
@@ -299,6 +298,7 @@ bool XBridgeExchange::acceptTransaction(const uint256 & id,
             m_pendingTransactions.erase(h);
         }
 
+        transactionId = tmp->id();
     }
 
     return true;

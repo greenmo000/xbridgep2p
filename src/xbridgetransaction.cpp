@@ -303,10 +303,10 @@ uint256 XBridgeTransaction::hash2() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint256 XBridgeTransaction::firstId() const
-{
-    return m_first.id();
-}
+//uint256 XBridgeTransaction::firstId() const
+//{
+//    return m_first.id();
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -359,10 +359,10 @@ uint256 XBridgeTransaction::firstTxHash() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint256 XBridgeTransaction::secondId() const
-{
-    return m_second.id();
-}
+//uint256 XBridgeTransaction::secondId() const
+//{
+//    return m_second.id();
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -471,8 +471,8 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     m_secondTaxAddress = other->m_firstTaxAddress;
 
     // generate new id
-    m_id = util::hash(BEGIN(m_id), END(m_id),
-                      BEGIN(other->m_id), END(other->m_id));
+//    m_id = util::hash(BEGIN(m_id), END(m_id),
+//                      BEGIN(other->m_id), END(other->m_id));
 
     m_state = trJoined;
 

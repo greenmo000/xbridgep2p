@@ -62,6 +62,7 @@ public:
     ~XBridgeTransaction();
 
     uint256 id() const;
+
     // state of transaction
     State state() const;
     // update state counter and update state
@@ -86,7 +87,7 @@ public:
     uint256 hash1() const;
     uint256 hash2() const;
 
-    uint256                    firstId() const;
+    // uint256                    firstId() const;
     std::vector<unsigned char> firstAddress() const;
     std::vector<unsigned char> firstDestination() const;
     std::string                firstCurrency() const;
@@ -95,7 +96,7 @@ public:
     std::string                firstRawRevTx() const;
     uint256                    firstTxHash() const;
 
-    uint256                    secondId() const;
+    // uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
     std::vector<unsigned char> secondDestination() const;
     std::string                secondCurrency() const;

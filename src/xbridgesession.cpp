@@ -697,7 +697,6 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
           << "             " << dcurrency << " : " << damount << std::endl;
 
     {
-        // float rate = (float) destAmount / sourceAmount;
         uint256 transactionId;
         if (e.acceptTransaction(id, saddr, scurrency, samount, daddr, dcurrency, damount, transactionId))
         {
@@ -719,8 +718,8 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
                 XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
                 reply1->append(tr->firstAddress());
                 reply1->append(sessionAddr(), 20);
-                reply1->append(tr->firstId().begin(), 32);
-                reply1->append(transactionId.begin(), 32);
+                reply1->append(tr->id().begin(), 32);
+                // reply1->append(transactionId.begin(), 32);
 
                 sendPacket(tr->firstAddress(), reply1);
 
@@ -732,8 +731,8 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
                 XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
                 reply2->append(tr->secondAddress());
                 reply2->append(sessionAddr(), 20);
-                reply2->append(tr->secondId().begin(), 32);
-                reply2->append(transactionId.begin(), 32);
+                reply2->append(tr->id().begin(), 32);
+                // reply2->append(transactionId.begin(), 32);
 
                 sendPacket(tr->secondAddress(), reply2);
             }
@@ -749,7 +748,7 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 104)
+    if (packet->size() != 72)
     {
         ERR() << "incorrect packet size for xbcTransactionHold " << __FUNCTION__;
         return false;
@@ -763,7 +762,6 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 
     // read packet data
     uint256 id   (packet->data()+40);
-    uint256 newid(packet->data()+72);
 
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
@@ -780,19 +778,19 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
         XBridgeApp::m_pendingTransactions.erase(id);
 
         // move to processing
-        XBridgeApp::m_transactions[newid] = xtx;
+        XBridgeApp::m_transactions[id] = xtx;
 
         xtx->state = XBridgeTransactionDescr::trHold;
     }
 
-    uiConnector.NotifyXBridgeTransactionIdChanged(id, newid);
+    // uiConnector.NotifyXBridgeTransactionIdChanged(id, newid);
     uiConnector.NotifyXBridgeTransactionStateChanged(id, XBridgeTransactionDescr::trHold);
 
     // send hold apply
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHoldApply));
     reply->append(hubAddress);
     reply->append(thisAddress);
-    reply->append(newid.begin(), 32);
+    reply->append(id.begin(), 32);
 
     sendPacket(hubAddress, reply);
     return true;
