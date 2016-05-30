@@ -1130,7 +1130,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // tax
     std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
-    const uint32_t tax = reinterpret_cast<uint32_t>(packet->data()+120);
+    const uint32_t tax = *reinterpret_cast<uint32_t *>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
@@ -1345,7 +1345,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 
     // tax
     std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
-    const uint32_t tax = reinterpret_cast<uint32_t>(packet->data()+120);
+    const uint32_t tax = *reinterpret_cast<uint32_t*>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
