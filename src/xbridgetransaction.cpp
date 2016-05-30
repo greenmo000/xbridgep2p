@@ -451,7 +451,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     {
         // not same currencies
         ERR() << "not same currencies. transaction not joined" << __FUNCTION__;
-        // assert(false || "not same currencies. transaction not joined");
         return false;
     }
 
@@ -460,7 +459,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     {
         // not same currencies
         ERR() << "not same amount. transaction not joined" << __FUNCTION__;
-        // assert(false || "not same amount. transaction not joined");
         return false;
     }
 
@@ -503,7 +501,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 //    }
 
 //    // wtf?
-//    assert(false || "unknown address for this transaction");
 //    ERR() << "unknown address for this transaction " << __FUNCTION__;
 //    return std::vector<unsigned char>();
 //}

@@ -261,7 +261,7 @@ public:
     crc_t           crc()     const
     {
         // TODO implement this
-        assert(false || "not implemented");
+        assert(!"not implemented");
         return (0);
         // return crcField();
     }
@@ -382,7 +382,7 @@ public:
 
         if (sizeField() != data.size()-headerSize)
         {
-            assert(false || "incorrect data size in XBridgePacket::copyFrom");
+            assert(!"incorrect data size in XBridgePacket::copyFrom");
         }
 
         // TODO check packet crc

@@ -1040,7 +1040,7 @@ uint256 XBridgeApp::sendXBridgeTransaction(const std::vector<unsigned char> & fr
 {
     if (fromCurrency.size() > 8 || toCurrency.size() > 8)
     {
-        assert(false || "invalid currency");
+        assert(false && "invalid currency");
         return uint256();
     }
 

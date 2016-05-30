@@ -343,9 +343,9 @@ std::vector<unsigned char> toXBridgeAddr(const std::string & etherAddress)
 {
     std::string waddr = etherAddress.substr(2);
 
-    assert(etherAddress.size() == 42 || "incorrect address length");
-    assert(etherAddress[0] == '0' || etherAddress[1] == 'x' || "incorrect address prefix");
-    assert(waddr.size() == 40 || "incorrect address length");
+    assert(etherAddress.size() == 42 && "incorrect address length");
+    assert(etherAddress[0] == '0' && etherAddress[1] == 'x' && "incorrect address prefix");
+    assert(waddr.size() == 40 && "incorrect address length");
 
     std::vector<unsigned char> ucaddr;
 
