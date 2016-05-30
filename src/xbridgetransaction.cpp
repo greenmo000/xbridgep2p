@@ -27,7 +27,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
                                        const std::vector<unsigned char> & destAddr,
                                        const std::string & destCurrency,
                                        const boost::uint64_t & destAmount,
-                                       const uint64_t & tax,
+                                       const uint32_t & tax,
                                        const std::vector<unsigned char> & taxAddress)
     : m_id(id)
     , m_created(boost::posix_time::second_clock::universal_time())

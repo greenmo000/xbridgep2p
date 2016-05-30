@@ -185,20 +185,20 @@ void WriteCompactSize(Stream& os, uint64 nSize)
 {
     if (nSize < 253)
     {
-        unsigned char chSize = nSize;
+        unsigned char chSize = static_cast<unsigned char>(nSize);
         WRITEDATA(os, chSize);
     }
     else if (nSize <= std::numeric_limits<unsigned short>::max())
     {
         unsigned char chSize = 253;
-        unsigned short xSize = nSize;
+        unsigned short xSize = static_cast<unsigned short>(nSize);
         WRITEDATA(os, chSize);
         WRITEDATA(os, xSize);
     }
     else if (nSize <= std::numeric_limits<unsigned int>::max())
     {
         unsigned char chSize = 254;
-        unsigned int xSize = nSize;
+        unsigned int xSize = static_cast<unsigned int>(nSize);
         WRITEDATA(os, chSize);
         WRITEDATA(os, xSize);
     }
@@ -395,7 +395,7 @@ void Unserialize(Stream& is, std::basic_string<C>& str, int, int)
 // vector
 //
 template<typename T, typename A>
-unsigned int GetSerializeSize_impl(const std::vector<T, A>& v, int nType, int nVersion, const boost::true_type&)
+unsigned int GetSerializeSize_impl(const std::vector<T, A>& v, int /*nType*/, int /*nVersion*/, const boost::true_type&)
 {
     return (GetSizeOfCompactSize(v.size()) + v.size() * sizeof(T));
 }
@@ -417,7 +417,7 @@ inline unsigned int GetSerializeSize(const std::vector<T, A>& v, int nType, int 
 
 
 template<typename Stream, typename T, typename A>
-void Serialize_impl(Stream& os, const std::vector<T, A>& v, int nType, int nVersion, const boost::true_type&)
+void Serialize_impl(Stream& os, const std::vector<T, A>& v, int /*nType*/, int /*nVersion*/, const boost::true_type&)
 {
     WriteCompactSize(os, v.size());
     if (!v.empty())
@@ -440,7 +440,7 @@ inline void Serialize(Stream& os, const std::vector<T, A>& v, int nType, int nVe
 
 
 template<typename Stream, typename T, typename A>
-void Unserialize_impl(Stream& is, std::vector<T, A>& v, int nType, int nVersion, const boost::true_type&)
+void Unserialize_impl(Stream& is, std::vector<T, A>& v, int /*nType*/, int /*nVersion*/, const boost::true_type&)
 {
     // Limit size per read so bogus size value won't cause out of memory
     v.clear();
@@ -673,20 +673,20 @@ class CSerActionSerialize { };
 class CSerActionUnserialize { };
 
 template<typename Stream, typename T>
-inline unsigned int SerReadWrite(Stream& s, const T& obj, int nType, int nVersion, CSerActionGetSerializeSize ser_action)
+inline unsigned int SerReadWrite(Stream& /*s*/, const T& obj, int nType, int nVersion, CSerActionGetSerializeSize /*ser_action*/)
 {
     return ::GetSerializeSize(obj, nType, nVersion);
 }
 
 template<typename Stream, typename T>
-inline unsigned int SerReadWrite(Stream& s, const T& obj, int nType, int nVersion, CSerActionSerialize ser_action)
+inline unsigned int SerReadWrite(Stream& s, const T& obj, int nType, int nVersion, CSerActionSerialize /*ser_action*/)
 {
     ::Serialize(s, obj, nType, nVersion);
     return 0;
 }
 
 template<typename Stream, typename T>
-inline unsigned int SerReadWrite(Stream& s, T& obj, int nType, int nVersion, CSerActionUnserialize ser_action)
+inline unsigned int SerReadWrite(Stream& s, T& obj, int nType, int nVersion, CSerActionUnserialize /*ser_action*/)
 {
     ::Unserialize(s, obj, nType, nVersion);
     return 0;
@@ -918,7 +918,7 @@ public:
     }
 
     bool eof() const             { return size() == 0; }
-    bool fail() const            { return state & (std::ios::badbit | std::ios::failbit); }
+    bool fail() const            { return (state & (std::ios::badbit | std::ios::failbit)) > 0; }
     bool good() const            { return !eof() && (state == 0); }
     void clear(short n)          { state = n; }  // name conflict with vector clear()
     short exceptions()           { return exceptmask; }
@@ -1081,7 +1081,7 @@ public:
             THROW_WITH_STACKTRACE(std::ios_base::failure(psz));
     }
 
-    bool fail() const            { return state & (std::ios::badbit | std::ios::failbit); }
+    bool fail() const            { return (state & (std::ios::badbit | std::ios::failbit)) > 0; }
     bool good() const            { return state == 0; }
     void clear(short n = 0)      { state = n; }
     short exceptions()           { return exceptmask; }

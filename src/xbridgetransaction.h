@@ -57,8 +57,8 @@ public:
                        const std::vector<unsigned char> & destAddr,
                        const std::string & destCurrency,
                        const boost::uint64_t & destAmount,
-                       const boost::uint64_t & tax,
-                       const std::vector<unsigned char> &taxAddress);
+                       const uint32_t & tax,
+                       const std::vector<unsigned char> & taxAddress);
     ~XBridgeTransaction();
 
     uint256 id() const;

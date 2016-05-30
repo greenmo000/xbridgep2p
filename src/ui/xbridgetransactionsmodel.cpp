@@ -79,7 +79,7 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
         return QVariant();
     }
 
-    if (idx.row() < 0 || idx.row() >= m_transactions.size())
+    if (idx.row() < 0 || idx.row() >= static_cast<int>(m_transactions.size()))
     {
         return QVariant();
     }
