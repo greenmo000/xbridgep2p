@@ -105,6 +105,7 @@ protected:
     virtual bool processXChatMessage(XBridgePacketPtr packet);
 
     virtual bool processTransaction(XBridgePacketPtr packet);
+    virtual bool processTransactionAccepting(XBridgePacketPtr packet);
     virtual bool processTransactionHoldApply(XBridgePacketPtr packet);
     virtual bool processTransactionInitialized(XBridgePacketPtr packet);
     virtual bool processTransactionCreated(XBridgePacketPtr packet);
@@ -134,7 +135,7 @@ protected:
     virtual bool processTransactionRollback(XBridgePacketPtr packet);
     virtual bool processTransactionDropped(XBridgePacketPtr packet);
 
-private:
+protected:
     unsigned char     m_myid[20];
 
     XBridge::SocketPtr m_socket;

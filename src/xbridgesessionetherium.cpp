@@ -80,14 +80,26 @@ void XBridgeSessionEtherium::init()
 {
     assert(!m_processors.size());
 
+    dht_random_bytes(m_myid, sizeof(m_myid));
+    LOG() << "session <" << m_currency << "> generated id <"
+             << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
+             << ">";
+
     // process invalid
     m_processors[xbcInvalid]               .bind(this, &XBridgeSessionEtherium::processInvalid);
 
     m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionEtherium::processAnnounceAddresses);
 
     // process transaction from client wallet
-    m_processors[xbcTransaction]           .bind(this, &XBridgeSessionEtherium::processTransaction);
-    m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSessionEtherium::processPendingTransaction);
+    // if (XBridgeExchange::instance().isEnabled())
+    {
+        m_processors[xbcTransaction]           .bind(this, &XBridgeSessionEtherium::processTransaction);
+        m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSessionEtherium::processTransactionAccepting);
+    }
+    // else
+    {
+        m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSessionEtherium::processPendingTransaction);
+    }
 
     // transaction processing
     {
@@ -131,7 +143,7 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 100)
+    if (packet->size() != 124)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
         return false;
@@ -145,6 +157,10 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
 
     // destination address
     std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
+
+    // tax
+    std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
+    const uint32_t tax = reinterpret_cast<uint32_t>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
@@ -178,7 +194,12 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
 //        return false;
 //    }
 
-    uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+m_fee;
+    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+m_fee;
+    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
+
+    boost::uint64_t fee = 0;
+    boost::uint64_t inAmount  = 0;
+
     // check amount
     if (amount < outAmount)
     {
@@ -198,12 +219,7 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
     reply->append("ETHEREUM_TRANSACTION");
     reply->append("ETHEREUM_TRANSACTION");
 
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending created transactions packet " << __FUNCTION__;
-        return false;
-    }
-
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -258,12 +274,7 @@ bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
     reply->append(txid.begin(), 32);
     reply->append(rawtxrev);
 
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending created transactions packet " << __FUNCTION__;
-        return false;
-    }
-
+    sendPacket(hubAddress, reply);
     return true;
 }
 
@@ -321,13 +332,8 @@ bool XBridgeSessionEtherium::processTransactionCommit(XBridgePacketPtr packet)
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
     reply->append(xtx->payTxId.begin(), 32);
-    if (!sendPacketBroadcast(reply))
-    {
-        ERR() << "error sending transaction commited packet "
-                 << __FUNCTION__;
-        return false;
-    }
 
+    sendPacket(hubAddress, reply);
     return true;
 }
 
