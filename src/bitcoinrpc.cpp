@@ -204,14 +204,14 @@ public:
     std::streamsize read(char* s, std::streamsize n)
     {
         handshake(ssl::stream_base::server); // HTTPS servers read first
-        if (fUseSSL) return stream.read_some(asio::buffer(s, n));
-        return stream.next_layer().read_some(asio::buffer(s, n));
+        if (fUseSSL) return stream.read_some(asio::buffer(s, static_cast<size_t>(n)));
+        return stream.next_layer().read_some(asio::buffer(s, static_cast<size_t>(n)));
     }
     std::streamsize write(const char* s, std::streamsize n)
     {
         handshake(ssl::stream_base::client); // HTTPS clients write first
-        if (fUseSSL) return asio::write(stream, asio::buffer(s, n));
-        return asio::write(stream.next_layer(), asio::buffer(s, n));
+        if (fUseSSL) return asio::write(stream, asio::buffer(s, static_cast<size_t>(n)));
+        return asio::write(stream.next_layer(), asio::buffer(s, static_cast<size_t>(n)));
     }
     bool connect(const std::string& server, const std::string& port)
     {
