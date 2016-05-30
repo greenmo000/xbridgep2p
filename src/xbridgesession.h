@@ -43,7 +43,7 @@ public:
     static bool checkXBridgePacketVersion(XBridgePacketPtr packet);
 
     bool sendXBridgeMessage(XBridgePacketPtr packet);
-    bool sendXBridgeMessage(const std::vector<unsigned char> & message);
+    bool takeXBridgeMessage(const std::vector<unsigned char> & message);
 
     bool processPacket(XBridgePacketPtr packet);
 

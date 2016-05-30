@@ -116,6 +116,8 @@ public:// slots:
 
     void checkUnconfirmedTx();
 
+    XBridgeSessionPtr queuedSession();
+
 public:
     static void sleep(const unsigned int umilliseconds);
 

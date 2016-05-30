@@ -342,6 +342,25 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 
 //*****************************************************************************
 //*****************************************************************************
+XBridgeSessionPtr XBridgeApp::queuedSession()
+{
+    // XBridgeSessionPtr ptr(new XBridgeSession);
+    XBridgeSessionPtr ptr = m_sessionQueue.front();
+
+    {
+        // TODO ????
+        // or process all packets in first session?
+        // or create service session?
+        boost::mutex::scoped_lock l(m_sessionsLock);
+        m_sessionQueue.push(m_sessionQueue.front());
+        m_sessionQueue.pop();
+    }
+
+    return ptr;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
 {
     // LOG() << "received broadcast message";
@@ -351,14 +370,7 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     packet->copyFrom(message);
 
     // XBridgeSessionPtr ptr(new XBridgeSession);
-    m_sessionQueue.front()->processPacket(packet);
-
-    // TODO ????
-    // or process all packets in first session?
-    // or create service session?
-    boost::mutex::scoped_lock l(m_sessionsLock);
-    m_sessionQueue.push(m_sessionQueue.front());
-    m_sessionQueue.pop();
+    queuedSession()->processPacket(packet);
 }
 
 //*****************************************************************************
@@ -680,7 +692,7 @@ void XBridgeApp::dhtThreadProc()
                                 XBridgeSessionPtr s = std::get<1>(*i);
                                 if ((from.size() != 20) || (memcmp(s->sessionAddr(), &from[0], 20) != 0))
                                 {
-                                    s->sendXBridgeMessage(message);
+                                    s->takeXBridgeMessage(message);
                                 }
                             }
                         }
@@ -700,7 +712,7 @@ void XBridgeApp::dhtThreadProc()
                             {
                                 // found local client
                                 XBridgeSessionPtr ptr = m_sessionAddrs[id];
-                                ptr->sendXBridgeMessage(message);
+                                ptr->takeXBridgeMessage(message);
 
                                 isFoundLocal = true;
                             }
@@ -1067,6 +1079,12 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 {
     // if (!ptr->packet)
     {
+        if (ptr->from.size() == 0 || ptr->to.size() == 0)
+        {
+            // TODO temporary
+            return false;
+        }
+
         ptr->packet.reset(new XBridgePacket(xbcTransaction));
 
         // field length must be 8 bytes
@@ -1077,11 +1095,11 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
         std::vector<unsigned char> tc(8, 0);
         std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
 
-        // 20 bytes - id of transaction
+        // 32 bytes - id of transaction
         // 2x
         // 20 bytes - address
         //  8 bytes - currency
-        //  4 bytes - amount
+        //  8 bytes - amount
         ptr->packet->append(ptr->id.begin(), 32);
         ptr->packet->append(ptr->from);
         ptr->packet->append(fc);

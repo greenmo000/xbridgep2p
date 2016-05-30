@@ -452,7 +452,7 @@ bool XBridgeSession::sendXBridgeMessage(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & message)
+bool XBridgeSession::takeXBridgeMessage(const std::vector<unsigned char> & message)
 {
     // DEBUG_TRACE();
 
@@ -627,7 +627,16 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
-        XBridgeApp::m_pendingTransactions[ptr->id] = ptr;
+        if (!XBridgeApp::m_pendingTransactions.count(ptr->id))
+        {
+            // new transaction, copy data
+            XBridgeApp::m_pendingTransactions[ptr->id] = ptr;
+        }
+        else
+        {
+            // existing, update timestamp
+            XBridgeApp::m_pendingTransactions[ptr->id]->updateTimestamp(*ptr);
+        }
     }
 
     uiConnector.NotifyXBridgePendingTransactionReceived(*ptr);
@@ -1336,7 +1345,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 124)
+    if (packet->size() != 104)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
         return false;
@@ -2303,6 +2312,9 @@ void XBridgeSession::sendListOfTransactions()
         packet->append(tc);
         packet->append(ptr->secondAmount());
         // packet->append(static_cast<boost::uint32_t>(ptr->state()));
+
+        packet->append(sessionAddr(), 20);
+        packet->append(ptr->tax());
 
         sendPacket(std::vector<unsigned char>(), packet);
     }
