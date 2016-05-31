@@ -39,6 +39,11 @@ enum XBridgeCommand
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |     <-- xbcTransaction
+    //                                 |     --> xbcPendingTransaction
+    //                                 |     --> xbcPendingTransaction
+    //                                 |     --> xbcPendingTransaction
+    //                                 |
+    //                                 |     <-- xbcAcceptingTransaction
     //                                 |
     // xbcTransactionHold       <--    |     --> xbcTransactionHold
     // xbcTransactionHoldApply  -->    |     <-- xbcTransactionHoldApply
