@@ -24,22 +24,41 @@ LIBS += \
 
 win32-msvc2013 {
 
-message(win32-msvc2013 build)
+contains(QMAKE_TARGET.arch, x86_64) {
+    message(win32-msvc2013 build x64)
+}
+else {
+    message(win32-msvc2013 build)
+}
 
-CONFIG += withbreakpad
+#CONFIG += withbreakpad
+#CONFIG += withoutgui
 
 INCLUDEPATH += \
-    C:/_buildagent/src/3rdparty/openssl/openssl-1.0.2a/inc32 \
-    c:/_buildagent/src/3rdparty/boost/boost_1_58_0
+    d:/work/openssl/openssl/include \
+    D:/work/boost/boost_1_60_0
 
-LIBS += \
-    -LC:/_buildagent/src/3rdparty/openssl/openssl-1.0.2a/out32dll \
-    -Lc:/_buildagent/src/3rdparty/boost/boost_1_58_0/stage/lib
+contains(QMAKE_TARGET.arch, x86_64) {
+    QMAKE_CXXFLAGS += /bigobj
+    QMAKE_CFLAGS += /bigobj
 
-LIBS += \
-    -llibeay32 \
-    -lssleay32
+    LIBS += \
+        -Ld:/work/openssl/openssl/lib64 \
+        -LD:/work/boost/boost_1_60_0/stage64/lib
 }
+else {
+    LIBS += \
+        -Ld:/work/openssl/openssl/lib \
+        -LD:/work/boost/boost_1_60_0/stage/lib
+
+    LIBS += \
+        -llibeay32 \
+        -lssleay32
+
+}
+
+}
+
 
 ###############################################################
 win32-g++ {
