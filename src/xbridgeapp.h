@@ -116,7 +116,7 @@ public:// slots:
 
     void checkUnconfirmedTx();
 
-    XBridgeSessionPtr queuedSession();
+    XBridgeSessionPtr serviceSession();
 
 public:
     static void sleep(const unsigned int umilliseconds);
@@ -163,6 +163,10 @@ private:
     SessionIdMap m_sessionIds;
     typedef std::queue<XBridgeSessionPtr> SessionQueue;
     SessionQueue m_sessionQueue;
+
+    // service session
+    XBridgeSessionPtr m_serviceSession;
+
 
     boost::mutex m_messagesLock;
     typedef std::set<uint256> ProcessedMessages;

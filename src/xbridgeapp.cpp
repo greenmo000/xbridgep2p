@@ -60,6 +60,7 @@ XBridgeApp::XBridgeApp()
     , m_ipv4(true)
     , m_ipv6(true)
     , m_dhtPort(Config::DHT_PORT)
+    , m_serviceSession(new XBridgeSession)
 {
 }
 
@@ -342,22 +343,29 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeSessionPtr XBridgeApp::queuedSession()
+XBridgeSessionPtr XBridgeApp::serviceSession()
 {
-    // XBridgeSessionPtr ptr(new XBridgeSession);
-    XBridgeSessionPtr ptr = m_sessionQueue.front();
-
-    {
-        // TODO ????
-        // or process all packets in first session?
-        // or create service session?
-        boost::mutex::scoped_lock l(m_sessionsLock);
-        m_sessionQueue.push(m_sessionQueue.front());
-        m_sessionQueue.pop();
-    }
-
-    return ptr;
+    return m_serviceSession;
 }
+
+//*****************************************************************************
+//*****************************************************************************
+//XBridgeSessionPtr XBridgeApp::queuedSession()
+//{
+//    // XBridgeSessionPtr ptr(new XBridgeSession);
+//    XBridgeSessionPtr ptr = m_sessionQueue.front();
+
+//    {
+//        // TODO ????
+//        // or process all packets in first session?
+//        // or create service session?
+//        boost::mutex::scoped_lock l(m_sessionsLock);
+//        m_sessionQueue.push(m_sessionQueue.front());
+//        m_sessionQueue.pop();
+//    }
+
+//    return ptr;
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -370,7 +378,7 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     packet->copyFrom(message);
 
     // XBridgeSessionPtr ptr(new XBridgeSession);
-    queuedSession()->processPacket(packet);
+    serviceSession()->processPacket(packet);
 }
 
 //*****************************************************************************

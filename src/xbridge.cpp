@@ -126,7 +126,7 @@ void XBridge::onTimer()
         m_services.pop_front();
 
         // XBridgeSessionPtr session(new XBridgeSession);
-        XBridgeSessionPtr session = XBridgeApp::instance().queuedSession();
+        XBridgeSessionPtr session = XBridgeApp::instance().serviceSession();
 
         IoServicePtr io = m_services.front();
 
