@@ -43,6 +43,12 @@ else:CONFIG(debug, debug|release){
 
 windows:DEFINES += WIN32
 
+INCLUDEPATH += \
+    $$PWD/src \
+    $$PWD/src/3rdparty/webthree-umbrella/libethereum \
+    $$PWD/src/3rdparty/webthree-umbrella/libdevcore \
+    $$PWD/src/3rdparty/webthree-umbrella/libweb3core
+
 #-------------------------------------------------
 withbreakpad {
 
@@ -51,7 +57,6 @@ message("msvc build, breakpad enabled")
 DEFINES += BREAKPAD_ENABLED
 
 INCLUDEPATH += \
-    $$PWD/src \
     $$PWD/src/3rdparty/breakpad/src
 
 QMAKE_CFLAGS_RELEASE += -Zi
@@ -96,7 +101,9 @@ SOURCES += \
     src/sync.cpp \
     src/crypter.cpp \
     src/util/txlog.cpp \
-    src/xbridgesessionetherium.cpp
+    src/xbridgesessionetherium.cpp \
+    src/ethrpc.cpp \
+    src/rpccommon.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -137,7 +144,9 @@ HEADERS += \
     src/crypter.h \
     src/base58.h \
     src/util/txlog.h \
-    src/xbridgesessionetherium.h
+    src/xbridgesessionetherium.h \
+    src/ethrpc.h \
+    src/rpccommon.h
 
 #-------------------------------------------------
 !withoutgui {

@@ -13,9 +13,11 @@
 #include "util/logger.h"
 #include "util/txlog.h"
 #include "dht/dht.h"
-#include "bitcoinrpc.h"
+#include "ethrpc.h"
 #include "ctransaction.h"
 #include "base58.h"
+
+#include "libethcore/transaction.h"
 
 //******************************************************************************
 //******************************************************************************
@@ -207,6 +209,9 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
         sendCancelTransaction(id);
         return false;
     }
+
+    dev::eth::TransactionBase eth;
+    eth.rlp();
 
     xtx->state = XBridgeTransactionDescr::trCreated;
     uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);
