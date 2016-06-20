@@ -29,6 +29,14 @@ bool eth_sendTransaction(const std::string & rpcip,
                          const std::string & to,
                          const uint64_t & amount,
                          const uint64_t & fee);
+bool eth_sign(const std::string & rpcip,
+              const std::string & rpcport,
+              const std::string & addr,
+              const std::string & data,
+              std::string & result);
+bool eth_sendRawTransaction(const std::string & rpcip,
+                            const std::string & rpcport,
+                            const std::string & tx);
 
 } // namespace rpc
 

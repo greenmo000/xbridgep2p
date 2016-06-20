@@ -229,4 +229,94 @@ bool eth_sendTransaction(const std::string & rpcip,
     return true;
 }
 
+//*****************************************************************************
+//*****************************************************************************
+bool eth_sign(const std::string & rpcip,
+              const std::string & rpcport,
+              const std::string & addr,
+              const std::string & data,
+              std::string & result)
+{
+    try
+    {
+        LOG() << "rpc call <eth_sign>";
+
+        Array params;
+        params.push_back(addr);
+        params.push_back(data);
+
+        Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                               "eth_sign", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+
+        const Value & vresult = find_value(reply, "result");
+
+        if (vresult.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (vresult.type() == null_type ? "" :
+                      write_string(vresult, true));
+            return false;
+        }
+
+        result = vresult.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool eth_sendRawTransaction(const std::string & rpcip,
+                            const std::string & rpcport,
+                            const std::string & tx)
+{
+    try
+    {
+        LOG() << "rpc call <eth_sendRawTransaction>";
+
+        Array params;
+        params.push_back(tx);
+
+        Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                               "eth_sendRawTransaction", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
 } // namespace rpc

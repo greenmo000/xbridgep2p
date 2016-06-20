@@ -210,8 +210,32 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
         return false;
     }
 
-    dev::eth::TransactionBase eth;
-    eth.rlp();
+    // direct tx
+    dev::Address afrom;
+    dev::Address ato;
+    dev::u256    amount256;
+    dev::bytes   data;
+
+    dev::eth::TransactionSkeleton ths1;
+    ths1.from  = afrom;
+    ths1.to    = ato;
+    ths1.value = amount256;
+    ths1.data  = data;
+
+    dev::eth::TransactionBase eth1(ths1);
+    eth1.rlp();
+
+    // revert tx
+    dev::eth::TransactionSkeleton ths2;
+    ths2.from  = ato;
+    ths2.to    = afrom;
+
+    // TODO
+    // ths2.value = amount256;
+    // ths2.data  = data;
+
+    dev::eth::TransactionBase eth2(ths2);
+    eth2.rlp();
 
     xtx->state = XBridgeTransactionDescr::trCreated;
     uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);
@@ -221,8 +245,8 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(id.begin(), 32);
-    reply->append("ETHEREUM_TRANSACTION");
-    reply->append("ETHEREUM_TRANSACTION");
+    reply->append(eth1.rlp());
+    reply->append(eth2.rlp());
 
     sendPacket(hubAddress, reply);
     return true;
@@ -249,10 +273,18 @@ bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
     uint256 txid(packet->data()+offset);
     offset += 32;
 
-    std::string rawtxpay(reinterpret_cast<const char *>(packet->data()+offset));
-    offset += rawtxpay.size()+1;
+    std::string rlptxpay(reinterpret_cast<const char *>(packet->data()+offset));
+    offset += rlptxpay.size()+1;
 
-    std::string rawtxrev(reinterpret_cast<const char *>(packet->data()+offset));
+    std::string rlptxrev(reinterpret_cast<const char *>(packet->data()+offset));
+
+    std::string txsigned;
+    if (!rpc::eth_sign(m_address, m_port, m_walletAddress, rlptxrev, txsigned))
+    {
+        // not signed, cancel transaction
+        sendCancelTransaction(txid);
+        return false;
+    }
 
     // check txid
     XBridgeTransactionDescrPtr xtx;
@@ -277,7 +309,7 @@ bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    reply->append(rawtxrev);
+    reply->append(txsigned);
 
     sendPacket(hubAddress, reply);
     return true;
@@ -317,11 +349,7 @@ bool XBridgeSessionEtherium::processTransactionCommit(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[txid];
     }
 
-    std::string from = "0x" + std::string(reinterpret_cast<char *>(&xtx->from[0]), 20);
-    std::string to   = "0x" + std::string(reinterpret_cast<char *>(&xtx->to[0]), 20);
-
-    uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
-    if (!rpc::eth_sendTransaction(m_address, m_port, from, to, outAmount, m_fee))
+    if (!rpc::eth_sendRawTransaction(m_address, m_port, xtx->payTx))
     {
         // not commited....send cancel???
         // sendCancelTransaction(id);
@@ -428,13 +456,13 @@ bool XBridgeSessionEtherium::revertXBridgeTransaction(const uint256 & id)
         return false;
     }
 
-//    // rollback, commit revert transaction
-//    if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->revTx))
-//    {
-//        // not commited....send cancel???
-//        // sendCancelTransaction(id);
-//        return false;
-//    }
+    // rollback, commit revert transaction
+    if (!rpc::eth_sendRawTransaction(m_user, m_passwd, xtx->revTx))
+    {
+        // not commited....send cancel???
+        // sendCancelTransaction(id);
+        return false;
+    }
 
     return true;
 }
