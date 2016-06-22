@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "../xbridgeapp.h"
 #include "../util/util.h"
 #include "../util/logger.h"
+#include "../config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -785,21 +786,28 @@ blacklist_node(const unsigned char *id, const struct sockaddr *sa, int salen)
 
     debugf("Blacklisting broken node.\n");
 
-    if(id) {
+    if(id)
+    {
         struct node *n;
         struct search *sr;
         /* Make the node easy to discard. */
         n = find_node(id, sa->sa_family);
-        if(n) {
+        if (n)
+        {
             n->pinged = 3;
             pinged(n, NULL);
         }
         /* Discard it from any searches in progress. */
         sr = searches;
-        while(sr) {
-            for(i = 0; i < sr->numnodes; i++)
-                if(id_cmp(sr->nodes[i].id, id) == 0)
+        while (sr)
+        {
+            for (i = 0; i < sr->numnodes; i++)
+            {
+                if (id_cmp(sr->nodes[i].id, id) == 0)
+                {
                     flush_search_node(&sr->nodes[i], sr);
+                }
+            }
             sr = sr->next;
         }
     }
@@ -815,15 +823,22 @@ node_blacklisted(const struct sockaddr *sa, int salen)
 {
     int i;
 
-    if((unsigned)salen > sizeof(struct sockaddr_storage))
+    if ((unsigned)salen > sizeof(struct sockaddr_storage))
+    {
         abort();
+    }
 
-    if(dht_blacklisted(sa, salen))
+    if (dht_blacklisted(sa, salen))
+    {
         return 1;
+    }
 
-    for(i = 0; i < DHT_MAX_BLACKLISTED; i++) {
+    for(i = 0; i < DHT_MAX_BLACKLISTED; i++)
+    {
         if(memcmp(&blacklist[i], sa, salen) == 0)
+        {
             return 1;
+        }
     }
 
     return 0;
@@ -2135,15 +2150,31 @@ dht_memmem(const char * haystack, size_t haystacklen,
 
 //*****************************************************************************
 //*****************************************************************************
-int
-dht_periodic(const unsigned char * buf, size_t buflen,
-             const struct sockaddr *from, int fromlen,
-             time_t *tosleep,
-             dht_callback *callback, void *closure)
+bool check_version(const unsigned char * buf, size_t buflen)
+{
+    unsigned char * p = (unsigned char *)dht_memmem((const char *)buf, buflen, "v8:", 3);
+    if (p)
+    {
+        if (memcmp(p + 3, dhtClientVersion, 8) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+int dht_periodic(const unsigned char * buf, size_t buflen,
+                 const struct sockaddr *from, int fromlen,
+                 time_t *tosleep,
+                 dht_callback *callback, void *closure)
 {
     gettimeofday(&now, (struct timezone *)0);
 
-    if(buflen > 0) {
+    if(buflen > 0)
+    {
         int message;
         unsigned char tid[16], id[20], info_hash[20], target[20];
         unsigned char nodes[256], nodes6[1024], token[128];
@@ -2155,18 +2186,31 @@ dht_periodic(const unsigned char * buf, size_t buflen,
         int want;
         unsigned short ttid;
 
-        if(is_martian(from))
+        if (is_martian(from))
+        {
             goto dontread;
+        }
 
-        if(node_blacklisted(from, fromlen)) {
+        if (node_blacklisted(from, fromlen))
+        {
             debugf("Received packet from blacklisted node.\n");
             goto dontread;
         }
 
-        if(((char*)buf)[buflen] != '\0') {
+        if (((char*)buf)[buflen] != '\0')
+        {
             debugf("Unterminated message.\n");
             errno = EINVAL;
             return -1;
+        }
+
+        // check version
+        if (!check_version(buf, buflen))
+        {
+            debugf("incorrect version, node push to blacklist");
+            debug_printable(buf, buflen);
+            blacklist_node(id, from, fromlen);
+            goto dontread;
         }
 
         message = parse_message(buf, buflen, tid, &tid_len, id, info_hash,
@@ -2175,13 +2219,15 @@ dht_periodic(const unsigned char * buf, size_t buflen,
                                 values, &values_len, values6, &values6_len,
                                 &want);
 
-        if(message < 0 || message == ERROR || id_cmp(id, zeroes) == 0) {
+        if (message < 0 || message == ERROR || id_cmp(id, zeroes) == 0)
+        {
             debugf("Unparseable message: ");
             debug_printable(buf, buflen);
             goto dontread;
         }
 
-        if(id_cmp(id, myid) == 0) {
+        if(id_cmp(id, myid) == 0)
+        {
             debugf("Received message from self.\n");
             goto dontread;
         }
@@ -2750,9 +2796,12 @@ int dht_send_broadcast(const unsigned char * message, const int length)
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0;
     {
-        int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
-        if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return -1;
+        if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
         rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:broadcast%d:", msg.length());
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
         rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
@@ -2840,9 +2889,12 @@ int dht_send_message(const unsigned char * id, const unsigned char * message, co
     char buf[DHT_NETWORK_BUFFER_LENGTH];
     int i = 0;
     {
-        int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
-        if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) return -1;
+        if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
+        if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
+        if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH))  return DHT_NETWORK_BUFFER_OWERFLOW;
         rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q7:message%d:", msg.length());
         if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) return DHT_NETWORK_BUFFER_OWERFLOW;
         rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "%s", msg.c_str());
@@ -2936,7 +2988,10 @@ send_ping(const struct sockaddr *sa, int salen,
           const unsigned char *tid, int tid_len)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
@@ -2960,7 +3015,10 @@ send_pong(const struct sockaddr *sa, int salen,
           const unsigned char *tid, int tid_len)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
@@ -2985,7 +3043,10 @@ send_find_node(const struct sockaddr *sa, int salen,
                const unsigned char *target, int want, int confirm)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
@@ -3022,8 +3083,11 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
                  const unsigned char *token, int token_len)
 {
     char buf[2048];
-    int i = 0, rc, j0, j, k, len;
+    int i = 0, j0, j, k, len;
 
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, 2048 - i, "d1:rd2:id20:");
     if (!INC(i, rc, 2048)) goto fail;
     if (!COPY(buf, i, myid, 20, 2048)) goto fail;
@@ -3206,8 +3270,11 @@ send_get_peers(const struct sockaddr *sa, int salen,
                int want, int confirm)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
 
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
@@ -3242,8 +3309,11 @@ send_announce_peer(const struct sockaddr *sa, int salen,
                    unsigned char *token, int token_len, int confirm)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
 
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:ad2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
@@ -3275,8 +3345,11 @@ send_peer_announced(const struct sockaddr *sa, int salen,
                     unsigned char *tid, int tid_len)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
 
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:rd2:id20:");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, myid, 20, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
@@ -3301,8 +3374,11 @@ send_error(const struct sockaddr *sa, int salen,
            int code, const char *message)
 {
     char buf[DHT_NETWORK_BUFFER_LENGTH];
-    int i = 0, rc;
+    int i = 0;
 
+    int rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "v8:");
+    if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
+    if (!COPY(buf, i, dhtClientVersion, 8, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "d1:eli%de%d:",
                   code, (int)strlen(message));
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;

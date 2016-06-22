@@ -96,7 +96,8 @@ SOURCES += \
     src/sync.cpp \
     src/crypter.cpp \
     src/util/txlog.cpp \
-    src/xbridgesessionetherium.cpp
+    src/xbridgesessionetherium.cpp \
+    src/config.cpp
 
 #-------------------------------------------------
 HEADERS += \
