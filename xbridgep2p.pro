@@ -103,7 +103,8 @@ SOURCES += \
     src/util/txlog.cpp \
     src/xbridgesessionetherium.cpp \
     src/ethrpc.cpp \
-    src/rpccommon.cpp
+    src/rpccommon.cpp \
+    src/config.cpp
 
 #-------------------------------------------------
 HEADERS += \

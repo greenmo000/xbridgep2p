@@ -7,5 +7,7 @@ enum Config
     DHT_PORT    = 33330
 };
 
+extern const unsigned char * dhtClientVersion;
+
 #endif // CONFIG
 
