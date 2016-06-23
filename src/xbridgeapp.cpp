@@ -327,12 +327,18 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
         // ptr->sendXBridgeMessage(message);
     }
 
+    // check service session
+    else if (memcmp(m_serviceSession->sessionAddr(), &id[0], 20) == 0)
+    {
+        serviceSession()->processPacket(packet);
+    }
+
     // check local address
     else if (id == localid)
     {
         // process packet
-        XBridgeSessionPtr ptr(new XBridgeSession);
-        ptr->processPacket(packet);
+        // XBridgeSessionPtr ptr(new XBridgeSession);
+        serviceSession()->processPacket(packet);
     }
 
     else
@@ -969,6 +975,12 @@ bool XBridgeApp::isLocalAddress(const std::vector<unsigned char> & id)
         return true;
     }
 
+    // check service session address
+    else if (memcmp(m_serviceSession->sessionAddr(), &id[0], 20) == 0)
+    {
+        return true;
+    }
+
     // check local address
     else if (id == localid)
     {
@@ -1099,6 +1111,12 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
         {
             // TODO temporary
             return false;
+        }
+
+        if (ptr->packet && ptr->packet->command() != xbcTransaction)
+        {
+            // not send pending packets if not an xbcTransaction
+            return true;
         }
 
         ptr->packet.reset(new XBridgePacket(xbcTransaction));
