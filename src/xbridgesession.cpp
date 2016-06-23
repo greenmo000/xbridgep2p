@@ -504,6 +504,13 @@ void XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
+    // check and process packet if bridge is exchange
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
     // DEBUG_TRACE();
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -512,13 +519,6 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     {
         ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
         return false;
-    }
-
-    // check and process packet if bridge is exchange
-    XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
     }
 
     // source
@@ -601,18 +601,18 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 //******************************************************************************
 bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 {
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (e.isEnabled())
+    {
+        return true;
+    }
+
     DEBUG_TRACE_LOG(currencyToLog());
 
     if (packet->size() != 88)
     {
         ERR() << "incorrect packet size for xbcPendingTransaction " << __FUNCTION__;
         return false;
-    }
-
-    XBridgeExchange & e = XBridgeExchange::instance();
-    if (e.isEnabled())
-    {
-        return true;
     }
 
     XBridgeTransactionDescrPtr ptr(new XBridgeTransactionDescr);
@@ -648,6 +648,13 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
 {
+    // check and process packet if bridge is exchange
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
     // DEBUG_TRACE();
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -655,13 +662,6 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
     {
         ERR() << "invalid packet size for xbcTransactionAccepting " << __FUNCTION__;
         return false;
-    }
-
-    // check and process packet if bridge is exchange
-    XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
     }
 
     // source
