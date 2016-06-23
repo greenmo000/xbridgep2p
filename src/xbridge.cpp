@@ -103,11 +103,11 @@ void XBridge::stop()
     m_timerIo.stop();
     m_timerIoWork.reset();
 
-    for (IoServicePtr i : m_services)
+    for (IoServicePtr & i : m_services)
     {
         i->stop();
     }
-    for (std::shared_ptr<boost::asio::io_service::work> & i : m_works)
+    for (WorkPtr & i : m_works)
     {
         i.reset();
     }

@@ -87,9 +87,28 @@ LOG::~LOG()
 // static
 std::string LOG::makeFileName()
 {
-    const static std::string path     = settings().logPath().size() ?
-                                        settings().logPath() :
-                                        settings().appPath();
+    std::string path = settings().logPath().size() ?
+                       settings().logPath() :
+                       settings().appPath();
+
+    if (!path.size())
+    {
+        assert(!"wtf? empty path???");
+        return std::string();
+    }
+
+#ifdef WIN32
+    char sep = '\\';
+    std::replace(path.begin(), path.end(), '/', sep);
+#else
+    char sep = '/';
+    std::replace(path.begin(), path.end(), '\\', sep);
+#endif
+
+    if (path[path.size()-1] != sep)
+    {
+        path.append(1, sep);
+    }
 
     return path +
             "xbridgep2p_" +
