@@ -377,7 +377,7 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     XBridgePacketPtr packet(new XBridgePacket);
     packet->copyFrom(message);
 
-    LOG() << "broadcast message? command " << packet->command();
+    LOG() << "broadcast message, command " << packet->command();
 
     if (!XBridgeSession::checkXBridgePacketVersion(packet))
     {
