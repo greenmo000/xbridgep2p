@@ -360,8 +360,6 @@ static time_t confirm_nodes_time;
 static time_t rotate_secrets_time;
 
 static unsigned char myid[20];
-static int have_v = 0;
-static unsigned char my_v[9];
 static unsigned char secret[8];
 static unsigned char oldsecret[8];
 
@@ -1841,7 +1839,7 @@ void dht_dump_tables(std::string & s)
 //*****************************************************************************
 //*****************************************************************************
 int
-dht_init(int s, int s6, const unsigned char *id, const unsigned char *v)
+dht_init(int s, int s6, const unsigned char *id)
 {
     int rc;
 
@@ -1879,13 +1877,6 @@ dht_init(int s, int s6, const unsigned char *id, const unsigned char *v)
     }
 
     memcpy(myid, id, 20);
-    if(v) {
-        memcpy(my_v, "1:v4:", 5);
-        memcpy(my_v + 5, v, 4);
-        have_v = 1;
-    } else {
-        have_v = 0;
-    }
 
     gettimeofday(&now, (struct timezone *)0);
 
@@ -2769,11 +2760,6 @@ bool COPY(char * buf, int & offset, const unsigned char * src, const int delta, 
     return true;
 }
 
-#define ADD_V(buf, offset, size)                        \
-    if(have_v) {                                        \
-        COPY(buf, offset, my_v, sizeof(my_v), size);    \
-    }
-
 //*****************************************************************************
 //*****************************************************************************
 int dht_send_broadcast(const unsigned char * message, const int length)
@@ -2998,7 +2984,6 @@ send_ping(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q4:ping1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
@@ -3025,7 +3010,6 @@ send_pong(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
@@ -3062,7 +3046,6 @@ send_find_node(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:find_node1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
@@ -3138,7 +3121,6 @@ send_nodes_peers(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, 2048 - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, 2048)) goto fail;
     if (!COPY(buf, i, tid, tid_len, 2048)) goto fail;
-    ADD_V(buf, i, 2048);
     rc = snprintf(buf + i, 2048 - i, "1:y1:re");
     if (!INC(i, rc, 2048)) goto fail;
 
@@ -3290,7 +3272,6 @@ send_get_peers(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q9:get_peers1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, confirm ? MSG_CONFIRM : 0, sa, salen);
@@ -3327,7 +3308,6 @@ send_announce_peer(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:q13:announce_peer1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:qe");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
 
@@ -3356,7 +3336,6 @@ send_peer_announced(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:re");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
@@ -3386,7 +3365,6 @@ send_error(const struct sockaddr *sa, int salen,
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "e1:t%d:", tid_len);
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     if (!COPY(buf, i, tid, tid_len, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
-    ADD_V(buf, i, DHT_NETWORK_BUFFER_LENGTH);
     rc = snprintf(buf + i, DHT_NETWORK_BUFFER_LENGTH - i, "1:y1:ee");
     if (!INC(i, rc, DHT_NETWORK_BUFFER_LENGTH)) goto fail;
     return dht_send(buf, i, 0, sa, salen);
@@ -3395,8 +3373,6 @@ send_error(const struct sockaddr *sa, int salen,
     errno = ENOSPC;
     return DHT_NETWORK_BUFFER_OWERFLOW;
 }
-
-#undef ADD_V
 
 //*****************************************************************************
 //*****************************************************************************

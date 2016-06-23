@@ -522,7 +522,7 @@ void XBridgeApp::dhtThreadProc()
         return;
     }
 
-    rc = dht_init(s4, s6, m_myid, (unsigned char*)"BT\0\0");
+    rc = dht_init(s4, s6, m_myid);
     if (rc < 0)
     {
         LOG() << "dht_init error";
