@@ -1031,8 +1031,8 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(tr->firstDestination());
             reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
             reply2->append((boost::uint32_t)48*60*60);
-            reply1->append(tr->secondTaxAddress());
-            reply1->append(tr->tax());
+            reply2->append(tr->secondTaxAddress());
+            reply2->append(tr->tax());
 
             sendPacket(tr->secondAddress(), reply2);
         }
