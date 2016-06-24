@@ -2,7 +2,7 @@
 #define VERSION
 
 #define XBRIDGE_VERSION_MAJOR 0
-#define XBRIDGE_VERSION_MINOR 45
+#define XBRIDGE_VERSION_MINOR 46
 #define XBRIDGE_VERSION_DESCR "ether-w-dht-ver-check"
 
 #define MAKE_VERSION(major,minor) (( major << 16 ) + minor )

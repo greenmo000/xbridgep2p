@@ -413,7 +413,9 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
     // size must be 20 bytes (160bit)
     if (packet->size() != 20)
     {
-        ERR() << "invalid packet size for xbcAnnounceAddresses " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcAnnounceAddresses "
+              << "need 20 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -474,7 +476,9 @@ bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
     // size must be > 20 bytes (160bit)
     if (packet->size() <= 20)
     {
-        ERR() << "invalid packet size for xbcXChatMessage " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcXChatMessage "
+              << "need more than 20 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -517,7 +521,9 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     // size must be 104 bytes
     if (packet->size() != 104)
     {
-        ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransaction "
+              << "need 104 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -611,7 +617,9 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 
     if (packet->size() != 88)
     {
-        ERR() << "incorrect packet size for xbcPendingTransaction " << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcPendingTransaction "
+              << "need 88 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -660,7 +668,9 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
 
     if (packet->size() != 124)
     {
-        ERR() << "invalid packet size for xbcTransactionAccepting " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionAccepting "
+              << "need 124 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -750,7 +760,9 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 
     if (packet->size() != 72)
     {
-        ERR() << "incorrect packet size for xbcTransactionHold " << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionHold "
+              << "need 72received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -806,7 +818,9 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
     // size must be eq 72 bytes
     if (packet->size() != 72)
     {
-        ERR() << "invalid packet size for xbcTransactionHoldApply " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionHoldApply "
+              << "need 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -895,7 +909,9 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
 
     if (packet->size() != 144)
     {
-        ERR() << "incorrect packet size for xbcTransactionInit" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionInit "
+              << "need 144 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -948,7 +964,9 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
     // size must be eq 72 bytes
     if (packet->size() != 72)
     {
-        ERR() << "invalid packet size for xbcTransactionHoldApply " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionHoldApply "
+              << "need 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1013,8 +1031,8 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(tr->firstDestination());
             reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
             reply2->append((boost::uint32_t)48*60*60);
-            reply1->append(tr->secondTaxAddress());
-            reply1->append(tr->tax());
+            reply2->append(tr->secondTaxAddress());
+            reply2->append(tr->tax());
 
             sendPacket(tr->secondAddress(), reply2);
         }
@@ -1130,7 +1148,9 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     if (packet->size() != 124)
     {
-        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionCreate "
+              << "need 124 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1345,7 +1365,9 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 
     if (packet->size() != 124)
     {
-        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionCreate "
+              << "need 124 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1563,7 +1585,9 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
     // size must be > 72 bytes
     if (packet->size() < 72)
     {
-        ERR() << "invalid packet size for xbcTransactionCreated " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionCreated "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1642,7 +1666,9 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
 
     if (packet->size() < 72)
     {
-        ERR() << "incorrect packet size for xbcTransactionSign" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionSign "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1722,7 +1748,9 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
     // size must be > 72 bytes
     if (packet->size() < 72)
     {
-        ERR() << "invalid packet size for xbcTransactionSigned " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionSigned "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1791,7 +1819,9 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
 
     if (packet->size() < 72)
     {
-        ERR() << "incorrect packet size for xbcTransactionCommit" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionCommit "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1855,7 +1885,9 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
     // size must be == 104 bytes
     if (packet->size() != 104)
     {
-        ERR() << "invalid packet size for xbcTransactionCommited " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionCommited "
+              << "need 104 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1929,7 +1961,9 @@ bool XBridgeSession::processTransactionConfirm(XBridgePacketPtr packet)
 
     if (packet->size() < 72)
     {
-        LOG() << "incorrect packet size for xbcTransactionConfirm";
+        LOG() << "incorrect packet size for xbcTransactionConfirm "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1975,7 +2009,9 @@ bool XBridgeSession::processTransactionConfirmed(XBridgePacketPtr packet)
     // size must be == 72 bytes
     if (packet->size() != 72)
     {
-        ERR() << "invalid packet size for xbcTransactionCommited " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionCommited "
+              << "need 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -2039,7 +2075,9 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
     // size must be == 32 bytes
     if (packet->size() != 32)
     {
-        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcReceivedTransaction "
+              << "need 32 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -2200,7 +2238,9 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     // size must be == 32 bytes (256bit)
     if (packet->size() != 32)
     {
-        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcReceivedTransaction "
+              << "need 32 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
