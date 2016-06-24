@@ -1343,7 +1343,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 104)
+    if (packet->size() != 124)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
         return false;
@@ -1398,7 +1398,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount*m_COIN;
-        fee = m_COIN * minTxFee(usedInTx.size(), 3) / XBridgeTransactionDescr::COIN;
+        fee = m_COIN * minTxFee(usedInTx.size(), taxAmount > 0 ? 3 : 2) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
@@ -1435,7 +1435,10 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 
     // outputs
     tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
-    tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
+    if (taxAmount)
+    {
+        tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
+    }
 
     LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount) / m_COIN;
 
