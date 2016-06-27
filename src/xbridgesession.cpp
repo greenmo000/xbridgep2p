@@ -1410,7 +1410,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     }
 
     boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
-    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount)*tax/100000/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
     boost::uint64_t inAmount  = 0;
