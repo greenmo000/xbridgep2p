@@ -68,7 +68,8 @@ private slots:
 private:
     void onTransactionReceived(const XBridgeTransactionDescr & tx);
     void onTransactionIdChanged(const uint256 & id, const uint256 & newid);
-    void onTransactionStateChanged(const uint256 & id, const unsigned int state);
+    void onTransactionStateChanged(const uint256 & id, const uint32_t state);
+    void onTransactionCancelled(const uint256 & id, const uint32_t state, const uint32_t reason);
 
     QString transactionState(const XBridgeTransactionDescr::State state) const;
 

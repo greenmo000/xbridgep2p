@@ -1218,7 +1218,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     if (inAmount < outAmount+fee+taxAmount)
     {
         // no money, cancel transaction
-        sendCancelTransaction(id);
+        sendCancelTransaction(id, crNoMoney);
         return false;
     }
 
@@ -1253,7 +1253,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
+            sendCancelTransaction(id, crRpcError);
             return false;
         }
 
@@ -1271,7 +1271,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
     {
         // do not sign, cancel
-        sendCancelTransaction(id);
+        sendCancelTransaction(id, crNotSigned);
         return false;
     }
 
@@ -1307,7 +1307,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
+            sendCancelTransaction(id, crRpcError);
             return false;
         }
 
@@ -1435,7 +1435,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     if (inAmount < outAmount+fee+taxAmount)
     {
         // no money, cancel transaction
-        sendCancelTransaction(id);
+        sendCancelTransaction(id, crNoMoney);
         return false;
     }
 
@@ -1470,7 +1470,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
+            sendCancelTransaction(id, crRpcError);
             return false;
         }
 
@@ -1488,7 +1488,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
     {
         // do not sign, cancel
-        sendCancelTransaction(id);
+        sendCancelTransaction(id, crNotSigned);
         return false;
     }
 
@@ -1525,7 +1525,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
+            sendCancelTransaction(id, crRpcError);
             return false;
         }
 
@@ -1709,7 +1709,7 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
         if (txpay.nLockTime < LOCKTIME_THRESHOLD || txrev.nLockTime < LOCKTIME_THRESHOLD)
         {
             // not signed, cancel tx
-            sendCancelTransaction(txid);
+            sendCancelTransaction(txid, crNotSigned);
             return false;
         }
     }
@@ -1720,7 +1720,7 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
     if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, rawtxrev))
     {
         // do not sign, cancel
-        sendCancelTransaction(txid);
+        sendCancelTransaction(txid, crNotSigned);
         return false;
     }
 
@@ -1854,7 +1854,7 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
     if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->payTx))
     {
         // not commited....send cancel???
-        // sendCancelTransaction(id);
+        // sendCancelTransaction(id, crNotAccepted);
         return false;
     }
 
@@ -2072,31 +2072,23 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
 
-    // size must be == 32 bytes
-    if (packet->size() != 32)
+    // size must be == 36 bytes
+    if (packet->size() != 36)
     {
         ERR() << "invalid packet size for xbcReceivedTransaction "
-              << "need 32 received " << packet->size() << " "
+              << "need 36 received " << packet->size() << " "
               << __FUNCTION__;
         return false;
     }
 
     uint256 txid(packet->data());
+    TxCancelReason reason = static_cast<TxCancelReason>(*reinterpret_cast<uint32_t*>(packet->data() + 32));
 
     // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
     {
         e.deletePendingTransactions(txid);
-
-        // send cancel to clients
-        // XBridgeTransactionPtr tr = e.transaction(txid);
-        // if (tr->state() != XBridgeTransaction::trInvalid)
-        {
-            // boost::mutex::scoped_lock l(tr->m_lock);
-            // sendCancelTransaction(tr);
-            // sendCancelTransaction(txid);
-        }
     }
 
     XBridgeTransactionDescrPtr xtx;
@@ -2106,7 +2098,7 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // signal for gui
-            uiConnector.NotifyXBridgeTransactionStateChanged(txid, XBridgeTransactionDescr::trCancelled);
+            uiConnector.NotifyXBridgeTransactionCancelled(txid, XBridgeTransactionDescr::trCancelled, reason);
             return false;
         }
 
@@ -2161,34 +2153,21 @@ bool XBridgeSession::finishTransaction(XBridgeTransactionPtr tr)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::sendCancelTransaction(const uint256 & txid)
+bool XBridgeSession::sendCancelTransaction(const uint256 & txid,
+                                           const TxCancelReason & reason)
 {
     LOG() << "cancel transaction <" << txid.GetHex() << ">";
 
-    // if (tr->state() != XBridgeTransaction::trNew)
-    {
-        // std::vector<std::vector<unsigned char> > rcpts;
-        // rcpts.push_back(tr->firstAddress());
-        // rcpts.push_back(tr->firstDestination());
-        // rcpts.push_back(tr->secondAddress());
-        // rcpts.push_back(tr->secondDestination());
+    // TODO remove this log
+    // LOG() << "send xbcTransactionCancel to "
+    //       << util::base64_encode(std::string((char *)&to[0], 20));
 
-        // foreach (const std::vector<unsigned char> & to, rcpts)
-        {
-            // TODO remove this log
-            // LOG() << "send xbcTransactionCancel to "
-            //       << util::base64_encode(std::string((char *)&to[0], 20));
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
+    reply->append(txid.begin(), 32);
+    reply->append(static_cast<uint32_t>(reason));
 
-            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
-            // reply->append(to);
-            reply->append(txid.begin(), 32);
-
-            // sendPacket(to, reply);
-            sendPacketBroadcast(reply);
-        }
-    }
-
-    // tr->cancel();
+    // sendPacket(to, reply);
+    sendPacketBroadcast(reply);
 
     return true;
 }
@@ -2223,7 +2202,7 @@ bool XBridgeSession::rollbackTransaction(XBridgeTransactionPtr tr)
         sendPacket(to, reply);
     }
 
-    sendCancelTransaction(tr->id());
+    sendCancelTransaction(tr->id(), crRollback);
     tr->finish();
 
     return true;

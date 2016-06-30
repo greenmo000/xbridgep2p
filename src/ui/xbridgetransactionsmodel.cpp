@@ -26,6 +26,8 @@ XBridgeTransactionsModel::XBridgeTransactionsModel()
 
     uiConnector.NotifyXBridgeTransactionStateChanged.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionStateChanged, this, _1, _2));
+    uiConnector.NotifyXBridgeTransactionCancelled.connect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionCancelled, this, _1, _2, _3));
 
     uiConnector.NotifyXBridgeTransactionIdChanged.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
@@ -43,6 +45,9 @@ XBridgeTransactionsModel::~XBridgeTransactionsModel()
 
     uiConnector.NotifyXBridgeTransactionStateChanged.disconnect
             (boost::bind(&XBridgeTransactionsModel::onTransactionStateChanged, this, _1, _2));
+
+    uiConnector.NotifyXBridgeTransactionCancelled.disconnect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionCancelled, this, _1, _2, _3));
 
     uiConnector.NotifyXBridgeTransactionIdChanged.disconnect
             (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
@@ -258,7 +263,7 @@ bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
 //******************************************************************************
 bool XBridgeTransactionsModel::cancelTransaction(const uint256 & id)
 {
-    if (XBridgeApp::instance().cancelXBridgeTransaction(id))
+    if (XBridgeApp::instance().cancelXBridgeTransaction(id, crUserRequest))
     {
         for (unsigned int i = 0; i < m_transactions.size(); ++i)
         {
@@ -362,7 +367,7 @@ void XBridgeTransactionsModel::onTransactionIdChanged(const uint256 & id,
 //******************************************************************************
 //******************************************************************************
 void XBridgeTransactionsModel::onTransactionStateChanged(const uint256 & id,
-                                                         const unsigned int state)
+                                                         const uint32_t state)
 {
     for (unsigned int i = 0; i < m_transactions.size(); ++i)
     {
@@ -373,6 +378,28 @@ void XBridgeTransactionsModel::onTransactionStateChanged(const uint256 & id,
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
             return;
         }
+    }
+}
+
+//******************************************************************************
+//******************************************************************************
+void XBridgeTransactionsModel::onTransactionCancelled(const uint256 & id,
+                                                      const uint32_t state,
+                                                      const uint32_t reason)
+{
+    uint32_t i = 0;
+    for (XBridgeTransactionDescr & tx : m_transactions)
+    {
+        if (tx.id == id)
+        {
+            // found
+            tx.state = static_cast<XBridgeTransactionDescr::State>(state);
+            tx.reason = reason;
+            emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
+            return;
+        }
+
+        ++i;
     }
 }
 

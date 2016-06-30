@@ -62,8 +62,8 @@ public:
                                      const std::vector<unsigned char> & to);
     bool sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr);
 
-    bool cancelXBridgeTransaction(const uint256 & id);
-    bool sendCancelTransaction(const uint256 & txid);
+    bool cancelXBridgeTransaction(const uint256 & id, const TxCancelReason & reason);
+    bool sendCancelTransaction(const uint256 & txid, const TxCancelReason & reason);
 
     int peersCount() const;
 

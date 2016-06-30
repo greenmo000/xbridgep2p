@@ -204,7 +204,7 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
     if (amount < outAmount)
     {
         // no money, cancel transaction
-        sendCancelTransaction(id);
+        sendCancelTransaction(id, crNoMoney);
         return false;
     }
 
