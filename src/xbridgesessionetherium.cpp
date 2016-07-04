@@ -282,7 +282,7 @@ bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
     if (!rpc::eth_sign(m_address, m_port, m_walletAddress, rlptxrev, txsigned))
     {
         // not signed, cancel transaction
-        sendCancelTransaction(txid);
+        sendCancelTransaction(txid, crNotSigned);
         return false;
     }
 
