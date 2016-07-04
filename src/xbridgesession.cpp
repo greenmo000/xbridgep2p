@@ -688,17 +688,17 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
     uint256 id(packet->data());
 
     // TODO for debug
-    {
-        XBridgeTransactionDescr d;
-        d.id           = id;
-        d.fromCurrency = scurrency;
-        d.fromAmount   = samount;
-        d.toCurrency   = dcurrency;
-        d.toAmount     = damount;
-        d.state        = XBridgeTransactionDescr::trPending;
+//    {
+//        XBridgeTransactionDescr d;
+//        d.id           = id;
+//        d.fromCurrency = scurrency;
+//        d.fromAmount   = samount;
+//        d.toCurrency   = dcurrency;
+//        d.toAmount     = damount;
+//        d.state        = XBridgeTransactionDescr::trPending;
 
-        uiConnector.NotifyXBridgePendingTransactionReceived(d);
-    }
+//        uiConnector.NotifyXBridgePendingTransactionReceived(d);
+//    }
 
     LOG() << "received accepting transaction " << util::base64_encode(std::string((char *)id.begin(), 32)) << std::endl
           << "    from " << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
