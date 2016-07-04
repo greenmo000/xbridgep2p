@@ -116,7 +116,8 @@ protected:
     virtual bool processTransactionCancel(XBridgePacketPtr packet);
 
     virtual bool finishTransaction(XBridgeTransactionPtr tr);
-    virtual bool sendCancelTransaction(const uint256 & txid);
+    virtual bool sendCancelTransaction(const uint256 & txid,
+                                       const TxCancelReason & reason);
     virtual bool rollbackTransaction(XBridgeTransactionPtr tr);
     virtual bool revertXBridgeTransaction(const uint256 & id);
 

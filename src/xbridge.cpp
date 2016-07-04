@@ -103,10 +103,10 @@ void XBridge::stop()
     m_timerIo.stop();
     m_timerIoWork.reset();
 
-    for (IoServicePtr & i : m_services)
-    {
-        i->stop();
-    }
+//    for (IoServicePtr & i : m_services)
+//    {
+//        i->stop();
+//    }
     for (WorkPtr & i : m_works)
     {
         i.reset();

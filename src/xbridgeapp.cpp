@@ -1215,7 +1215,8 @@ bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id)
+bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id,
+                                          const TxCancelReason & reason)
 {
     {
         boost::mutex::scoped_lock l(m_txLocker);
@@ -1226,15 +1227,17 @@ bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id)
         }
     }
 
-    return sendCancelTransaction(id);
+    return sendCancelTransaction(id, reason);
 }
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeApp::sendCancelTransaction(const uint256 & txid)
+bool XBridgeApp::sendCancelTransaction(const uint256 & txid,
+                                       const TxCancelReason & reason)
 {
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
     reply->append(txid.begin(), 32);
+    reply->append(static_cast<uint32_t>(reason));
 
     onSend(std::vector<unsigned char>(), reply);
 

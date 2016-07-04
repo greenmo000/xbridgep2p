@@ -59,6 +59,7 @@ struct XBridgeTransactionDescr
     boost::uint32_t            lockTimeTx2;
 
     State                      state;
+    uint32_t                   reason;
 
     boost::posix_time::ptime   created;
     boost::posix_time::ptime   txtime;
@@ -72,6 +73,7 @@ struct XBridgeTransactionDescr
     XBridgeTransactionDescr()
         : tax(0)
         , state(trNew)
+        , reason(0)
         , created(boost::posix_time::second_clock::universal_time())
         , txtime(boost::posix_time::second_clock::universal_time())
         , lockTimeTx1(0)
