@@ -2,6 +2,7 @@
 //******************************************************************************
 
 #include "xbridgetransactionsmodel.h"
+#include "../xbridgetransaction.h"
 #include "../xbridgeapp.h"
 // #include "xbridgeconnector.h"
 
@@ -292,13 +293,13 @@ void XBridgeTransactionsModel::onTimer()
                 m_transactions[i].txtime;
 
         if (m_transactions[i].state == XBridgeTransactionDescr::trPending &&
-                td.total_seconds() > 60)
+                td.total_seconds() > XBridgeTransaction::TTL/10)
         {
             m_transactions[i].state = XBridgeTransactionDescr::trExpired;
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
         }
         else if (m_transactions[i].state == XBridgeTransactionDescr::trExpired &&
-                td.total_seconds() > 300)
+                td.total_seconds() > XBridgeTransaction::TTL)
         {
             emit beginRemoveRows(QModelIndex(), i, i);
             m_transactions.erase(m_transactions.begin()+i);
