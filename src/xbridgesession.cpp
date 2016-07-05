@@ -2182,8 +2182,8 @@ bool XBridgeSession::rollbackTransaction(XBridgeTransactionPtr tr)
 
     if (tr->state() >= XBridgeTransaction::trSigned)
     {
-        rcpts.push_back(tr->firstDestination());
-        rcpts.push_back(tr->secondDestination());
+        rcpts.push_back(tr->firstAddress());
+        rcpts.push_back(tr->secondAddress());
     }
 
     std::vector<std::vector<unsigned char> >::const_iterator i = rcpts.begin();
