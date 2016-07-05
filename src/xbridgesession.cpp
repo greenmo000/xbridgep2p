@@ -781,8 +781,8 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
         if (!XBridgeApp::m_pendingTransactions.count(id))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+            return true;
         }
 
         // remove from pending
@@ -1174,8 +1174,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(id))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[id];
@@ -1189,7 +1189,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
     {
         LOG() << "rpc::listUnspent failed" << __FUNCTION__;
-        return false;
+        return true;
     }
 
     boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
@@ -1219,7 +1219,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     {
         // no money, cancel transaction
         sendCancelTransaction(id, crNoMoney);
-        return false;
+        return true;
     }
 
     // create tx1, locked
@@ -1254,7 +1254,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         {
             // cancel transaction
             sendCancelTransaction(id, crRpcError);
-            return false;
+            return true;
         }
 
         LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxAmount) / m_COIN;
@@ -1272,7 +1272,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     {
         // do not sign, cancel
         sendCancelTransaction(id, crNotSigned);
-        return false;
+        return true;
     }
 
     tx1 = txFromString(signedTx1);
@@ -1308,7 +1308,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         {
             // cancel transaction
             sendCancelTransaction(id, crRpcError);
-            return false;
+            return true;
         }
 
         LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_COIN;
@@ -1391,8 +1391,8 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(id))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[id];
@@ -1406,7 +1406,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
     {
         LOG() << "rpc::listUnspent failed" << __FUNCTION__;
-        return false;
+        return true;
     }
 
     boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
@@ -1436,7 +1436,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     {
         // no money, cancel transaction
         sendCancelTransaction(id, crNoMoney);
-        return false;
+        return true;
     }
 
     // create tx1, locked
@@ -1471,7 +1471,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         {
             // cancel transaction
             sendCancelTransaction(id, crRpcError);
-            return false;
+            return true;
         }
 
         LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxAmount) / m_COIN;
@@ -1489,7 +1489,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     {
         // do not sign, cancel
         sendCancelTransaction(id, crNotSigned);
-        return false;
+        return true;
     }
 
     tx1 = txFromStringBTC(signedTx1);
@@ -1526,7 +1526,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         {
             // cancel transaction
             sendCancelTransaction(id, crRpcError);
-            return false;
+            return true;
         }
 
         LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_COIN;
@@ -1694,8 +1694,8 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -1710,7 +1710,7 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
         {
             // not signed, cancel tx
             sendCancelTransaction(txid, crNotSigned);
-            return false;
+            return true;
         }
     }
 
@@ -1721,7 +1721,7 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
     {
         // do not sign, cancel
         sendCancelTransaction(txid, crNotSigned);
-        return false;
+        return true;
     }
 
     xtx->state = XBridgeTransactionDescr::trSigned;
@@ -1840,8 +1840,8 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -1855,7 +1855,8 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
     {
         // not commited....send cancel???
         // sendCancelTransaction(id, crNotAccepted);
-        return false;
+        LOG() << "transaction not commited " << util::to_str(txid) << " " << __FUNCTION__;
+        return true;
     }
 
 //    uint256 walletTxId = (static_cast<CTransaction *>(&xtx->payTx))->GetHash();
@@ -1980,8 +1981,8 @@ bool XBridgeSession::processTransactionConfirm(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -2097,9 +2098,8 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 
         if (!XBridgeApp::m_transactions.count(txid))
         {
-            // signal for gui
-            uiConnector.NotifyXBridgeTransactionCancelled(txid, XBridgeTransactionDescr::trCancelled, reason);
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -2107,7 +2107,7 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 
     // update transaction state for gui
     xtx->state = XBridgeTransactionDescr::trCancelled;
-    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
+    uiConnector.NotifyXBridgeTransactionCancelled(txid, XBridgeTransactionDescr::trCancelled, reason);
 
     // ..and retranslate
     // sendPacketBroadcast(packet);
@@ -2562,7 +2562,7 @@ bool XBridgeSession::processTransactionFinished(XBridgePacketPtr packet)
         {
             // signal for gui
             uiConnector.NotifyXBridgeTransactionStateChanged(txid, XBridgeTransactionDescr::trFinished);
-            return false;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -2600,7 +2600,8 @@ bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
 
     if (!xtx)
     {
-        return false;
+        LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+        return true;
     }
 
     // rollback, commit revert transaction
@@ -2608,7 +2609,7 @@ bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
     {
         // not commited....send cancel???
         // sendCancelTransaction(id);
-        return false;
+        return true;
     }
 
     return true;
@@ -2638,8 +2639,8 @@ bool XBridgeSession::processTransactionRollback(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown tx
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
