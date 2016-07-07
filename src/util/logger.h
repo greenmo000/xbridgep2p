@@ -37,5 +37,4 @@ private:
     static std::string m_logFileName;
 };
 
-
 #endif // LOGGER_H
