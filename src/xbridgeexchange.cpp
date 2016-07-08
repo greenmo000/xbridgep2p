@@ -87,6 +87,7 @@ bool XBridgeExchange::init()
         }
 
         WalletParam & wp = m_wallets[*i];
+        wp.currency   = *i;
         wp.title      = label;
         wp.ip         = ip;
         wp.port       = port;
@@ -155,16 +156,34 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
         return false;
     }
 
-    const WalletParam & wp = m_wallets[sourceCurrency];
+    const WalletParam & wp  = m_wallets[sourceCurrency];
+    const WalletParam & wp2 = m_wallets[destCurrency];
+
+    // check amounts
+    {
+        if (wp.minAmount && wp.minAmount > sourceAmount)
+        {
+            LOG() << "tx "
+                  << util::base64_encode(std::string((char *)id.begin(), 32))
+                  << " rejected because sourceAmount less than minimum payment";
+            return false;
+        }
+        if (wp2.minAmount && wp2.minAmount > destAmount)
+        {
+            LOG() << "tx "
+                  << util::base64_encode(std::string((char *)id.begin(), 32))
+                  << " rejected because destAmount less than minimum payment";
+            return false;
+        }
+    }
+
 
     // calc tax percent
     uint32_t taxPercent = wp.fee;
     {
-        const WalletParam & wp2 = m_wallets[destCurrency];
-
         if (wp2.dustAmount)
         {
-            uint32_t dustPercent = 100 * wp2.dustAmount / destAmount;
+            uint32_t dustPercent = 100000 * wp2.dustAmount / destAmount;
             if (dustPercent > taxPercent)
             {
                 taxPercent = dustPercent;
