@@ -138,7 +138,8 @@ HEADERS += \
     src/crypter.h \
     src/base58.h \
     src/util/txlog.h \
-    src/xbridgesessionetherium.h
+    src/xbridgesessionetherium.h \
+    src/xbridgewallet.h
 
 #-------------------------------------------------
 !withoutgui {

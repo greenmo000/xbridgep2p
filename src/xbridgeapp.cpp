@@ -703,7 +703,7 @@ void XBridgeApp::dhtThreadProc()
                     {
                         // add to known
                         boost::mutex::scoped_lock l(m_messagesLock);
-                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                        m_processedMessages.insert(util::hash(message.begin(), message.end()));
 
                         // send to all local clients
                         {
@@ -737,6 +737,10 @@ void XBridgeApp::dhtThreadProc()
                                 ptr->takeXBridgeMessage(message);
 
                                 isFoundLocal = true;
+
+                                // add to known
+                                boost::mutex::scoped_lock l(m_messagesLock);
+                                m_processedMessages.insert(util::hash(message.begin(), message.end()));
                             }
                         }
 
@@ -748,7 +752,7 @@ void XBridgeApp::dhtThreadProc()
                             {
                                 // add to known
                                 boost::mutex::scoped_lock l(m_messagesLock);
-                                m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                                m_processedMessages.insert(util::hash(message.begin(), message.end()));
                             }
 
                             if (err != 0 && err != DHT_NETWORK_BUFFER_OWERFLOW)
@@ -997,6 +1001,15 @@ bool XBridgeApp::isKnownMessage(const std::vector<unsigned char> & message)
 {
     boost::mutex::scoped_lock l(m_messagesLock);
     return m_processedMessages.count(util::hash(message.begin(), message.end())) > 0;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::addToKnown(const std::vector<unsigned char> & message)
+{
+    // add to known
+    boost::mutex::scoped_lock l(m_messagesLock);
+    m_processedMessages.insert(util::hash(message.begin(), message.end()));
 }
 
 //*****************************************************************************

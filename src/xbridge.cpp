@@ -39,42 +39,40 @@ XBridge::XBridge()
             std::vector<std::string> wallets = s.exchangeWallets();
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
-                std::string label         = s.get<std::string>(*i + ".Title");
-                std::string address       = s.get<std::string>(*i + ".Address");
-                std::string ip            = s.get<std::string>(*i + ".Ip");
-                std::string port          = s.get<std::string>(*i + ".Port");
-                std::string user          = s.get<std::string>(*i + ".Username");
-                std::string passwd        = s.get<std::string>(*i + ".Password");
-                std::string prefix        = s.get<std::string>(*i + ".AddressPrefix");
-                boost::uint64_t COIN      = s.get<boost::uint64_t>(*i + ".COIN", 0);
-                boost::uint64_t minAmount = s.get<boost::uint64_t>(*i + ".MinimumAmount", 0);
+                WalletParam wp;
+                wp.currency   = *i;
+                wp.title      = s.get<std::string>(*i + ".Title");
+                wp.address    = s.get<std::string>(*i + ".Address");
+                wp.ip         = s.get<std::string>(*i + ".Ip");
+                wp.port       = s.get<std::string>(*i + ".Port");
+                wp.user       = s.get<std::string>(*i + ".Username");
+                wp.passwd     = s.get<std::string>(*i + ".Password");
+                wp.prefix     = s.get<std::string>(*i + ".AddressPrefix");
+                wp.COIN       = s.get<uint64_t>(*i + ".COIN", 0);
+                wp.minAmount  = s.get<uint64_t>(*i + ".MinimumAmount", 0);
+                wp.dustAmount = s.get<uint64_t>(*i + ".DustAmount", 0);
 
-                if (ip.empty() || port.empty() ||
-                    user.empty() || passwd.empty() ||
-                    prefix.empty() || COIN == 0)
+                if (wp.ip.empty() || wp.port.empty() ||
+                    wp.user.empty() || wp.passwd.empty() ||
+                    wp.prefix.empty() || wp.COIN == 0)
                 {
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
                 }
                 else
                 {
-                    LOG() << "read wallet " << *i << " [" << label << "] " << ip << ":" << port << " COIN=" << COIN;
+                    LOG() << "read wallet " << *i << " [" << wp.title << "] " << wp.ip
+                          << ":" << wp.port << " COIN=" << wp.COIN;
                 }
 
                 XBridgeSessionPtr session;
                 if (*i != "ETHER")
                 {
-                    session.reset(new XBridgeSession(*i, address,
-                                                     ip, port,
-                                                     user, passwd,
-                                                     prefix, COIN, minAmount));
+                    session.reset(new XBridgeSession(wp));
                 }
                 else
                 {
-                    session.reset(new XBridgeSessionEtherium(*i, address,
-                                                             ip, port,
-                                                             user, passwd,
-                                                             prefix, COIN, minAmount));
+                    session.reset(new XBridgeSessionEtherium(wp));
                 }
                 app.addSession(session);
                 // session->requestAddressBook();

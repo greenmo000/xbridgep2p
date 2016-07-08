@@ -89,6 +89,7 @@ public:
 
     bool isLocalAddress(const std::vector<unsigned char> & id);
     bool isKnownMessage(const std::vector<unsigned char> & message);
+    void addToKnown(const std::vector<unsigned char> & message);
 
 public:// slots:
     // generate new id

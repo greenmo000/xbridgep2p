@@ -6,6 +6,7 @@
 
 #include "util/uint256.h"
 #include "xbridgetransaction.h"
+#include "xbridgewallet.h"
 
 #include <string>
 #include <set>
@@ -18,20 +19,6 @@
 //*****************************************************************************
 //*****************************************************************************
 typedef std::pair<std::string, std::string> StringPair;
-
-//*****************************************************************************
-//*****************************************************************************
-struct WalletParam
-{
-    std::string                title;
-    std::vector<unsigned char> address;
-    std::string                ip;
-    std::string                port;
-    std::string                user;
-    std::string                passwd;
-    std::vector<unsigned char> feeaddr;
-    unsigned int               fee;
-};
 
 //*****************************************************************************
 //*****************************************************************************
@@ -50,7 +37,7 @@ public:
     bool isEnabled();
     bool haveConnectedWallet(const std::string & walletName);
 
-    std::vector<unsigned char> walletAddress(const std::string & walletName);
+    // std::vector<unsigned char> walletAddress(const std::string & walletName);
 
     bool createTransaction(const uint256 & id,
                            const std::vector<unsigned char> & sourceAddr,
