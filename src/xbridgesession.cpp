@@ -997,14 +997,14 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
                   << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
 
             // send xbcTransactionCreate
-            // with nLockTime == TTL*2 for first client,
-            // with nLockTime == TTL*4 for second
+            // with nLockTime == lockTime*2 for first client,
+            // with nLockTime == lockTime*4 for second
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionCreate));
             reply1->append(tr->firstAddress());
             reply1->append(sessionAddr(), 20);
             reply1->append(id.begin(), 32);
             reply1->append(tr->secondDestination());
-            reply1->append((uint32_t)(XBridgeTransaction::TTL * 2));
+            reply1->append((uint32_t)(XBridgeTransaction::lockTime * 2));
             reply1->append((uint32_t)24*60*60);
             reply1->append(tr->firstTaxAddress());
             // reply1->append(tr->tax());
@@ -1022,7 +1022,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(sessionAddr(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(tr->firstDestination());
-            reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
+            reply2->append((boost::uint32_t)(XBridgeTransaction::lockTime * 4));
             reply2->append((boost::uint32_t)48*60*60);
             reply2->append(tr->secondTaxAddress());
             reply2->append(tr->tax());
