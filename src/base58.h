@@ -273,7 +273,7 @@ public:
     bool operator()(const CNoDestination &no) const;
 };
 
-bool fTestNet = false;
+#define fTestNet false
 
 class CBitcoinAddress : public CBase58Data
 {

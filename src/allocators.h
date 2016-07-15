@@ -16,7 +16,7 @@
 #undef _WIN32_WINNT
 #endif
 #define _WIN32_WINNT 0x0501
-#define WIN32_LEAN_AND_MEAN 1
+#define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -144,7 +144,7 @@ public:
     bool Lock(const void *addr, size_t len)
     {
 #ifdef WIN32
-        return VirtualLock(const_cast<void*>(addr), len);
+        return VirtualLock(const_cast<void*>(addr), len) > 0;
 #else
         return mlock(addr, len) == 0;
 #endif
@@ -155,7 +155,7 @@ public:
     bool Unlock(const void *addr, size_t len)
     {
 #ifdef WIN32
-        return VirtualUnlock(const_cast<void*>(addr), len);
+        return VirtualUnlock(const_cast<void*>(addr), len) > 0;
 #else
         return munlock(addr, len) == 0;
 #endif

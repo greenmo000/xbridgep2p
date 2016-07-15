@@ -6,6 +6,7 @@
 
 #include "uint256.h"
 #include "../serialize.h"
+#include "logger.h"
 
 #include <string>
 
@@ -30,6 +31,8 @@ namespace util
     std::string base64_encode(const std::vector<unsigned char> & s);
     std::string base64_encode(const std::string & s);
     std::string base64_decode(const std::string & s);
+
+    std::string to_str(const uint256 & obj);
 
     // TODO implement
     // std::vector<unsigned char> strToAddress(const std::string & addr);

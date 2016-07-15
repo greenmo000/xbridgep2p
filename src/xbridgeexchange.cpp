@@ -46,12 +46,15 @@ bool XBridgeExchange::init()
     std::vector<std::string> wallets = s.exchangeWallets();
     for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
     {
-        std::string label   = s.get<std::string>(*i + ".Title");
-        std::string address = s.get<std::string>(*i + ".Address");
-        std::string ip      = s.get<std::string>(*i + ".Ip");
-        std::string port    = s.get<std::string>(*i + ".Port");
-        std::string user    = s.get<std::string>(*i + ".Username");
-        std::string passwd  = s.get<std::string>(*i + ".Password");
+        std::string label      = s.get<std::string>(*i + ".Title");
+        std::string address    = s.get<std::string>(*i + ".Address");
+        std::string ip         = s.get<std::string>(*i + ".Ip");
+        std::string port       = s.get<std::string>(*i + ".Port");
+        std::string user       = s.get<std::string>(*i + ".Username");
+        std::string passwd     = s.get<std::string>(*i + ".Password");
+        uint64_t    minAmount  = s.get<uint64_t>(*i + ".MinimumAmount", 0);
+        uint64_t    dustAmount = s.get<uint64_t>(*i + ".DustAmount", 0);
+
 
         if (/*address.empty() || */ip.empty() || port.empty() ||
                 user.empty() || passwd.empty())
@@ -83,13 +86,16 @@ bool XBridgeExchange::init()
             continue;
         }
 
-        m_wallets[*i].title   = label;
-        m_wallets[*i].ip      = ip;
-        m_wallets[*i].port    = port;
-        m_wallets[*i].user    = user;
-        m_wallets[*i].passwd  = passwd;
-
-        m_wallets[*i].fee     = s.exchangeTax();
+        WalletParam & wp = m_wallets[*i];
+        wp.currency   = *i;
+        wp.title      = label;
+        wp.ip         = ip;
+        wp.port       = port;
+        wp.user       = user;
+        wp.passwd     = passwd;
+        wp.fee        = s.exchangeTax();
+        wp.minAmount  = minAmount;
+        wp.dustAmount = dustAmount;
 
         LOG() << "read wallet " << *i << " \"" << label << "\" address <" << address << ">";
     }
@@ -118,17 +124,17 @@ bool XBridgeExchange::haveConnectedWallet(const std::string & walletName)
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeExchange::walletAddress(const std::string & walletName)
-{
-    if (!m_wallets.count(walletName))
-    {
-        ERR() << "reqyest address for unknown wallet <" << walletName
-              << ">" << __FUNCTION__;
-        return std::vector<unsigned char>();
-    }
+//std::vector<unsigned char> XBridgeExchange::walletAddress(const std::string & walletName)
+//{
+//    if (!m_wallets.count(walletName))
+//    {
+//        ERR() << "reqyest address for unknown wallet <" << walletName
+//              << ">" << __FUNCTION__;
+//        return std::vector<unsigned char>();
+//    }
 
-    return m_wallets[walletName].address;
-}
+//    return m_wallets[walletName].address;
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -150,14 +156,47 @@ bool XBridgeExchange::createTransaction(const uint256 & id,
         return false;
     }
 
-    const WalletParam & wp = m_wallets[sourceCurrency];
+    const WalletParam & wp  = m_wallets[sourceCurrency];
+    const WalletParam & wp2 = m_wallets[destCurrency];
+
+    // check amounts
+    {
+        if (wp.minAmount && wp.minAmount > sourceAmount)
+        {
+            LOG() << "tx "
+                  << util::base64_encode(std::string((char *)id.begin(), 32))
+                  << " rejected because sourceAmount less than minimum payment";
+            return false;
+        }
+        if (wp2.minAmount && wp2.minAmount > destAmount)
+        {
+            LOG() << "tx "
+                  << util::base64_encode(std::string((char *)id.begin(), 32))
+                  << " rejected because destAmount less than minimum payment";
+            return false;
+        }
+    }
+
+
+    // calc tax percent
+    uint32_t taxPercent = wp.fee;
+    {
+        if (wp2.dustAmount)
+        {
+            uint32_t dustPercent = 100000 * wp2.dustAmount / destAmount;
+            if (dustPercent > taxPercent)
+            {
+                taxPercent = dustPercent;
+            }
+        }
+    }
 
     XBridgeTransactionPtr tr(new XBridgeTransaction(id,
                                                     sourceAddr, sourceCurrency,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
                                                     destAmount,
-                                                    wp.fee, wp.feeaddr));
+                                                    taxPercent, wp.feeaddr));
 
     LOG() << tr->hash1().ToString();
     LOG() << tr->hash2().ToString();
@@ -228,6 +267,8 @@ bool XBridgeExchange::acceptTransaction(const uint256 & id,
                                                     destAmount,
                                                     wp.fee, wp.feeaddr));
 
+    transactionId = id;
+
     LOG() << tr->hash1().ToString();
     LOG() << tr->hash2().ToString();
 
@@ -286,9 +327,6 @@ bool XBridgeExchange::acceptTransaction(const uint256 & id,
 
     if (tmp)
     {
-        // new transaction id
-        transactionId = tmp->id();
-
         // move to transactions
         {
             boost::mutex::scoped_lock l(m_transactionsLock);
@@ -299,6 +337,7 @@ bool XBridgeExchange::acceptTransaction(const uint256 & id,
             m_pendingTransactions.erase(h);
         }
 
+        transactionId = tmp->id();
     }
 
     return true;

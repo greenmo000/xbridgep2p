@@ -27,7 +27,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256 & id,
                                        const std::vector<unsigned char> & destAddr,
                                        const std::string & destCurrency,
                                        const boost::uint64_t & destAmount,
-                                       const uint64_t & tax,
+                                       const uint32_t & tax,
                                        const std::vector<unsigned char> & taxAddress)
     : m_id(id)
     , m_created(boost::posix_time::second_clock::universal_time())
@@ -234,7 +234,11 @@ bool XBridgeTransaction::isValid() const
 bool XBridgeTransaction::isExpired() const
 {
     boost::posix_time::time_duration td = boost::posix_time::second_clock::universal_time() - m_created;
-    if (td.total_seconds() > TTL)
+    if (m_state == trNew && td.total_seconds() > pendingTTL)
+    {
+        return true;
+    }
+    if (m_state > trNew && td.total_seconds() > TTL)
     {
         return true;
     }
@@ -303,10 +307,10 @@ uint256 XBridgeTransaction::hash2() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint256 XBridgeTransaction::firstId() const
-{
-    return m_first.id();
-}
+//uint256 XBridgeTransaction::firstId() const
+//{
+//    return m_first.id();
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -359,10 +363,10 @@ uint256 XBridgeTransaction::firstTxHash() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint256 XBridgeTransaction::secondId() const
-{
-    return m_second.id();
-}
+//uint256 XBridgeTransaction::secondId() const
+//{
+//    return m_second.id();
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -451,7 +455,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     {
         // not same currencies
         ERR() << "not same currencies. transaction not joined" << __FUNCTION__;
-        // assert(false || "not same currencies. transaction not joined");
         return false;
     }
 
@@ -460,7 +463,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     {
         // not same currencies
         ERR() << "not same amount. transaction not joined" << __FUNCTION__;
-        // assert(false || "not same amount. transaction not joined");
         return false;
     }
 
@@ -473,8 +475,8 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
     m_secondTaxAddress = other->m_firstTaxAddress;
 
     // generate new id
-    m_id = util::hash(BEGIN(m_id), END(m_id),
-                      BEGIN(other->m_id), END(other->m_id));
+//    m_id = util::hash(BEGIN(m_id), END(m_id),
+//                      BEGIN(other->m_id), END(other->m_id));
 
     m_state = trJoined;
 
@@ -503,7 +505,6 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 //    }
 
 //    // wtf?
-//    assert(false || "unknown address for this transaction");
 //    ERR() << "unknown address for this transaction " << __FUNCTION__;
 //    return std::vector<unsigned char>();
 //}

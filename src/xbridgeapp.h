@@ -62,8 +62,8 @@ public:
                                      const std::vector<unsigned char> & to);
     bool sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr);
 
-    bool cancelXBridgeTransaction(const uint256 & id);
-    bool sendCancelTransaction(const uint256 & txid);
+    bool cancelXBridgeTransaction(const uint256 & id, const TxCancelReason & reason);
+    bool sendCancelTransaction(const uint256 & txid, const TxCancelReason & reason);
 
     int peersCount() const;
 
@@ -89,6 +89,7 @@ public:
 
     bool isLocalAddress(const std::vector<unsigned char> & id);
     bool isKnownMessage(const std::vector<unsigned char> & message);
+    void addToKnown(const std::vector<unsigned char> & message);
 
 public:// slots:
     // generate new id
@@ -115,6 +116,8 @@ public:// slots:
     void getAddressBook();
 
     void checkUnconfirmedTx();
+
+    XBridgeSessionPtr serviceSession();
 
 public:
     static void sleep(const unsigned int umilliseconds);
@@ -161,6 +164,10 @@ private:
     SessionIdMap m_sessionIds;
     typedef std::queue<XBridgeSessionPtr> SessionQueue;
     SessionQueue m_sessionQueue;
+
+    // service session
+    XBridgeSessionPtr m_serviceSession;
+
 
     boost::mutex m_messagesLock;
     typedef std::set<uint256> ProcessedMessages;

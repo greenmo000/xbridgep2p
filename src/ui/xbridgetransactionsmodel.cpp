@@ -2,6 +2,7 @@
 //******************************************************************************
 
 #include "xbridgetransactionsmodel.h"
+#include "../xbridgetransaction.h"
 #include "../xbridgeapp.h"
 // #include "xbridgeconnector.h"
 
@@ -26,6 +27,8 @@ XBridgeTransactionsModel::XBridgeTransactionsModel()
 
     uiConnector.NotifyXBridgeTransactionStateChanged.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionStateChanged, this, _1, _2));
+    uiConnector.NotifyXBridgeTransactionCancelled.connect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionCancelled, this, _1, _2, _3));
 
     uiConnector.NotifyXBridgeTransactionIdChanged.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
@@ -43,6 +46,9 @@ XBridgeTransactionsModel::~XBridgeTransactionsModel()
 
     uiConnector.NotifyXBridgeTransactionStateChanged.disconnect
             (boost::bind(&XBridgeTransactionsModel::onTransactionStateChanged, this, _1, _2));
+
+    uiConnector.NotifyXBridgeTransactionCancelled.disconnect
+            (boost::bind(&XBridgeTransactionsModel::onTransactionCancelled, this, _1, _2, _3));
 
     uiConnector.NotifyXBridgeTransactionIdChanged.disconnect
             (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
@@ -79,7 +85,7 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
         return QVariant();
     }
 
-    if (idx.row() < 0 || idx.row() >= m_transactions.size())
+    if (idx.row() < 0 || idx.row() >= static_cast<int>(m_transactions.size()))
     {
         return QVariant();
     }
@@ -258,7 +264,7 @@ bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
 //******************************************************************************
 bool XBridgeTransactionsModel::cancelTransaction(const uint256 & id)
 {
-    if (XBridgeApp::instance().cancelXBridgeTransaction(id))
+    if (XBridgeApp::instance().cancelXBridgeTransaction(id, crUserRequest))
     {
         for (unsigned int i = 0; i < m_transactions.size(); ++i)
         {
@@ -287,13 +293,13 @@ void XBridgeTransactionsModel::onTimer()
                 m_transactions[i].txtime;
 
         if (m_transactions[i].state == XBridgeTransactionDescr::trPending &&
-                td.total_seconds() > 60)
+                td.total_seconds() > XBridgeTransaction::TTL/10)
         {
             m_transactions[i].state = XBridgeTransactionDescr::trExpired;
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
         }
         else if (m_transactions[i].state == XBridgeTransactionDescr::trExpired &&
-                td.total_seconds() > 300)
+                td.total_seconds() > XBridgeTransaction::TTL)
         {
             emit beginRemoveRows(QModelIndex(), i, i);
             m_transactions.erase(m_transactions.begin()+i);
@@ -362,7 +368,7 @@ void XBridgeTransactionsModel::onTransactionIdChanged(const uint256 & id,
 //******************************************************************************
 //******************************************************************************
 void XBridgeTransactionsModel::onTransactionStateChanged(const uint256 & id,
-                                                         const unsigned int state)
+                                                         const uint32_t state)
 {
     for (unsigned int i = 0; i < m_transactions.size(); ++i)
     {
@@ -373,6 +379,28 @@ void XBridgeTransactionsModel::onTransactionStateChanged(const uint256 & id,
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
             return;
         }
+    }
+}
+
+//******************************************************************************
+//******************************************************************************
+void XBridgeTransactionsModel::onTransactionCancelled(const uint256 & id,
+                                                      const uint32_t state,
+                                                      const uint32_t reason)
+{
+    uint32_t i = 0;
+    for (XBridgeTransactionDescr & tx : m_transactions)
+    {
+        if (tx.id == id)
+        {
+            // found
+            tx.state = static_cast<XBridgeTransactionDescr::State>(state);
+            tx.reason = reason;
+            emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
+            return;
+        }
+
+        ++i;
     }
 }
 

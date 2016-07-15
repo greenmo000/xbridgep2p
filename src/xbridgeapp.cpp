@@ -60,6 +60,7 @@ XBridgeApp::XBridgeApp()
     , m_ipv4(true)
     , m_ipv6(true)
     , m_dhtPort(Config::DHT_PORT)
+    , m_serviceSession(new XBridgeSession)
 {
 }
 
@@ -326,12 +327,18 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
         // ptr->sendXBridgeMessage(message);
     }
 
+    // check service session
+    else if (memcmp(m_serviceSession->sessionAddr(), &id[0], 20) == 0)
+    {
+        serviceSession()->processPacket(packet);
+    }
+
     // check local address
     else if (id == localid)
     {
         // process packet
-        XBridgeSessionPtr ptr(new XBridgeSession);
-        ptr->processPacket(packet);
+        // XBridgeSessionPtr ptr(new XBridgeSession);
+        serviceSession()->processPacket(packet);
     }
 
     else
@@ -339,6 +346,32 @@ void XBridgeApp::onMessageReceived(const UcharVector & id, const UcharVector & m
         LOG() << "process message for unknown address";
     }
 }
+
+//*****************************************************************************
+//*****************************************************************************
+XBridgeSessionPtr XBridgeApp::serviceSession()
+{
+    return m_serviceSession;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+//XBridgeSessionPtr XBridgeApp::queuedSession()
+//{
+//    // XBridgeSessionPtr ptr(new XBridgeSession);
+//    XBridgeSessionPtr ptr = m_sessionQueue.front();
+
+//    {
+//        // TODO ????
+//        // or process all packets in first session?
+//        // or create service session?
+//        boost::mutex::scoped_lock l(m_sessionsLock);
+//        m_sessionQueue.push(m_sessionQueue.front());
+//        m_sessionQueue.pop();
+//    }
+
+//    return ptr;
+//}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -350,15 +383,16 @@ void XBridgeApp::onBroadcastReceived(const std::vector<unsigned char> & message)
     XBridgePacketPtr packet(new XBridgePacket);
     packet->copyFrom(message);
 
-    // XBridgeSessionPtr ptr(new XBridgeSession);
-    m_sessionQueue.front()->processPacket(packet);
+    LOG() << "broadcast message, command " << packet->command();
 
-    // TODO ????
-    // or process all packets in first session?
-    // or create service session?
-    boost::mutex::scoped_lock l(m_sessionsLock);
-    m_sessionQueue.push(m_sessionQueue.front());
-    m_sessionQueue.pop();
+    if (!XBridgeSession::checkXBridgePacketVersion(packet))
+    {
+        ERR() << "incorrect protocol version <" << packet->version() << "> " << __FUNCTION__;
+        return;
+    }
+
+    // XBridgeSessionPtr ptr(new XBridgeSession);
+    serviceSession()->processPacket(packet);
 }
 
 //*****************************************************************************
@@ -488,7 +522,7 @@ void XBridgeApp::dhtThreadProc()
         return;
     }
 
-    rc = dht_init(s4, s6, m_myid, (unsigned char*)"BT\0\0");
+    rc = dht_init(s4, s6, m_myid);
     if (rc < 0)
     {
         LOG() << "dht_init error";
@@ -669,7 +703,7 @@ void XBridgeApp::dhtThreadProc()
                     {
                         // add to known
                         boost::mutex::scoped_lock l(m_messagesLock);
-                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                        m_processedMessages.insert(util::hash(message.begin(), message.end()));
 
                         // send to all local clients
                         {
@@ -680,7 +714,7 @@ void XBridgeApp::dhtThreadProc()
                                 XBridgeSessionPtr s = std::get<1>(*i);
                                 if ((from.size() != 20) || (memcmp(s->sessionAddr(), &from[0], 20) != 0))
                                 {
-                                    s->sendXBridgeMessage(message);
+                                    s->takeXBridgeMessage(message);
                                 }
                             }
                         }
@@ -700,9 +734,13 @@ void XBridgeApp::dhtThreadProc()
                             {
                                 // found local client
                                 XBridgeSessionPtr ptr = m_sessionAddrs[id];
-                                ptr->sendXBridgeMessage(message);
+                                ptr->takeXBridgeMessage(message);
 
                                 isFoundLocal = true;
+
+                                // add to known
+                                boost::mutex::scoped_lock l(m_messagesLock);
+                                m_processedMessages.insert(util::hash(message.begin(), message.end()));
                             }
                         }
 
@@ -714,7 +752,7 @@ void XBridgeApp::dhtThreadProc()
                             {
                                 // add to known
                                 boost::mutex::scoped_lock l(m_messagesLock);
-                                m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                                m_processedMessages.insert(util::hash(message.begin(), message.end()));
                             }
 
                             if (err != 0 && err != DHT_NETWORK_BUFFER_OWERFLOW)
@@ -941,6 +979,12 @@ bool XBridgeApp::isLocalAddress(const std::vector<unsigned char> & id)
         return true;
     }
 
+    // check service session address
+    else if (memcmp(m_serviceSession->sessionAddr(), &id[0], 20) == 0)
+    {
+        return true;
+    }
+
     // check local address
     else if (id == localid)
     {
@@ -957,6 +1001,15 @@ bool XBridgeApp::isKnownMessage(const std::vector<unsigned char> & message)
 {
     boost::mutex::scoped_lock l(m_messagesLock);
     return m_processedMessages.count(util::hash(message.begin(), message.end())) > 0;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::addToKnown(const std::vector<unsigned char> & message)
+{
+    // add to known
+    boost::mutex::scoped_lock l(m_messagesLock);
+    m_processedMessages.insert(util::hash(message.begin(), message.end()));
 }
 
 //*****************************************************************************
@@ -1028,7 +1081,7 @@ uint256 XBridgeApp::sendXBridgeTransaction(const std::vector<unsigned char> & fr
 {
     if (fromCurrency.size() > 8 || toCurrency.size() > 8)
     {
-        assert(false || "invalid currency");
+        assert(false && "invalid currency");
         return uint256();
     }
 
@@ -1067,6 +1120,18 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 {
     // if (!ptr->packet)
     {
+        if (ptr->from.size() == 0 || ptr->to.size() == 0)
+        {
+            // TODO temporary
+            return false;
+        }
+
+        if (ptr->packet && ptr->packet->command() != xbcTransaction)
+        {
+            // not send pending packets if not an xbcTransaction
+            return true;
+        }
+
         ptr->packet.reset(new XBridgePacket(xbcTransaction));
 
         // field length must be 8 bytes
@@ -1077,11 +1142,11 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
         std::vector<unsigned char> tc(8, 0);
         std::copy(ptr->toCurrency.begin(), ptr->toCurrency.end(), tc.begin());
 
-        // 20 bytes - id of transaction
+        // 32 bytes - id of transaction
         // 2x
         // 20 bytes - address
         //  8 bytes - currency
-        //  4 bytes - amount
+        //  8 bytes - amount
         ptr->packet->append(ptr->id.begin(), 32);
         ptr->packet->append(ptr->from);
         ptr->packet->append(fc);
@@ -1163,7 +1228,8 @@ bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id)
+bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id,
+                                          const TxCancelReason & reason)
 {
     {
         boost::mutex::scoped_lock l(m_txLocker);
@@ -1174,15 +1240,17 @@ bool XBridgeApp::cancelXBridgeTransaction(const uint256 & id)
         }
     }
 
-    return sendCancelTransaction(id);
+    return sendCancelTransaction(id, reason);
 }
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeApp::sendCancelTransaction(const uint256 & txid)
+bool XBridgeApp::sendCancelTransaction(const uint256 & txid,
+                                       const TxCancelReason & reason)
 {
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
     reply->append(txid.begin(), 32);
+    reply->append(static_cast<uint32_t>(reason));
 
     onSend(std::vector<unsigned char>(), reply);
 

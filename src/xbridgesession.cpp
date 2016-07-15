@@ -52,37 +52,38 @@ XBridgeSession::XBridgeSession()
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeSession::XBridgeSession(const std::string & currency,
-                               const std::string & address,
-                               const std::string & port,
-                               const std::string & user,
-                               const std::string & passwd,
-                               const std::string & prefix,
-                               const boost::uint64_t & COIN,
-                               const uint64_t & minAmount)
-    : m_currency(currency)
-    , m_address(address)
-    , m_port(port)
-    , m_user(user)
-    , m_passwd(passwd)
-    , m_prefix(prefix)
-    , m_COIN(COIN)
-    , m_minAmount(minAmount)
+XBridgeSession::XBridgeSession(const WalletParam & wallet)
+    : m_wallet(wallet)
+//    , m_currency(wallet)
+//    , m_walletAddress(walletAddress)
+//    , m_address(address)
+//    , m_port(port)
+//    , m_user(user)
+//    , m_passwd(passwd)
+//    , m_prefix(prefix)
+//    , m_COIN(COIN)
+//    , m_minAmount(minAmount)
 {
     init();
 }
 
 //*****************************************************************************
 //*****************************************************************************
+XBridgeSession::~XBridgeSession()
+{
+
+}
+
+//*****************************************************************************
+//*****************************************************************************
 void XBridgeSession::init()
 {
+    assert(!m_processors.size());
+
     dht_random_bytes(m_myid, sizeof(m_myid));
-    LOG() << "session <" << m_currency << "> generated id <"
+    LOG() << "session <" << m_wallet.currency << "> generated id <"
              << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
              << ">";
-
-
-    assert(!m_processors.size());
 
     // process invalid
     m_processors[xbcInvalid]               .bind(this, &XBridgeSession::processInvalid);
@@ -108,7 +109,7 @@ void XBridgeSession::init()
         m_processors[xbcTransactionInit]       .bind(this, &XBridgeSession::processTransactionInit);
         m_processors[xbcTransactionInitialized].bind(this, &XBridgeSession::processTransactionInitialized);
 
-        if (m_currency == "BTC")
+        if (m_wallet.currency == "BTC")
         {
             m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSession::processTransactionCreateBTC);
         }
@@ -405,7 +406,9 @@ bool XBridgeSession::processAnnounceAddresses(XBridgePacketPtr packet)
     // size must be 20 bytes (160bit)
     if (packet->size() != 20)
     {
-        ERR() << "invalid packet size for xbcAnnounceAddresses " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcAnnounceAddresses "
+              << "need 20 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -444,7 +447,7 @@ bool XBridgeSession::sendXBridgeMessage(XBridgePacketPtr packet)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::sendXBridgeMessage(const std::vector<unsigned char> & message)
+bool XBridgeSession::takeXBridgeMessage(const std::vector<unsigned char> & message)
 {
     // DEBUG_TRACE();
 
@@ -466,7 +469,9 @@ bool XBridgeSession::processXChatMessage(XBridgePacketPtr packet)
     // size must be > 20 bytes (160bit)
     if (packet->size() <= 20)
     {
-        ERR() << "invalid packet size for xbcXChatMessage " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcXChatMessage "
+              << "need more than 20 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -496,21 +501,23 @@ void XBridgeSession::sendPacketBroadcast(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 {
+    // check and process packet if bridge is exchange
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        return true;
+    }
+
     // DEBUG_TRACE();
     DEBUG_TRACE_LOG(currencyToLog());
 
     // size must be 104 bytes
     if (packet->size() != 104)
     {
-        ERR() << "invalid packet size for xbcTransaction " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransaction "
+              << "need 104 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
-    }
-
-    // check and process packet if bridge is exchange
-    XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
     }
 
     // source
@@ -593,18 +600,20 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 //******************************************************************************
 bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE_LOG(currencyToLog());
-
-    if (packet->size() != 88)
-    {
-        ERR() << "incorrect packet size for xbcPendingTransaction " << __FUNCTION__;
-        return false;
-    }
-
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
     {
         return true;
+    }
+
+    DEBUG_TRACE_LOG(currencyToLog());
+
+    if (packet->size() != 88)
+    {
+        ERR() << "incorrect packet size for xbcPendingTransaction "
+              << "need 88 received " << packet->size() << " "
+              << __FUNCTION__;
+        return false;
     }
 
     XBridgeTransactionDescrPtr ptr(new XBridgeTransactionDescr);
@@ -619,7 +628,16 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
-        XBridgeApp::m_pendingTransactions[ptr->id] = ptr;
+        if (!XBridgeApp::m_pendingTransactions.count(ptr->id))
+        {
+            // new transaction, copy data
+            XBridgeApp::m_pendingTransactions[ptr->id] = ptr;
+        }
+        else
+        {
+            // existing, update timestamp
+            XBridgeApp::m_pendingTransactions[ptr->id]->updateTimestamp(*ptr);
+        }
     }
 
     uiConnector.NotifyXBridgePendingTransactionReceived(*ptr);
@@ -631,20 +649,22 @@ bool XBridgeSession::processPendingTransaction(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
 {
-    // DEBUG_TRACE();
-    DEBUG_TRACE_LOG(currencyToLog());
-
-    if (packet->size() != 124)
-    {
-        ERR() << "invalid packet size for xbcTransactionAccepting " << __FUNCTION__;
-        return false;
-    }
-
     // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     if (!e.isEnabled())
     {
         return true;
+    }
+
+    // DEBUG_TRACE();
+    DEBUG_TRACE_LOG(currencyToLog());
+
+    if (packet->size() != 124)
+    {
+        ERR() << "invalid packet size for xbcTransactionAccepting "
+              << "need 124 received " << packet->size() << " "
+              << __FUNCTION__;
+        return false;
     }
 
     // source
@@ -661,17 +681,17 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
     uint256 id(packet->data());
 
     // TODO for debug
-    {
-        XBridgeTransactionDescr d;
-        d.id           = id;
-        d.fromCurrency = scurrency;
-        d.fromAmount   = samount;
-        d.toCurrency   = dcurrency;
-        d.toAmount     = damount;
-        d.state        = XBridgeTransactionDescr::trPending;
+//    {
+//        XBridgeTransactionDescr d;
+//        d.id           = id;
+//        d.fromCurrency = scurrency;
+//        d.fromAmount   = samount;
+//        d.toCurrency   = dcurrency;
+//        d.toAmount     = damount;
+//        d.state        = XBridgeTransactionDescr::trPending;
 
-        uiConnector.NotifyXBridgePendingTransactionReceived(d);
-    }
+//        uiConnector.NotifyXBridgePendingTransactionReceived(d);
+//    }
 
     LOG() << "received accepting transaction " << util::base64_encode(std::string((char *)id.begin(), 32)) << std::endl
           << "    from " << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
@@ -680,7 +700,6 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
           << "             " << dcurrency << " : " << damount << std::endl;
 
     {
-        // float rate = (float) destAmount / sourceAmount;
         uint256 transactionId;
         if (e.acceptTransaction(id, saddr, scurrency, samount, daddr, dcurrency, damount, transactionId))
         {
@@ -702,8 +721,8 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
                 XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
                 reply1->append(tr->firstAddress());
                 reply1->append(sessionAddr(), 20);
-                reply1->append(tr->firstId().begin(), 32);
-                reply1->append(transactionId.begin(), 32);
+                reply1->append(tr->id().begin(), 32);
+                // reply1->append(transactionId.begin(), 32);
 
                 sendPacket(tr->firstAddress(), reply1);
 
@@ -715,8 +734,8 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
                 XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
                 reply2->append(tr->secondAddress());
                 reply2->append(sessionAddr(), 20);
-                reply2->append(tr->secondId().begin(), 32);
-                reply2->append(transactionId.begin(), 32);
+                reply2->append(tr->id().begin(), 32);
+                // reply2->append(transactionId.begin(), 32);
 
                 sendPacket(tr->secondAddress(), reply2);
             }
@@ -732,9 +751,11 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 104)
+    if (packet->size() != 72)
     {
-        ERR() << "incorrect packet size for xbcTransactionHold " << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionHold "
+              << "need 72received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -746,7 +767,6 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 
     // read packet data
     uint256 id   (packet->data()+40);
-    uint256 newid(packet->data()+72);
 
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
@@ -754,8 +774,8 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
         if (!XBridgeApp::m_pendingTransactions.count(id))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+            return true;
         }
 
         // remove from pending
@@ -763,19 +783,19 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
         XBridgeApp::m_pendingTransactions.erase(id);
 
         // move to processing
-        XBridgeApp::m_transactions[newid] = xtx;
+        XBridgeApp::m_transactions[id] = xtx;
 
         xtx->state = XBridgeTransactionDescr::trHold;
     }
 
-    uiConnector.NotifyXBridgeTransactionIdChanged(id, newid);
+    // uiConnector.NotifyXBridgeTransactionIdChanged(id, newid);
     uiConnector.NotifyXBridgeTransactionStateChanged(id, XBridgeTransactionDescr::trHold);
 
     // send hold apply
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHoldApply));
     reply->append(hubAddress);
     reply->append(thisAddress);
-    reply->append(newid.begin(), 32);
+    reply->append(id.begin(), 32);
 
     sendPacket(hubAddress, reply);
     return true;
@@ -791,7 +811,9 @@ bool XBridgeSession::processTransactionHoldApply(XBridgePacketPtr packet)
     // size must be eq 72 bytes
     if (packet->size() != 72)
     {
-        ERR() << "invalid packet size for xbcTransactionHoldApply " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionHoldApply "
+              << "need 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -880,7 +902,9 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
 
     if (packet->size() != 144)
     {
-        ERR() << "incorrect packet size for xbcTransactionInit" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionInit "
+              << "need 144 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -933,7 +957,9 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
     // size must be eq 72 bytes
     if (packet->size() != 72)
     {
-        ERR() << "invalid packet size for xbcTransactionHoldApply " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionHoldApply "
+              << "need 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -971,18 +997,18 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
                   << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
 
             // send xbcTransactionCreate
-            // with nLockTime == TTL*2 for first client,
-            // with nLockTime == TTL*4 for second
+            // with nLockTime == lockTime*2 for first client,
+            // with nLockTime == lockTime*4 for second
             XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionCreate));
             reply1->append(tr->firstAddress());
             reply1->append(sessionAddr(), 20);
             reply1->append(id.begin(), 32);
             reply1->append(tr->secondDestination());
-            reply1->append((boost::uint32_t)(XBridgeTransaction::TTL * 2));
-            reply1->append((boost::uint32_t)24*60*60);
+            reply1->append((uint32_t)(XBridgeTransaction::lockTime * 2));
+            reply1->append((uint32_t)24*60*60);
             reply1->append(tr->firstTaxAddress());
             // reply1->append(tr->tax());
-            reply1->append(static_cast<boost::uint32_t>(0));
+            reply1->append(static_cast<uint32_t>(0));
 
             sendPacket(tr->firstAddress(), reply1);
 
@@ -996,10 +1022,10 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
             reply2->append(sessionAddr(), 20);
             reply2->append(id.begin(), 32);
             reply2->append(tr->firstDestination());
-            reply2->append((boost::uint32_t)(XBridgeTransaction::TTL * 4));
+            reply2->append((boost::uint32_t)(XBridgeTransaction::lockTime * 4));
             reply2->append((boost::uint32_t)48*60*60);
-            reply1->append(tr->secondTaxAddress());
-            reply1->append(tr->tax());
+            reply2->append(tr->secondTaxAddress());
+            reply2->append(tr->tax());
 
             sendPacket(tr->secondAddress(), reply2);
         }
@@ -1115,7 +1141,9 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     if (packet->size() != 124)
     {
-        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionCreate "
+              << "need 124 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1130,7 +1158,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // tax
     std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
-    const uint32_t tax = *reinterpret_cast<uint32_t *>(packet->data()+120);
+    const uint32_t taxPercent = *reinterpret_cast<uint32_t *>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
@@ -1139,8 +1167,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(id))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[id];
@@ -1151,14 +1179,14 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
 
     std::vector<rpc::Unspent> entries;
-    if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
+    if (!rpc::listUnspent(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, entries))
     {
         LOG() << "rpc::listUnspent failed" << __FUNCTION__;
-        return false;
+        return true;
     }
 
-    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
-    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t taxToSend = m_wallet.COIN*(static_cast<double>(xtx->fromAmount*taxPercent/100000)/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
     boost::uint64_t inAmount  = 0;
@@ -1167,24 +1195,24 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     for (const rpc::Unspent & entry : entries)
     {
         usedInTx.push_back(entry);
-        inAmount += entry.amount*m_COIN;
-        fee = m_COIN * minTxFee(usedInTx.size(), taxAmount > 0 ? 3 : 2) / XBridgeTransactionDescr::COIN;
+        inAmount += entry.amount*m_wallet.COIN;
+        fee = m_wallet.COIN * minTxFee(usedInTx.size(), taxToSend > 0 ? 3 : 2) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
         // check amount
-        if (inAmount >= outAmount+fee+taxAmount)
+        if (inAmount >= outAmount+fee+taxToSend)
         {
             break;
         }
     }
 
     // check amount
-    if (inAmount < outAmount+fee+taxAmount)
+    if (inAmount < outAmount+fee+taxToSend)
     {
         // no money, cancel transaction
-        sendCancelTransaction(id);
-        return false;
+        sendCancelTransaction(id, crNoMoney);
+        return true;
     }
 
     // create tx1, locked
@@ -1204,40 +1232,43 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
-    if (taxAmount)
+    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_wallet.prefix[0])));
+    if (taxToSend)
     {
-        tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
+        tx1.vout.push_back(CTxOut(taxToSend, destination(taxAddress, m_wallet.prefix[0])));
     }
 
-    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount) / m_COIN;
+    LOG() << "OUTPUTS <" << destination(destAddress, m_wallet.prefix[0]).ToString()
+          << "> amount "
+          << (outAmount) / m_wallet.COIN;
 
     if (inAmount > outAmount)
     {
         std::string addr;
-        if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
+        if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
-            return false;
+            sendCancelTransaction(id, crRpcError);
+            return true;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxAmount) / m_COIN;
+        LOG() << "OUTPUTS <" << addr
+              << "> amount " << (inAmount-outAmount-fee-taxToSend) / m_wallet.COIN;
 
         // rest
         CScript script = destination(addr);
-        tx1.vout.push_back(CTxOut(inAmount-outAmount-fee-taxAmount, script));
+        tx1.vout.push_back(CTxOut(inAmount-outAmount-fee-taxToSend, script));
     }
 
     // serialize
     std::string unsignedTx1 = txToString(tx1);
     std::string signedTx1 = unsignedTx1;
 
-    if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1))
     {
         // do not sign, cancel
-        sendCancelTransaction(id);
-        return false;
+        sendCancelTransaction(id, crNotSigned);
+        return true;
     }
 
     tx1 = txFromString(signedTx1);
@@ -1245,7 +1276,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     LOG() << "payment tx " << tx1.GetHash().GetHex();
     LOG() << signedTx1;
     std::string json;
-    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1, json))
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1, json))
     {
         TXLOG() << "payment  " << json;
     }
@@ -1269,14 +1300,14 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // outputs
     {
         std::string addr;
-        if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
+        if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
-            return false;
+            sendCancelTransaction(id, crRpcError);
+            return true;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_wallet.COIN;
 
         // rest
         CScript script = destination(addr);
@@ -1294,7 +1325,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
 
-    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, unsignedTx2, json))
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, unsignedTx2, json))
     {
         TXLOG() << "rollback " << json;
     }
@@ -1330,7 +1361,9 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 
     if (packet->size() != 124)
     {
-        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionCreate "
+              << "need 132 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1345,7 +1378,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
 
     // tax
     std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
-    const uint32_t tax = *reinterpret_cast<uint32_t*>(packet->data()+120);
+    const uint32_t taxPercent = *reinterpret_cast<uint32_t*>(packet->data()+120);
 
     XBridgeTransactionDescrPtr xtx;
     {
@@ -1354,8 +1387,8 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(id))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[id];
@@ -1366,14 +1399,14 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
 
     std::vector<rpc::Unspent> entries;
-    if (!rpc::listUnspent(m_user, m_passwd, m_address, m_port, entries))
+    if (!rpc::listUnspent(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, entries))
     {
         LOG() << "rpc::listUnspent failed" << __FUNCTION__;
-        return false;
+        return true;
     }
 
-    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
-    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t taxToSend = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)*taxPercent/100000/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
     boost::uint64_t inAmount  = 0;
@@ -1382,24 +1415,24 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     for (const rpc::Unspent & entry : entries)
     {
         usedInTx.push_back(entry);
-        inAmount += entry.amount*m_COIN;
-        fee = m_COIN * minTxFee(usedInTx.size(), 3) / XBridgeTransactionDescr::COIN;
+        inAmount += entry.amount*m_wallet.COIN;
+        fee = m_wallet.COIN * minTxFee(usedInTx.size(), taxToSend > 0 ? 3 : 2) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee;
 
         // check amount
-        if (inAmount >= outAmount+fee+taxAmount)
+        if (inAmount >= outAmount+fee+taxToSend)
         {
             break;
         }
     }
 
     // check amount
-    if (inAmount < outAmount+fee+taxAmount)
+    if (inAmount < outAmount+fee+taxToSend)
     {
         // no money, cancel transaction
-        sendCancelTransaction(id);
-        return false;
+        sendCancelTransaction(id, crNoMoney);
+        return true;
     }
 
     // create tx1, locked
@@ -1419,37 +1452,41 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_prefix[0])));
-    tx1.vout.push_back(CTxOut(taxAmount, destination(taxAddress, m_prefix[0])));
+    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_wallet.prefix[0])));
+    if (taxToSend)
+    {
+        tx1.vout.push_back(CTxOut(taxToSend, destination(taxAddress, m_wallet.prefix[0])));
+    }
 
-    LOG() << "OUTPUTS <" << destination(destAddress, m_prefix[0]).ToString() << "> amount " << (outAmount) / m_COIN;
+    LOG() << "OUTPUTS <" << destination(destAddress, m_wallet.prefix[0]).ToString()
+            << "> amount " << (outAmount) / m_wallet.COIN;
 
     if (inAmount > outAmount)
     {
         std::string addr;
-        if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
+        if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
-            return false;
+            sendCancelTransaction(id, crRpcError);
+            return true;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxAmount) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (inAmount-outAmount-fee-taxToSend) / m_wallet.COIN;
 
         // rest
         CScript script = destination(addr);
-        tx1.vout.push_back(CTxOut(inAmount-outAmount-fee-taxAmount, script));
+        tx1.vout.push_back(CTxOut(inAmount-outAmount-fee-taxToSend, script));
     }
 
     // serialize
     std::string unsignedTx1 = txToStringBTC(tx1);
     std::string signedTx1 = unsignedTx1;
 
-    if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1))
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1))
     {
         // do not sign, cancel
-        sendCancelTransaction(id);
-        return false;
+        sendCancelTransaction(id, crNotSigned);
+        return true;
     }
 
     tx1 = txFromStringBTC(signedTx1);
@@ -1458,7 +1495,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     LOG() << signedTx1;
 
     std::string json;
-    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, signedTx1, json))
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1, json))
     {
         TXLOG() << "payment  " << json;
     }
@@ -1482,14 +1519,14 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     // outputs
     {
         std::string addr;
-        if (!rpc::getNewAddress(m_user, m_passwd, m_address, m_port, addr))
+        if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, addr))
         {
             // cancel transaction
-            sendCancelTransaction(id);
-            return false;
+            sendCancelTransaction(id, crRpcError);
+            return true;
         }
 
-        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_COIN;
+        LOG() << "OUTPUTS <" << addr << "> amount " << (outAmount-fee2) / m_wallet.COIN;
 
         // rest
         CScript script = destination(addr);
@@ -1507,7 +1544,7 @@ bool XBridgeSession::processTransactionCreateBTC(XBridgePacketPtr packet)
     LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
 
-    if (rpc::decodeRawTransaction(m_user, m_passwd, m_address, m_port, unsignedTx2, json))
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, unsignedTx2, json))
     {
         TXLOG() << "rollback " << json;
     }
@@ -1545,7 +1582,9 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
     // size must be > 72 bytes
     if (packet->size() < 72)
     {
-        ERR() << "invalid packet size for xbcTransactionCreated " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionCreated "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1624,7 +1663,9 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
 
     if (packet->size() < 72)
     {
-        ERR() << "incorrect packet size for xbcTransactionSign" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionSign "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1650,8 +1691,8 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -1659,25 +1700,25 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
 
     // unserialize
     {
-        CBTCTransaction txpay = (m_currency == "BTC") ? txFromStringBTC(rawtxpay) : txFromString(rawtxpay);
-        CBTCTransaction txrev = (m_currency == "BTC") ? txFromStringBTC(rawtxrev) : txFromString(rawtxrev);
+        CBTCTransaction txpay = (m_wallet.currency == "BTC") ? txFromStringBTC(rawtxpay) : txFromString(rawtxpay);
+        CBTCTransaction txrev = (m_wallet.currency == "BTC") ? txFromStringBTC(rawtxrev) : txFromString(rawtxrev);
 
         if (txpay.nLockTime < LOCKTIME_THRESHOLD || txrev.nLockTime < LOCKTIME_THRESHOLD)
         {
             // not signed, cancel tx
-            sendCancelTransaction(txid);
-            return false;
+            sendCancelTransaction(txid, crNotSigned);
+            return true;
         }
     }
 
     // TODO check txpay, inputs-outputs
 
     // sign txrevert
-    if (!rpc::signRawTransaction(m_user, m_passwd, m_address, m_port, rawtxrev))
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, rawtxrev))
     {
         // do not sign, cancel
-        sendCancelTransaction(txid);
-        return false;
+        sendCancelTransaction(txid, crNotSigned);
+        return true;
     }
 
     xtx->state = XBridgeTransactionDescr::trSigned;
@@ -1704,7 +1745,9 @@ bool XBridgeSession::processTransactionSigned(XBridgePacketPtr packet)
     // size must be > 72 bytes
     if (packet->size() < 72)
     {
-        ERR() << "invalid packet size for xbcTransactionSigned " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionSigned "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1773,7 +1816,9 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
 
     if (packet->size() < 72)
     {
-        ERR() << "incorrect packet size for xbcTransactionCommit" << __FUNCTION__;
+        ERR() << "incorrect packet size for xbcTransactionCommit "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1792,8 +1837,8 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -1803,11 +1848,12 @@ bool XBridgeSession::processTransactionCommit(XBridgePacketPtr packet)
     // CTransaction txrev = txFromString(rawtx);
     xtx->revTx = rawtx;
 
-    if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->payTx))
+    if (!rpc::sendRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, xtx->payTx))
     {
         // not commited....send cancel???
-        // sendCancelTransaction(id);
-        return false;
+        // sendCancelTransaction(id, crNotAccepted);
+        LOG() << "transaction not commited " << util::to_str(txid) << " " << __FUNCTION__;
+        return true;
     }
 
 //    uint256 walletTxId = (static_cast<CTransaction *>(&xtx->payTx))->GetHash();
@@ -1837,7 +1883,9 @@ bool XBridgeSession::processTransactionCommited(XBridgePacketPtr packet)
     // size must be == 104 bytes
     if (packet->size() != 104)
     {
-        ERR() << "invalid packet size for xbcTransactionCommited " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionCommited "
+              << "need 104 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1911,7 +1959,9 @@ bool XBridgeSession::processTransactionConfirm(XBridgePacketPtr packet)
 
     if (packet->size() < 72)
     {
-        LOG() << "incorrect packet size for xbcTransactionConfirm";
+        LOG() << "incorrect packet size for xbcTransactionConfirm "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -1928,8 +1978,8 @@ bool XBridgeSession::processTransactionConfirm(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown transaction
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -1957,7 +2007,9 @@ bool XBridgeSession::processTransactionConfirmed(XBridgePacketPtr packet)
     // size must be == 72 bytes
     if (packet->size() != 72)
     {
-        ERR() << "invalid packet size for xbcTransactionCommited " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcTransactionCommited "
+              << "need 72 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -2018,29 +2070,23 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 {
     // DEBUG_TRACE();
 
-    // size must be == 32 bytes
-    if (packet->size() != 32)
+    // size must be == 36 bytes
+    if (packet->size() != 36)
     {
-        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcReceivedTransaction "
+              << "need 36 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
     uint256 txid(packet->data());
+    TxCancelReason reason = static_cast<TxCancelReason>(*reinterpret_cast<uint32_t*>(packet->data() + 32));
 
     // check and process packet if bridge is exchange
     XBridgeExchange & e = XBridgeExchange::instance();
     if (e.isEnabled())
     {
         e.deletePendingTransactions(txid);
-
-        // send cancel to clients
-        // XBridgeTransactionPtr tr = e.transaction(txid);
-        // if (tr->state() != XBridgeTransaction::trInvalid)
-        {
-            // boost::mutex::scoped_lock l(tr->m_lock);
-            // sendCancelTransaction(tr);
-            // sendCancelTransaction(txid);
-        }
     }
 
     XBridgeTransactionDescrPtr xtx;
@@ -2049,9 +2095,8 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 
         if (!XBridgeApp::m_transactions.count(txid))
         {
-            // signal for gui
-            uiConnector.NotifyXBridgeTransactionStateChanged(txid, XBridgeTransactionDescr::trCancelled);
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -2059,7 +2104,7 @@ bool XBridgeSession::processTransactionCancel(XBridgePacketPtr packet)
 
     // update transaction state for gui
     xtx->state = XBridgeTransactionDescr::trCancelled;
-    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
+    uiConnector.NotifyXBridgeTransactionCancelled(txid, XBridgeTransactionDescr::trCancelled, reason);
 
     // ..and retranslate
     // sendPacketBroadcast(packet);
@@ -2105,34 +2150,21 @@ bool XBridgeSession::finishTransaction(XBridgeTransactionPtr tr)
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeSession::sendCancelTransaction(const uint256 & txid)
+bool XBridgeSession::sendCancelTransaction(const uint256 & txid,
+                                           const TxCancelReason & reason)
 {
     LOG() << "cancel transaction <" << txid.GetHex() << ">";
 
-    // if (tr->state() != XBridgeTransaction::trNew)
-    {
-        // std::vector<std::vector<unsigned char> > rcpts;
-        // rcpts.push_back(tr->firstAddress());
-        // rcpts.push_back(tr->firstDestination());
-        // rcpts.push_back(tr->secondAddress());
-        // rcpts.push_back(tr->secondDestination());
+    // TODO remove this log
+    // LOG() << "send xbcTransactionCancel to "
+    //       << util::base64_encode(std::string((char *)&to[0], 20));
 
-        // foreach (const std::vector<unsigned char> & to, rcpts)
-        {
-            // TODO remove this log
-            // LOG() << "send xbcTransactionCancel to "
-            //       << util::base64_encode(std::string((char *)&to[0], 20));
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
+    reply->append(txid.begin(), 32);
+    reply->append(static_cast<uint32_t>(reason));
 
-            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCancel));
-            // reply->append(to);
-            reply->append(txid.begin(), 32);
-
-            // sendPacket(to, reply);
-            sendPacketBroadcast(reply);
-        }
-    }
-
-    // tr->cancel();
+    // sendPacket(to, reply);
+    sendPacketBroadcast(reply);
 
     return true;
 }
@@ -2167,7 +2199,7 @@ bool XBridgeSession::rollbackTransaction(XBridgeTransactionPtr tr)
         sendPacket(to, reply);
     }
 
-    sendCancelTransaction(tr->id());
+    sendCancelTransaction(tr->id(), crRollback);
     tr->finish();
 
     return true;
@@ -2182,7 +2214,9 @@ bool XBridgeSession::processBitcoinTransactionHash(XBridgePacketPtr packet)
     // size must be == 32 bytes (256bit)
     if (packet->size() != 32)
     {
-        ERR() << "invalid packet size for xbcReceivedTransaction " << __FUNCTION__;
+        ERR() << "invalid packet size for xbcReceivedTransaction "
+              << "need 32 received " << packet->size() << " "
+              << __FUNCTION__;
         return false;
     }
 
@@ -2296,6 +2330,9 @@ void XBridgeSession::sendListOfTransactions()
         packet->append(ptr->secondAmount());
         // packet->append(static_cast<boost::uint32_t>(ptr->state()));
 
+        packet->append(sessionAddr(), 20);
+        packet->append(ptr->tax());
+
         sendPacket(std::vector<unsigned char>(), packet);
     }
 }
@@ -2348,7 +2385,7 @@ void XBridgeSession::requestUnconfirmedTx()
     for (std::map<uint256, XBridgeTransactionDescrPtr>::iterator i = utx.begin(); i != utx.end(); ++i)
     {
         LOG() << "check transaction " << i->second->payTxId.GetHex();
-        if (rpc::getTransaction(m_user, m_passwd, m_address, m_port,
+        if (rpc::getTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port,
                                 i->second->payTxId.GetHex()))
         {
             {
@@ -2455,7 +2492,7 @@ void XBridgeSession::requestAddressBook()
     }
 
     std::vector<rpc::AddressBookEntry> entries;
-    if (!rpc::requestAddressBook(m_user, m_passwd, m_address, m_port, entries))
+    if (!rpc::requestAddressBook(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, entries))
     {
         return;
     }
@@ -2475,7 +2512,7 @@ void XBridgeSession::requestAddressBook()
                 app.storageStore(shared_from_this(), &vaddr[0]);
 
                 uiConnector.NotifyXBridgeAddressBookEntryReceived
-                        (m_currency, e.first,
+                        (m_wallet.currency, e.first,
                          util::base64_encode(std::string((char *)&vaddr[0], vaddr.size())));
             }
         }
@@ -2522,7 +2559,7 @@ bool XBridgeSession::processTransactionFinished(XBridgePacketPtr packet)
         {
             // signal for gui
             uiConnector.NotifyXBridgeTransactionStateChanged(txid, XBridgeTransactionDescr::trFinished);
-            return false;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];
@@ -2560,15 +2597,16 @@ bool XBridgeSession::revertXBridgeTransaction(const uint256 & id)
 
     if (!xtx)
     {
-        return false;
+        LOG() << "unknown transaction " << util::to_str(id) << " " << __FUNCTION__;
+        return true;
     }
 
     // rollback, commit revert transaction
-    if (!rpc::sendRawTransaction(m_user, m_passwd, m_address, m_port, xtx->revTx))
+    if (!rpc::sendRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, xtx->revTx))
     {
         // not commited....send cancel???
         // sendCancelTransaction(id);
-        return false;
+        return true;
     }
 
     return true;
@@ -2598,8 +2636,8 @@ bool XBridgeSession::processTransactionRollback(XBridgePacketPtr packet)
         if (!XBridgeApp::m_transactions.count(txid))
         {
             // wtf? unknown tx
-            // TODO log
-            return false;
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
         }
 
         xtx = XBridgeApp::m_transactions[txid];

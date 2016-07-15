@@ -240,7 +240,7 @@ protected:
     {
         if (n == -1 || (n >= 1 && n <= 16))
         {
-            push_back(n + (OP_1 - 1));
+            push_back(static_cast<unsigned char>(n) + (OP_1 - 1));
         }
         else
         {
@@ -254,7 +254,7 @@ protected:
     {
         if (n >= 1 && n <= 16)
         {
-            push_back(n + (OP_1 - 1));
+            push_back(static_cast<unsigned char>(n) + (OP_1 - 1));
         }
         else
         {
@@ -377,7 +377,7 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const CScript& b)
+    CScript& operator<<(const CScript& /*b*/)
     {
         // I'm not sure if this should push the script or concatenate scripts.
         // If there's ever a use for pushing a script onto a script, delete this member fn

@@ -44,7 +44,13 @@ public:
 
     enum
     {
-        // ttl in seconds
+        // transaction lock time base, in seconds, 10 min
+        lockTime = 600,
+
+        // pending transaction ttl in seconds, 72 hours
+        pendingTTL = 259200,
+
+        // transaction ttl in seconds, 10 min
         TTL = 600
     };
 
@@ -57,11 +63,12 @@ public:
                        const std::vector<unsigned char> & destAddr,
                        const std::string & destCurrency,
                        const boost::uint64_t & destAmount,
-                       const boost::uint64_t & tax,
-                       const std::vector<unsigned char> &taxAddress);
+                       const uint32_t & tax,
+                       const std::vector<unsigned char> & taxAddress);
     ~XBridgeTransaction();
 
     uint256 id() const;
+
     // state of transaction
     State state() const;
     // update state counter and update state
@@ -86,7 +93,7 @@ public:
     uint256 hash1() const;
     uint256 hash2() const;
 
-    uint256                    firstId() const;
+    // uint256                    firstId() const;
     std::vector<unsigned char> firstAddress() const;
     std::vector<unsigned char> firstDestination() const;
     std::string                firstCurrency() const;
@@ -95,7 +102,7 @@ public:
     std::string                firstRawRevTx() const;
     uint256                    firstTxHash() const;
 
-    uint256                    secondId() const;
+    // uint256                    secondId() const;
     std::vector<unsigned char> secondAddress() const;
     std::vector<unsigned char> secondDestination() const;
     std::string                secondCurrency() const;

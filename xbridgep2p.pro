@@ -95,7 +95,9 @@ SOURCES += \
     src/keystore.cpp \
     src/sync.cpp \
     src/crypter.cpp \
-    src/util/txlog.cpp
+    src/util/txlog.cpp \
+    src/xbridgesessionetherium.cpp \
+    src/config.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -135,7 +137,9 @@ HEADERS += \
     src/sync.h \
     src/crypter.h \
     src/base58.h \
-    src/util/txlog.h
+    src/util/txlog.h \
+    src/xbridgesessionetherium.h \
+    src/xbridgewallet.h
 
 #-------------------------------------------------
 !withoutgui {
