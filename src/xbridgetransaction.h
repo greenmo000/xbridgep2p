@@ -47,8 +47,11 @@ public:
         // transaction lock time base, in seconds, 10 min
         lockTime = 600,
 
-        // transaction ttl in seconds, 72 hours
-        TTL = 259200
+        // pending transaction ttl in seconds, 72 hours
+        pendingTTL = 259200,
+
+        // transaction ttl in seconds, 10 min
+        TTL = 600
     };
 
 public:
