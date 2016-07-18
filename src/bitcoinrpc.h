@@ -12,6 +12,12 @@
 //******************************************************************************
 namespace rpc
 {
+    void threadRPCServer();
+    void stopRpcServer();
+
+    class AcceptedConnection;
+    void handleRpcRequest(AcceptedConnection * conn);
+
     bool DecodeBase58Check(const char * psz, std::vector<unsigned char> & vchRet);
 
     typedef std::pair<std::string, std::vector<std::string> > AddressBookEntry;

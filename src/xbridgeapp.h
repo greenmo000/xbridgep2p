@@ -25,6 +25,11 @@
 #include <QApplication>
 #endif
 
+namespace rpc
+{
+class AcceptedConnection;
+}
+
 //*****************************************************************************
 //*****************************************************************************
 class XBridgeApp
@@ -76,6 +81,9 @@ public:
     bool initDht();
     bool stopDht();
 
+    bool initRpc();
+    bool stopRpc();
+
     // void logMessage(const QString & msg);
 
     XBridgeSessionPtr sessionByCurrency(const std::string & currency) const;
@@ -90,6 +98,8 @@ public:
     bool isLocalAddress(const std::vector<unsigned char> & id);
     bool isKnownMessage(const std::vector<unsigned char> & message);
     void addToKnown(const std::vector<unsigned char> & message);
+
+    void handleRpcRequest(rpc::AcceptedConnection * conn);
 
 public:// slots:
     // generate new id
@@ -125,6 +135,8 @@ public:
 private:
     void dhtThreadProc();
     void bridgeThreadProc();
+    void rpcThreadProc();
+    void rpcHandlerProc(rpc::AcceptedConnection * conn);
 
 private:
     unsigned char     m_myid[20];

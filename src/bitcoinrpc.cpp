@@ -22,6 +22,7 @@
 #include "bignum.h"
 #include "util/util.h"
 #include "util/logger.h"
+#include "httpstatuscode.h"
 
 //*****************************************************************************
 //*****************************************************************************
@@ -108,19 +109,6 @@ bool DecodeBase58Check(const char * psz, std::vector<unsigned char> & vchRet)
     vchRet.resize(vchRet.size()-4);
     return true;
 }
-
-//******************************************************************************
-// HTTP status codes
-//******************************************************************************
-enum HTTPStatusCode
-{
-    HTTP_OK                    = 200,
-    HTTP_BAD_REQUEST           = 400,
-    HTTP_UNAUTHORIZED          = 401,
-    HTTP_FORBIDDEN             = 403,
-    HTTP_NOT_FOUND             = 404,
-    HTTP_INTERNAL_SERVER_ERROR = 500,
-};
 
 //******************************************************************************
 //******************************************************************************
@@ -312,7 +300,7 @@ int ReadHTTPHeader(std::basic_istream<char>& stream, map<string, string>& mapHea
 
 //******************************************************************************
 //******************************************************************************
-int ReadHTTP(std::basic_istream<char>& stream, map<string, string>& mapHeadersRet, string& strMessageRet)
+int readHTTP(std::basic_istream<char>& stream, map<string, string>& mapHeadersRet, string& strMessageRet)
 {
     mapHeadersRet.clear();
     strMessageRet = "";
@@ -383,7 +371,7 @@ Object CallRPC(const std::string & rpcuser, const std::string & rpcpasswd,
     // Receive reply
     map<string, string> mapHeaders;
     string strReply;
-    int nStatus = ReadHTTP(stream, mapHeaders, strReply);
+    int nStatus = readHTTP(stream, mapHeaders, strReply);
     if (nStatus == HTTP_UNAUTHORIZED)
         throw runtime_error("incorrect rpcuser or rpcpassword (authorization failed)");
     else if (nStatus >= 400 && nStatus != HTTP_BAD_REQUEST && nStatus != HTTP_NOT_FOUND && nStatus != HTTP_INTERNAL_SERVER_ERROR)

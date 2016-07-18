@@ -97,7 +97,12 @@ SOURCES += \
     src/crypter.cpp \
     src/util/txlog.cpp \
     src/xbridgesessionetherium.cpp \
-    src/config.cpp
+    src/config.cpp \
+    src/bitcoinrpcserver.cpp \
+    src/bitcoinrpcconnection.cpp \
+    src/bitcoinrpcssliostreamdevice.cpp \
+    src/bitcoinrpchandlers.cpp \
+    src/bitcoinrpctable.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -139,7 +144,12 @@ HEADERS += \
     src/base58.h \
     src/util/txlog.h \
     src/xbridgesessionetherium.h \
-    src/xbridgewallet.h
+    src/xbridgewallet.h \
+    src/bitcoinrpcconnection.h \
+    src/bitcoinrpcssliostreamdevice.h \
+    src/httpstatuscode.h \
+    src/rpcstatuscode.h \
+    src/bitcoinrpctable.h
 
 #-------------------------------------------------
 !withoutgui {

@@ -10,6 +10,8 @@
 #include "version.h"
 #include "config.h"
 #include "uiconnector.h"
+#include "bitcoinrpc.h"
+#include "bitcoinrpcconnection.h"
 
 #ifndef NO_GUI
 #include "ui/mainwindow.h"
@@ -225,6 +227,27 @@ bool XBridgeApp::stopDht()
 
     m_threads.join_all();
 
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::initRpc()
+{
+    Settings & s = settings();
+    if (!s.rpcEnabled())
+    {
+        return true;
+    }
+
+    m_threads.create_thread(boost::bind(&XBridgeApp::rpcThreadProc, this));
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::stopRpc()
+{
     return true;
 }
 
@@ -895,6 +918,13 @@ void XBridgeApp::bridgeThreadProc()
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeApp::rpcThreadProc()
+{
+    rpc::threadRPCServer();
+}
+
+//*****************************************************************************
+//*****************************************************************************
 XBridgeSessionPtr XBridgeApp::sessionByCurrency(const std::string & currency) const
 {
     boost::mutex::scoped_lock l(m_sessionsLock);
@@ -1263,4 +1293,18 @@ bool XBridgeApp::sendCancelTransaction(const uint256 & txid,
 int XBridgeApp::peersCount() const
 {
     return dht_get_count(0, 0);
+}
+
+//******************************************************************************
+//******************************************************************************
+void XBridgeApp::handleRpcRequest(rpc::AcceptedConnection * conn)
+{
+    m_threads.create_thread(boost::bind(&XBridgeApp::rpcHandlerProc, this, conn));
+}
+
+//******************************************************************************
+//******************************************************************************
+void XBridgeApp::rpcHandlerProc(rpc::AcceptedConnection * conn)
+{
+    rpc::handleRpcRequest(conn);
 }
