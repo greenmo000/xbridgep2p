@@ -13,7 +13,6 @@
 namespace rpc
 {
     void threadRPCServer();
-    void stopRpcServer();
 
     class AcceptedConnection;
     void handleRpcRequest(AcceptedConnection * conn);

@@ -48,7 +48,7 @@ public:
     std::vector<std::string> exchangeWallets() const;
 
     bool rpcEnabled()
-        { return get<bool>("Rpc.Enable"); }
+        { return get<bool>("Rpc.Enable", false); }
     uint32_t rpcPort(const uint32_t def)
         { return get<uint32_t>("Rpc.Port", def); }
 

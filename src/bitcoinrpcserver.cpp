@@ -38,8 +38,6 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio;
 
-std::atomic<bool> stopRpc = false;
-
 //*****************************************************************************
 // HTTP status codes
 //*****************************************************************************
@@ -215,7 +213,6 @@ bool httpAuthorized(map<string, string>& mapHeaders)
 void threadRPCServer()
 {
     LOG() << "RPC server started";
-    stopRpc = false;
 
     Settings & s = settings();
     std::string uname = s.rpcServerUserName();
@@ -327,19 +324,13 @@ void threadRPCServer()
         return;
     }
 
-    while (!stopRpc)
+    XBridgeApp & app = XBridgeApp::instance();
+    while (!app.signalRpcStopActive())
     {
         io_service.run_one();
     }
 
     StopRequests();
-}
-
-//*****************************************************************************
-//*****************************************************************************
-void stopRpcServer()
-{
-    stopRpc = true;
 }
 
 } // namespace

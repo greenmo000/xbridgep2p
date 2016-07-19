@@ -216,13 +216,12 @@ bool XBridgeApp::initDht()
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeApp::stopDht()
+bool XBridgeApp::stop()
 {
-    LOG() << "stopping dht thread";
+    LOG() << "stopping threads...";
     m_dhtStop = true;
-//    m_dhtThread.join();
+    m_rpcStop = true;
 
-    LOG() << "stopping bridge thread";
     m_bridge->stop();
 
     m_threads.join_all();
@@ -240,15 +239,17 @@ bool XBridgeApp::initRpc()
         return true;
     }
 
+    m_rpcStop = false;
+
     m_threads.create_thread(boost::bind(&XBridgeApp::rpcThreadProc, this));
     return true;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeApp::stopRpc()
+bool XBridgeApp::signalRpcStopActive() const
 {
-    return true;
+    return m_rpcStop;
 }
 
 //*****************************************************************************
@@ -1302,9 +1303,3 @@ void XBridgeApp::handleRpcRequest(rpc::AcceptedConnection * conn)
     m_threads.create_thread(boost::bind(&XBridgeApp::rpcHandlerProc, this, conn));
 }
 
-//******************************************************************************
-//******************************************************************************
-void XBridgeApp::rpcHandlerProc(rpc::AcceptedConnection * conn)
-{
-    rpc::handleRpcRequest(conn);
-}

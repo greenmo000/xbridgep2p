@@ -60,10 +60,13 @@ int main(int argc, char *argv[])
     // init xbridge network
     a.initDht();
 
+    // init rpc
+    a.initRpc();
+
     int retcode = a.exec();
 
     // stop
-    a.stopDht();
+    a.stop();
 
     return retcode;
 }

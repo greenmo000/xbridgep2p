@@ -33,17 +33,16 @@
 #include "httpstatuscode.h"
 #include "rpcstatuscode.h"
 
-//*****************************************************************************
-//*****************************************************************************
-namespace rpc
-{
-
 using namespace json_spirit;
 using namespace std;
 using namespace boost;
 using namespace boost::asio;
 
-extern std::atomic<bool> stopRpc;
+//*****************************************************************************
+//*****************************************************************************
+namespace rpc
+{
+
 extern RPCTable rpcTable;
 
 int readHTTP(std::basic_istream<char> & stream,
@@ -197,96 +196,6 @@ static Object JSONRPCExecOne(const Value& req)
 
 //******************************************************************************
 //******************************************************************************
-void handleRpcRequest(AcceptedConnection * conn)
-{
-    bool fRun = true;
-    while(true)
-    {
-        if (stopRpc || !fRun)
-        {
-            conn->close();
-            delete conn;
-            return;
-        }
-
-        std::map<std::string, std::string> mapHeaders;
-        std::string strRequest;
-
-        readHTTP(conn->stream(), mapHeaders, strRequest);
-
-        // Check authorization
-        if (mapHeaders.count("authorization") == 0)
-        {
-            conn->stream() << httpReply(HTTP_UNAUTHORIZED, "", false) << std::flush;
-            break;
-        }
-        if (!httpAuthorized(mapHeaders))
-        {
-            LOG() << "ThreadRPCServer incorrect password attempt from "
-                  << conn->peer_address_to_string().c_str();
-
-            // Deter brute-forcing short passwords.
-            // If this results in a DOS the user really
-            // shouldn't have their RPC port exposed
-            static bool isShortPassword = settings().rpcServerPasswd().size() < 20;
-            if (isShortPassword)
-            {
-                Sleep(250);
-            }
-
-            conn->stream() << httpReply(HTTP_UNAUTHORIZED, "", false) << std::flush;
-            break;
-        }
-
-        if (mapHeaders["connection"] == "close")
-        {
-            fRun = false;
-        }
-
-        JSONRequest jreq;
-        try
-        {
-            // Parse request
-            Value valRequest;
-            if (!read_string(strRequest, valRequest))
-                throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
-
-            string strReply;
-
-            // singleton request
-            if (valRequest.type() == obj_type) {
-                jreq.parse(valRequest);
-
-                Value result = rpcTable.execute(jreq.strMethod, jreq.params);
-
-                // Send reply
-                strReply = JSONRPCReply(result, Value::null, jreq.id);
-
-            // array of requests
-            } else if (valRequest.type() == array_type)
-                strReply = JSONRPCExecBatch(valRequest.get_array());
-            else
-                throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
-
-            conn->stream() << httpReply(HTTP_OK, strReply, fRun) << std::flush;
-        }
-        catch (Object& objError)
-        {
-            errorReply(conn->stream(), objError, jreq.id);
-            break;
-        }
-        catch (std::exception& e)
-        {
-            errorReply(conn->stream(), JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
-            break;
-        }
-    }
-
-    delete conn;
-}
-
-//******************************************************************************
-//******************************************************************************
 Value help(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
@@ -302,3 +211,101 @@ Value help(const Array& params, bool fHelp)
 }
 
 } // namespace rpc
+
+//******************************************************************************
+//******************************************************************************
+void XBridgeApp::rpcHandlerProc(rpc::AcceptedConnection * conn)
+{
+    bool fRun = true;
+    while(true)
+    {
+        if (m_rpcStop || !fRun)
+        {
+            conn->close();
+            delete conn;
+            return;
+        }
+
+        std::map<std::string, std::string> mapHeaders;
+        std::string strRequest;
+
+        rpc::readHTTP(conn->stream(), mapHeaders, strRequest);
+
+        // Check authorization
+        if (mapHeaders.count("authorization") == 0)
+        {
+            conn->stream() << rpc::httpReply(HTTP_UNAUTHORIZED, "", false) << std::flush;
+            break;
+        }
+        if (!rpc::httpAuthorized(mapHeaders))
+        {
+            LOG() << "ThreadRPCServer incorrect password attempt from "
+                  << conn->peer_address_to_string().c_str();
+
+            // Deter brute-forcing short passwords.
+            // If this results in a DOS the user really
+            // shouldn't have their RPC port exposed
+            static bool isShortPassword = settings().rpcServerPasswd().size() < 20;
+            if (isShortPassword)
+            {
+                Sleep(250);
+            }
+
+            conn->stream() << rpc::httpReply(HTTP_UNAUTHORIZED, "", false) << std::flush;
+            break;
+        }
+
+        if (mapHeaders["connection"] == "close")
+        {
+            fRun = false;
+        }
+
+        rpc::JSONRequest jreq;
+        try
+        {
+            // Parse request
+            Value valRequest;
+            if (!read_string(strRequest, valRequest))
+            {
+                throw rpc::JSONRPCError(RPC_PARSE_ERROR, "Parse error");
+            }
+
+            std::string strReply;
+
+            // singleton request
+            if (valRequest.type() == obj_type)
+            {
+                jreq.parse(valRequest);
+
+                Value result = rpc::rpcTable.execute(jreq.strMethod, jreq.params);
+
+                // Send reply
+                strReply = rpc::JSONRPCReply(result, Value::null, jreq.id);
+
+            // array of requests
+            }
+            else if (valRequest.type() == array_type)
+            {
+                strReply = rpc::JSONRPCExecBatch(valRequest.get_array());
+            }
+            else
+            {
+                throw rpc::JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
+            }
+
+            conn->stream() << rpc::httpReply(HTTP_OK, strReply, fRun) << std::flush;
+        }
+        catch (Object& objError)
+        {
+            rpc::errorReply(conn->stream(), objError, jreq.id);
+            break;
+        }
+        catch (std::exception& e)
+        {
+            rpc::errorReply(conn->stream(), rpc::JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
+            break;
+        }
+    }
+
+    delete conn;
+}

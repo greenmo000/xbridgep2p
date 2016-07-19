@@ -79,10 +79,11 @@ public:
     // const unsigned char * myid() const { return m_myid; }
 
     bool initDht();
-    bool stopDht();
-
     bool initRpc();
-    bool stopRpc();
+
+    bool stop();
+
+    bool signalRpcStopActive() const;
 
     // void logMessage(const QString & msg);
 
@@ -145,6 +146,7 @@ private:
     // std::thread       m_dhtThread;
     std::atomic<bool> m_dhtStarted;
     std::atomic<bool> m_dhtStop;
+    std::atomic<bool> m_rpcStop;
 
     std::atomic<bool> m_signalGenerate;
     std::atomic<bool> m_signalDump;
