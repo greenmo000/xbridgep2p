@@ -13,7 +13,7 @@
 #include <boost/iostreams/concepts.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/algorithm/string.hpp>
-//#include <boost/lexical_cast.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/signals2.hpp>
@@ -22,10 +22,13 @@
 #include <atomic>
 
 #include "bignum.h"
+#include "util/uint256.h"
 #include "util/util.h"
 #include "util/settings.h"
 #include "util/logger.h"
 #include "xbridgeapp.h"
+#include "xbridgeexchange.h"
+#include "xbridgetransaction.h"
 #include "bitcoinrpc.h"
 #include "bitcoinrpctable.h"
 #include "bitcoinrpcconnection.h"
@@ -208,6 +211,39 @@ Value help(const Array& params, bool fHelp)
         strCommand = params[0].get_str();
 
     return rpcTable.help(strCommand);
+}
+
+//******************************************************************************
+//******************************************************************************
+Value getTransactionList(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+    {
+        throw runtime_error("getTransactionList\nList transactions.");
+    }
+
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        throw runtime_error("Not an exchange node.");
+    }
+
+    Array arr;
+
+    std::list<XBridgeTransactionPtr> trlist = e.transactions();
+    for (XBridgeTransactionPtr & tr : trlist)
+    {
+        Object jtr;
+        jtr.push_back(Pair("id", tr->id().GetHex()));
+        jtr.push_back(Pair("from", tr->firstCurrency()));
+        jtr.push_back(Pair("fromAmount", boost::lexical_cast<std::string>(tr->firstAmount())));
+        jtr.push_back(Pair("to", tr->secondCurrency()));
+        jtr.push_back(Pair("toAmount", boost::lexical_cast<std::string>(tr->secondAmount())));
+
+        arr.push_back(jtr);
+    }
+
+    return arr;
 }
 
 } // namespace rpc
