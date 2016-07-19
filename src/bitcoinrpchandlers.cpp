@@ -239,6 +239,7 @@ Value getTransactionList(const Array& params, bool fHelp)
         jtr.push_back(Pair("fromAmount", boost::lexical_cast<std::string>(tr->firstAmount())));
         jtr.push_back(Pair("to", tr->secondCurrency()));
         jtr.push_back(Pair("toAmount", boost::lexical_cast<std::string>(tr->secondAmount())));
+        jtr.push_back(Pair("state", tr->strState()));
 
         arr.push_back(jtr);
     }
