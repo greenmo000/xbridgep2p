@@ -272,7 +272,7 @@ bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
     std::string rlptxrev(reinterpret_cast<const char *>(packet->data()+offset));
 
     std::string txsigned;
-    if (!rpc::eth_sign(m_address, m_port, m_walletAddress, rlptxrev, txsigned))
+    if (!rpc::eth_sign(m_wallet.ip, m_wallet.port, m_wallet.address, rlptxrev, txsigned))
     {
         // not signed, cancel transaction
         sendCancelTransaction(txid, crNotSigned);
@@ -454,7 +454,7 @@ bool XBridgeSessionEtherium::revertXBridgeTransaction(const uint256 & id)
     }
 
     // rollback, commit revert transaction
-    if (!rpc::eth_sendRawTransaction(m_user, m_passwd, xtx->revTx))
+    if (!rpc::eth_sendRawTransaction(m_wallet.user, m_wallet.passwd, xtx->revTx))
     {
         // not commited....send cancel???
         // sendCancelTransaction(id);
