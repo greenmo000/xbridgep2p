@@ -10,6 +10,8 @@
 #include "version.h"
 #include "config.h"
 #include "uiconnector.h"
+#include "bitcoinrpc.h"
+#include "bitcoinrpcconnection.h"
 
 #ifndef NO_GUI
 #include "ui/mainwindow.h"
@@ -214,18 +216,40 @@ bool XBridgeApp::initDht()
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeApp::stopDht()
+bool XBridgeApp::stop()
 {
-    LOG() << "stopping dht thread";
+    LOG() << "stopping threads...";
     m_dhtStop = true;
-//    m_dhtThread.join();
+    m_rpcStop = true;
 
-    LOG() << "stopping bridge thread";
     m_bridge->stop();
 
     m_threads.join_all();
 
     return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::initRpc()
+{
+    Settings & s = settings();
+    if (!s.rpcEnabled())
+    {
+        return true;
+    }
+
+    m_rpcStop = false;
+
+    m_threads.create_thread(boost::bind(&XBridgeApp::rpcThreadProc, this));
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeApp::signalRpcStopActive() const
+{
+    return m_rpcStop;
 }
 
 //*****************************************************************************
@@ -703,7 +727,7 @@ void XBridgeApp::dhtThreadProc()
                     {
                         // add to known
                         boost::mutex::scoped_lock l(m_messagesLock);
-                        m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                        m_processedMessages.insert(util::hash(message.begin(), message.end()));
 
                         // send to all local clients
                         {
@@ -737,6 +761,10 @@ void XBridgeApp::dhtThreadProc()
                                 ptr->takeXBridgeMessage(message);
 
                                 isFoundLocal = true;
+
+                                // add to known
+                                boost::mutex::scoped_lock l(m_messagesLock);
+                                m_processedMessages.insert(util::hash(message.begin(), message.end()));
                             }
                         }
 
@@ -748,7 +776,7 @@ void XBridgeApp::dhtThreadProc()
                             {
                                 // add to known
                                 boost::mutex::scoped_lock l(m_messagesLock);
-                                m_processedMessages.insert(util::hash(message.begin(), message.end())).second;
+                                m_processedMessages.insert(util::hash(message.begin(), message.end()));
                             }
 
                             if (err != 0 && err != DHT_NETWORK_BUFFER_OWERFLOW)
@@ -891,6 +919,13 @@ void XBridgeApp::bridgeThreadProc()
 
 //*****************************************************************************
 //*****************************************************************************
+void XBridgeApp::rpcThreadProc()
+{
+    rpc::threadRPCServer();
+}
+
+//*****************************************************************************
+//*****************************************************************************
 XBridgeSessionPtr XBridgeApp::sessionByCurrency(const std::string & currency) const
 {
     boost::mutex::scoped_lock l(m_sessionsLock);
@@ -997,6 +1032,15 @@ bool XBridgeApp::isKnownMessage(const std::vector<unsigned char> & message)
 {
     boost::mutex::scoped_lock l(m_messagesLock);
     return m_processedMessages.count(util::hash(message.begin(), message.end())) > 0;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void XBridgeApp::addToKnown(const std::vector<unsigned char> & message)
+{
+    // add to known
+    boost::mutex::scoped_lock l(m_messagesLock);
+    m_processedMessages.insert(util::hash(message.begin(), message.end()));
 }
 
 //*****************************************************************************
@@ -1251,3 +1295,11 @@ int XBridgeApp::peersCount() const
 {
     return dht_get_count(0, 0);
 }
+
+//******************************************************************************
+//******************************************************************************
+void XBridgeApp::handleRpcRequest(rpc::AcceptedConnection * conn)
+{
+    m_threads.create_thread(boost::bind(&XBridgeApp::rpcHandlerProc, this, conn));
+}
+

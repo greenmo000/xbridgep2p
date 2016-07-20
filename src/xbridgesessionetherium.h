@@ -23,15 +23,7 @@ class XBridgeSessionEtherium
 {
 public:
     XBridgeSessionEtherium();
-    XBridgeSessionEtherium(const std::string & currency,
-                           const std::string & walletAddress,
-                           const std::string & address,
-                           const std::string & port,
-                           const std::string & user,
-                           const std::string & passwd,
-                           const std::string & prefix,
-                           const boost::uint64_t & COIN,
-                           const boost::uint64_t & minAmount);
+    XBridgeSessionEtherium(const WalletParam & wallet);
 
     virtual ~XBridgeSessionEtherium();
 

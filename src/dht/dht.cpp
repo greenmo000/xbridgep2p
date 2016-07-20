@@ -2488,6 +2488,9 @@ int dht_periodic(const unsigned char * buf, size_t buflen,
                             // relay message
                             app.onSend(std::vector<unsigned char>(), addr, vmessage);
                         }
+
+                        // add to known
+                        app.addToKnown(vmessage);
                     }
                 }
 
@@ -2533,6 +2536,9 @@ int dht_periodic(const unsigned char * buf, size_t buflen,
 
                         // relay message
                         app.onSend(std::vector<unsigned char>(), vmessage);
+
+                        // add to known
+                        app.addToKnown(vmessage);
                     }
                 }
 

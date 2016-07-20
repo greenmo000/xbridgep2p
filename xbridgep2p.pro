@@ -104,7 +104,13 @@ SOURCES += \
     src/xbridgesessionetherium.cpp \
     src/ethrpc.cpp \
     src/rpccommon.cpp \
-    src/config.cpp
+    src/config.cpp \
+    src/config.cpp \
+    src/bitcoinrpcserver.cpp \
+    src/bitcoinrpcconnection.cpp \
+    src/bitcoinrpcssliostreamdevice.cpp \
+    src/bitcoinrpchandlers.cpp \
+    src/bitcoinrpctable.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -147,7 +153,14 @@ HEADERS += \
     src/util/txlog.h \
     src/xbridgesessionetherium.h \
     src/ethrpc.h \
-    src/rpccommon.h
+    src/rpccommon.h \
+    src/xbridgesessionetherium.h \
+    src/xbridgewallet.h \
+    src/bitcoinrpcconnection.h \
+    src/bitcoinrpcssliostreamdevice.h \
+    src/httpstatuscode.h \
+    src/rpcstatuscode.h \
+    src/bitcoinrpctable.h
 
 #-------------------------------------------------
 !withoutgui {

@@ -234,7 +234,11 @@ bool XBridgeTransaction::isValid() const
 bool XBridgeTransaction::isExpired() const
 {
     boost::posix_time::time_duration td = boost::posix_time::second_clock::universal_time() - m_created;
-    if (td.total_seconds() > TTL)
+    if (m_state == trNew && td.total_seconds() > pendingTTL)
+    {
+        return true;
+    }
+    if (m_state > trNew && td.total_seconds() > TTL)
     {
         return true;
     }

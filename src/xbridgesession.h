@@ -7,6 +7,7 @@
 #include "xbridge.h"
 #include "xbridgepacket.h"
 #include "xbridgetransaction.h"
+#include "xbridgewallet.h"
 #include "FastDelegate.h"
 #include "util/uint256.h"
 
@@ -23,20 +24,12 @@ class XBridgeSession
 {
 public:
     XBridgeSession();
-    XBridgeSession(const std::string & currency,
-                   const std::string & walletAddress,
-                   const std::string & address,
-                   const std::string & port,
-                   const std::string & user,
-                   const std::string & passwd,
-                   const std::string & prefix,
-                   const boost::uint64_t & COIN,
-                   const boost::uint64_t & minAmount);
+    XBridgeSession(const WalletParam & wallet);
     virtual ~XBridgeSession();
 
     const unsigned char * sessionAddr() const { return m_myid; }
-    std::string currency() const  { return m_currency; }
-    double      minAmount() const { return (double)m_minAmount / m_COIN; }
+    std::string currency() const  { return m_wallet.currency; }
+    double      minAmount() const { return (double)m_wallet.minAmount / m_wallet.COIN; }
 
     void start(XBridge::SocketPtr socket);
 
@@ -96,7 +89,7 @@ protected:
     // return true if packet not for me, relayed
     bool relayPacket(XBridgePacketPtr packet);
 
-    virtual std::string currencyToLog() const { return std::string("[") + m_currency + std::string("]"); }
+    virtual std::string currencyToLog() const { return std::string("[") + m_wallet.currency + std::string("]"); }
 
 protected:
     virtual bool processInvalid(XBridgePacketPtr packet);
@@ -147,15 +140,17 @@ protected:
 protected:
     std::set<std::vector<unsigned char> > m_addressBook;
 
-    std::string       m_currency;
-    std::string       m_walletAddress;
-    std::string       m_address;
-    std::string       m_port;
-    std::string       m_user;
-    std::string       m_passwd;
-    std::string       m_prefix;
-    boost::uint64_t   m_COIN;
-    boost::uint64_t   m_minAmount;
+    WalletParam       m_wallet;
+
+//    std::string       m_currency;
+//    std::string       m_walletAddress;
+//    std::string       m_address;
+//    std::string       m_port;
+//    std::string       m_user;
+//    std::string       m_passwd;
+//    std::string       m_prefix;
+//    boost::uint64_t   m_COIN;
+//    boost::uint64_t   m_minAmount;
 };
 
 typedef std::shared_ptr<XBridgeSession> XBridgeSessionPtr;

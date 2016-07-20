@@ -5,6 +5,7 @@
 #include "xbridgetransactionsview.h"
 #include "../xbridgeapp.h"
 #include "../xbridgeexchange.h"
+#include "../util/settings.h"
 
 #include <QStatusBar>
 
@@ -20,6 +21,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     {
         title += tr(" [exhange enabled]");
     }
+
+    if (settings().rpcEnabled())
+    {
+        title += tr(" [rpc enabled]");
+    }
+
     setWindowTitle(title);
 
     setCentralWidget(new XBridgeTransactionsView(this));

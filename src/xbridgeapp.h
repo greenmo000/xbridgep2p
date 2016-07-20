@@ -25,6 +25,11 @@
 #include <QApplication>
 #endif
 
+namespace rpc
+{
+class AcceptedConnection;
+}
+
 //*****************************************************************************
 //*****************************************************************************
 class XBridgeApp
@@ -74,7 +79,11 @@ public:
     // const unsigned char * myid() const { return m_myid; }
 
     bool initDht();
-    bool stopDht();
+    bool initRpc();
+
+    bool stop();
+
+    bool signalRpcStopActive() const;
 
     // void logMessage(const QString & msg);
 
@@ -89,6 +98,9 @@ public:
 
     bool isLocalAddress(const std::vector<unsigned char> & id);
     bool isKnownMessage(const std::vector<unsigned char> & message);
+    void addToKnown(const std::vector<unsigned char> & message);
+
+    void handleRpcRequest(rpc::AcceptedConnection * conn);
 
 public:// slots:
     // generate new id
@@ -124,6 +136,8 @@ public:
 private:
     void dhtThreadProc();
     void bridgeThreadProc();
+    void rpcThreadProc();
+    void rpcHandlerProc(rpc::AcceptedConnection * conn);
 
 private:
     unsigned char     m_myid[20];
@@ -132,6 +146,7 @@ private:
     // std::thread       m_dhtThread;
     std::atomic<bool> m_dhtStarted;
     std::atomic<bool> m_dhtStop;
+    std::atomic<bool> m_rpcStop;
 
     std::atomic<bool> m_signalGenerate;
     std::atomic<bool> m_signalDump;

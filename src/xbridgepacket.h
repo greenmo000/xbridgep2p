@@ -24,7 +24,8 @@ enum TxCancelReason
     crRpcError      = 4,
     crNotSigned     = 5,
     crNotAccepted   = 6,
-    crRollback      = 7
+    crRollback      = 7,
+    crRpcRequest    = 8
 };
 
 //******************************************************************************
@@ -140,7 +141,7 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     xbcTransactionInitialized = 9,
     //
-    // xbcTransactionCreate
+    // xbcTransactionCreate (124 bytes)
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id

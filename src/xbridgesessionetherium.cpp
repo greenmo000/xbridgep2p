@@ -54,18 +54,11 @@ XBridgeSessionEtherium::XBridgeSessionEtherium()
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeSessionEtherium::XBridgeSessionEtherium(const std::string & currency,
-                                               const std::string & walletAddress,
-                                               const std::string & address,
-                                               const std::string & port,
-                                               const std::string & user,
-                                               const std::string & passwd,
-                                               const std::string & prefix,
-                                               const boost::uint64_t & /*COIN*/,
-                                               const boost::uint64_t & minAmount)
-    : XBridgeSession(currency, walletAddress, address, port, user, passwd,
-                     prefix, 1000000000000000000, minAmount)
+XBridgeSessionEtherium::XBridgeSessionEtherium(const WalletParam & wallet)
+    : XBridgeSession(wallet)
 {
+    m_wallet.COIN = 1000000000000000000;
+
     init();
 }
 
@@ -83,7 +76,7 @@ void XBridgeSessionEtherium::init()
     assert(!m_processors.size());
 
     dht_random_bytes(m_myid, sizeof(m_myid));
-    LOG() << "session <" << m_currency << "> generated id <"
+    LOG() << "session <" << m_wallet.currency << "> generated id <"
              << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
              << ">";
 
@@ -183,7 +176,7 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
     xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
 
     uint64_t amount = 0;
-    if (!rpc::eth_getBalance(m_address, m_port, m_walletAddress, amount))
+    if (!rpc::eth_getBalance(m_wallet.ip, m_wallet.port, m_wallet.address, amount))
     {
         LOG() << "rpc::eth_getBalance failed" << __FUNCTION__;
         return false;
@@ -196,8 +189,8 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
 //        return false;
 //    }
 
-    boost::uint64_t outAmount = m_COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+m_fee;
-    boost::uint64_t taxAmount = m_COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
+    boost::uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+m_fee;
+    boost::uint64_t taxAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
 
     boost::uint64_t fee = 0;
     boost::uint64_t inAmount  = 0;
@@ -349,7 +342,11 @@ bool XBridgeSessionEtherium::processTransactionCommit(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[txid];
     }
 
-    if (!rpc::eth_sendRawTransaction(m_address, m_port, xtx->payTx))
+    std::string from = "0x" + std::string(reinterpret_cast<char *>(&xtx->from[0]), 20);
+    std::string to   = "0x" + std::string(reinterpret_cast<char *>(&xtx->to[0]), 20);
+
+    uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
+    if (!rpc::eth_sendTransaction(m_wallet.ip, m_wallet.port, from, to, outAmount, m_fee))
     {
         // not commited....send cancel???
         // sendCancelTransaction(id);
@@ -419,13 +416,13 @@ void XBridgeSessionEtherium::requestAddressBook()
 //                (m_currency, "ETHEREUM", util::base64_encode(addr.substr(2)));
 //    }
 
-    std::vector<unsigned char> addr = toXBridgeAddr(m_walletAddress);
+    std::vector<unsigned char> addr = toXBridgeAddr(m_wallet.address);
 
     XBridgeApp & app = XBridgeApp::instance();
     app.storageStore(shared_from_this(), &addr[0]);
 
     uiConnector.NotifyXBridgeAddressBookEntryReceived
-            (m_currency, "ETHEREUM", util::base64_encode(addr));
+            (m_wallet.currency, "ETHEREUM", util::base64_encode(addr));
 }
 
 //******************************************************************************
