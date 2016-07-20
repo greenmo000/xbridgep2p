@@ -199,7 +199,7 @@ static Object JSONRPCExecOne(const Value& req)
 
 //******************************************************************************
 //******************************************************************************
-Value help(const Array& params, bool fHelp)
+Value help(const Array & params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
         throw runtime_error(
@@ -217,7 +217,7 @@ Value help(const Array& params, bool fHelp)
 
 //******************************************************************************
 //******************************************************************************
-Value getTransactionList(const Array& params, bool fHelp)
+Value getTransactionList(const Array & params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
     {
@@ -251,7 +251,7 @@ Value getTransactionList(const Array& params, bool fHelp)
 
 //******************************************************************************
 //******************************************************************************
-Value getCurrencyList(const Array& params, bool fHelp)
+Value getCurrencyList(const Array & params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
     {
@@ -272,6 +272,90 @@ Value getCurrencyList(const Array& params, bool fHelp)
         obj.push_back(Pair(w.first, w.second));
     }
 
+    return obj;
+}
+
+//******************************************************************************
+//******************************************************************************
+Value createTransaction(const Array & params, bool fHelp)
+{
+    if (fHelp || params.size() != 6)
+    {
+        throw runtime_error("createTransaction "
+                            "(address from) (currency from) (amount from) "
+                            "(address to) (currency to) (amount to)\n"
+                            "Create xbridge transaction.");
+    }
+
+    std::string f = util::base64_decode(params[0].get_str());
+    std::vector<unsigned char> from(f.begin(), f.end());
+    std::string fromCurrency = params[1].get_str();
+    double      fromAmount   = params[2].get_real();
+    std::string t = util::base64_decode(params[3].get_str());
+    std::vector<unsigned char> to(t.begin(), t.end());
+    std::string toCurrency   = params[4].get_str();
+    double      toAmount     = params[5].get_real();
+
+    if (from.size() != 20 || to.size() != 20)
+    {
+        throw runtime_error("incorrect address");
+    }
+
+    uint256 id = XBridgeApp::instance().sendXBridgeTransaction
+            (from, fromCurrency, (boost::uint64_t)(fromAmount * XBridgeTransactionDescr::COIN),
+             to,   toCurrency,   (boost::uint64_t)(toAmount * XBridgeTransactionDescr::COIN));
+
+
+    Object obj;
+    obj.push_back(Pair("id", id.GetHex()));
+    return obj;
+}
+
+//******************************************************************************
+//******************************************************************************
+Value acceptTransaction(const Array & params, bool fHelp)
+{
+    if (fHelp || params.size() != 3)
+    {
+        throw runtime_error("acceptTransaction (id) "
+                            "(address from) (address to)\n"
+                            "Accept xbridge transaction.");
+    }
+
+    uint256 id(params[0].get_str());
+    std::string f = util::base64_decode(params[1].get_str());
+    std::vector<unsigned char> from(f.begin(), f.end());
+    std::string t = util::base64_decode(params[2].get_str());
+    std::vector<unsigned char> to(t.begin(), t.end());
+
+    if (from.size() != 20 || to.size() != 20)
+    {
+        throw runtime_error("incorrect address");
+    }
+
+    uint256 idresult = XBridgeApp::instance().acceptXBridgeTransaction(id, from, to);
+
+    Object obj;
+    obj.push_back(Pair("id", idresult.GetHex()));
+    return obj;
+}
+
+//******************************************************************************
+//******************************************************************************
+Value cancelTransaction(const Array & params, bool fHelp)
+{
+    if (fHelp || params.size() != 2)
+    {
+        throw runtime_error("cancelTransaction (id)\n"
+                            "Cancel xbridge transaction.");
+    }
+
+    uint256 id(params[0].get_str());
+
+    XBridgeApp::instance().cancelXBridgeTransaction(id, crRpcRequest);
+
+    Object obj;
+    obj.push_back(Pair("id", id.GetHex()));
     return obj;
 }
 

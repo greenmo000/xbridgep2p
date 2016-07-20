@@ -24,7 +24,8 @@ enum TxCancelReason
     crRpcError      = 4,
     crNotSigned     = 5,
     crNotAccepted   = 6,
-    crRollback      = 7
+    crRollback      = 7,
+    crRpcRequest    = 8
 };
 
 //******************************************************************************
