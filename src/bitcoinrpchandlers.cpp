@@ -208,7 +208,9 @@ Value help(const Array& params, bool fHelp)
 
     string strCommand;
     if (params.size() > 0)
+    {
         strCommand = params[0].get_str();
+    }
 
     return rpcTable.help(strCommand);
 }
@@ -245,6 +247,32 @@ Value getTransactionList(const Array& params, bool fHelp)
     }
 
     return arr;
+}
+
+//******************************************************************************
+//******************************************************************************
+Value getCurrencyList(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+    {
+        throw runtime_error("getCurrencyList\nList currencies.");
+    }
+
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        throw runtime_error("Not an exchange node.");
+    }
+
+    Object obj;
+
+    std::vector<StringPair> wallets = e.listOfWallets();
+    for (StringPair & w : wallets)
+    {
+        obj.push_back(Pair(w.first, w.second));
+    }
+
+    return obj;
 }
 
 } // namespace rpc

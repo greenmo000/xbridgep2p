@@ -26,6 +26,7 @@ Object JSONRPCError(int code, const std::string & message);
 //******************************************************************************
 Value help(const Array& params, bool fHelp);
 Value getTransactionList(const Array& params, bool fHelp);
+Value getCurrencyList(const Array& params, bool fHelp);
 
 //******************************************************************************
 //******************************************************************************
@@ -34,6 +35,7 @@ static const RPCCommand rpcCommands[] =
     // name                      function
     {  "help",                   &help },
     {  "getTransactionList",     &getTransactionList },
+    {  "getCurrencyList",        &getCurrencyList },
 };
 
 RPCTable rpcTable;
