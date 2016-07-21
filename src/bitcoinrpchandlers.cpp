@@ -368,7 +368,7 @@ Value acceptTransaction(const Array & params, bool fHelp)
 //******************************************************************************
 Value cancelTransaction(const Array & params, bool fHelp)
 {
-    if (fHelp || params.size() != 2)
+    if (fHelp || params.size() != 1)
     {
         throw runtime_error("cancelTransaction (id)\n"
                             "Cancel xbridge transaction.");
