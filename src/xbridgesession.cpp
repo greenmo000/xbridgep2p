@@ -533,19 +533,6 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
     // read packet data
     uint256 id(packet->data());
 
-    // TODO for debug
-    {
-        XBridgeTransactionDescr d;
-        d.id           = id;
-        d.fromCurrency = scurrency;
-        d.fromAmount   = samount;
-        d.toCurrency   = dcurrency;
-        d.toAmount     = damount;
-        d.state        = XBridgeTransactionDescr::trPending;
-
-        uiConnector.NotifyXBridgePendingTransactionReceived(d);
-    }
-
     LOG() << "received transaction " << util::base64_encode(std::string((char *)id.begin(), 32)) << std::endl
           << "    from " << util::base64_encode(std::string((char *)&saddr[0], 20)) << std::endl
           << "             " << scurrency << " : " << samount << std::endl
@@ -554,11 +541,31 @@ bool XBridgeSession::processTransaction(XBridgePacketPtr packet)
 
     {
         uint256 pendingId;
-        if (e.createTransaction(id,
-                                saddr, scurrency, samount,
-                                daddr, dcurrency, damount,
-                                pendingId))
+        if (!e.createTransaction(id,
+                                 saddr, scurrency, samount,
+                                 daddr, dcurrency, damount,
+                                 pendingId))
         {
+            // not created, send cancel
+            sendCancelTransaction(id, crXbridgeRejected);
+        }
+        else
+        {
+            // tx created
+
+            // TODO send signal to gui for debug
+            {
+                XBridgeTransactionDescr d;
+                d.id           = id;
+                d.fromCurrency = scurrency;
+                d.fromAmount   = samount;
+                d.toCurrency   = dcurrency;
+                d.toAmount     = damount;
+                d.state        = XBridgeTransactionDescr::trPending;
+
+                uiConnector.NotifyXBridgePendingTransactionReceived(d);
+            }
+
             XBridgeTransactionPtr tr = e.pendingTransaction(pendingId);
             if (tr->id() == uint256())
             {

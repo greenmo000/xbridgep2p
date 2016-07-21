@@ -17,15 +17,16 @@
 //******************************************************************************
 enum TxCancelReason
 {
-    crUnknown       = 0,
-    crUserRequest   = 1,
-    crNoMoney       = 2,
-    crDust          = 3,
-    crRpcError      = 4,
-    crNotSigned     = 5,
-    crNotAccepted   = 6,
-    crRollback      = 7,
-    crRpcRequest    = 8
+    crUnknown         = 0,
+    crUserRequest     = 1,
+    crNoMoney         = 2,
+    crDust            = 3,
+    crRpcError        = 4,
+    crNotSigned       = 5,
+    crNotAccepted     = 6,
+    crRollback        = 7,
+    crRpcRequest      = 8,
+    crXbridgeRejected = 9
 };
 
 //******************************************************************************
