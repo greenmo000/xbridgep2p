@@ -187,6 +187,7 @@ void XBridgeTransactionsView::onAcceptTransaction()
     m_dlg.setPendingId(d.id);
     m_dlg.setFromAmount((double)d.toAmount / XBridgeTransactionDescr::COIN);
     m_dlg.setToAmount((double)d.fromAmount / XBridgeTransactionDescr::COIN);
+    m_dlg.setFromCurrency(QString::fromStdString(d.toCurrency));
     m_dlg.setToCurrency(QString::fromStdString(d.fromCurrency));
     m_dlg.show();
 }
