@@ -3,7 +3,7 @@
 
 #include "xbridge.h"
 #include "xbridgesession.h"
-#include "xbridgesessionetherium.h"
+#include "xbridgesessionethereum.h"
 #include "xbridgeapp.h"
 #include "util/logger.h"
 #include "util/settings.h"
@@ -72,7 +72,7 @@ XBridge::XBridge()
                 }
                 else
                 {
-                    session.reset(new XBridgeSessionEtherium(wp));
+                    session.reset(new XBridgeSessionEthereum(wp));
                 }
                 app.addSession(session);
                 // session->requestAddressBook();

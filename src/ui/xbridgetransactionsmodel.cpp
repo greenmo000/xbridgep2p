@@ -153,7 +153,7 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
 //******************************************************************************
 QVariant XBridgeTransactionsModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if(orientation == Qt::Horizontal)
+    if (orientation == Qt::Horizontal)
     {
         if (role == Qt::DisplayRole)
         {

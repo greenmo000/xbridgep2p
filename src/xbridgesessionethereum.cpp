@@ -5,7 +5,7 @@
 // #include <boost/asio/buffer.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "xbridgesessionetherium.h"
+#include "xbridgesessionethereum.h"
 #include "xbridgeapp.h"
 #include "xbridgeexchange.h"
 #include "uiconnector.h"
@@ -45,14 +45,14 @@ struct PrintErrorCode
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeSessionEtherium::XBridgeSessionEtherium()
+XBridgeSessionEthereum::XBridgeSessionEthereum()
 {
     init();
 }
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeSessionEtherium::XBridgeSessionEtherium(const WalletParam & wallet)
+XBridgeSessionEthereum::XBridgeSessionEthereum(const WalletParam & wallet)
     : XBridgeSession(wallet)
 {
     m_wallet.COIN = 1000000000000000000;
@@ -62,14 +62,14 @@ XBridgeSessionEtherium::XBridgeSessionEtherium(const WalletParam & wallet)
 
 //*****************************************************************************
 //*****************************************************************************
-XBridgeSessionEtherium::~XBridgeSessionEtherium()
+XBridgeSessionEthereum::~XBridgeSessionEthereum()
 {
 
 }
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeSessionEtherium::init()
+void XBridgeSessionEthereum::init()
 {
     assert(!m_processors.size());
 
@@ -79,60 +79,60 @@ void XBridgeSessionEtherium::init()
              << ">";
 
     // process invalid
-    m_processors[xbcInvalid]               .bind(this, &XBridgeSessionEtherium::processInvalid);
+    m_processors[xbcInvalid]               .bind(this, &XBridgeSessionEthereum::processInvalid);
 
-    m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionEtherium::processAnnounceAddresses);
+    m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionEthereum::processAnnounceAddresses);
 
     // process transaction from client wallet
     // if (XBridgeExchange::instance().isEnabled())
     {
-        m_processors[xbcTransaction]           .bind(this, &XBridgeSessionEtherium::processTransaction);
-        m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSessionEtherium::processTransactionAccepting);
+        m_processors[xbcTransaction]           .bind(this, &XBridgeSessionEthereum::processTransaction);
+        m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSessionEthereum::processTransactionAccepting);
     }
     // else
     {
-        m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSessionEtherium::processPendingTransaction);
+        m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSessionEthereum::processPendingTransaction);
     }
 
     // transaction processing
     {
-        m_processors[xbcTransactionHold]       .bind(this, &XBridgeSessionEtherium::processTransactionHold);
-        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSessionEtherium::processTransactionHoldApply);
+        m_processors[xbcTransactionHold]       .bind(this, &XBridgeSessionEthereum::processTransactionHold);
+        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSessionEthereum::processTransactionHoldApply);
 
-        m_processors[xbcTransactionInit]       .bind(this, &XBridgeSessionEtherium::processTransactionInit);
-        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSessionEtherium::processTransactionInitialized);
+        m_processors[xbcTransactionInit]       .bind(this, &XBridgeSessionEthereum::processTransactionInit);
+        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSessionEthereum::processTransactionInitialized);
 
-        m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionEtherium::processTransactionCreate);
-        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSessionEtherium::processTransactionCreated);
+        m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionEthereum::processTransactionCreate);
+        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSessionEthereum::processTransactionCreated);
 
-        m_processors[xbcTransactionSign]       .bind(this, &XBridgeSessionEtherium::processTransactionSign);
-        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSessionEtherium::processTransactionSigned);
+        m_processors[xbcTransactionSign]       .bind(this, &XBridgeSessionEthereum::processTransactionSign);
+        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionSigned);
 
-        m_processors[xbcTransactionCommit]     .bind(this, &XBridgeSessionEtherium::processTransactionCommit);
-        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSessionEtherium::processTransactionCommited);
+        m_processors[xbcTransactionCommit]     .bind(this, &XBridgeSessionEthereum::processTransactionCommit);
+        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSessionEthereum::processTransactionCommited);
 
-        m_processors[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEtherium::processTransactionConfirm);
+        m_processors[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEthereum::processTransactionConfirm);
 
-        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSessionEtherium::processTransactionCancel);
-        m_processors[xbcTransactionRollback]   .bind(this, &XBridgeSessionEtherium::processTransactionRollback);
-        m_processors[xbcTransactionFinished]   .bind(this, &XBridgeSessionEtherium::processTransactionFinished);
-        m_processors[xbcTransactionDropped]    .bind(this, &XBridgeSessionEtherium::processTransactionDropped);
+        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSessionEthereum::processTransactionCancel);
+        m_processors[xbcTransactionRollback]   .bind(this, &XBridgeSessionEthereum::processTransactionRollback);
+        m_processors[xbcTransactionFinished]   .bind(this, &XBridgeSessionEthereum::processTransactionFinished);
+        m_processors[xbcTransactionDropped]    .bind(this, &XBridgeSessionEthereum::processTransactionDropped);
 
-        m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionEtherium::processTransactionConfirmed);
+        m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionEthereum::processTransactionConfirmed);
 
         // wallet received transaction
-        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSessionEtherium::processBitcoinTransactionHash);
+        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSessionEthereum::processBitcoinTransactionHash);
     }
 
-    m_processors[xbcAddressBookEntry].bind(this, &XBridgeSessionEtherium::processAddressBookEntry);
+    m_processors[xbcAddressBookEntry].bind(this, &XBridgeSessionEthereum::processAddressBookEntry);
 
     // retranslate messages to xbridge network
-    m_processors[xbcXChatMessage].bind(this, &XBridgeSessionEtherium::processXChatMessage);
+    m_processors[xbcXChatMessage].bind(this, &XBridgeSessionEthereum::processXChatMessage);
 }
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
+bool XBridgeSessionEthereum::processTransactionCreate(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -218,7 +218,7 @@ bool XBridgeSessionEtherium::processTransactionCreate(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
+bool XBridgeSessionEthereum::processTransactionSign(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -273,7 +273,7 @@ bool XBridgeSessionEtherium::processTransactionSign(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionEtherium::processTransactionCommit(XBridgePacketPtr packet)
+bool XBridgeSessionEthereum::processTransactionCommit(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -361,7 +361,7 @@ std::vector<unsigned char> toXBridgeAddr(const std::string & etherAddress)
 
 //*****************************************************************************
 //*****************************************************************************
-void XBridgeSessionEtherium::requestAddressBook()
+void XBridgeSessionEthereum::requestAddressBook()
 {
 //    std::vector<std::string> addrs;
 //    if (!rpc::eth_accounts(m_address, m_port, addrs))
@@ -390,7 +390,7 @@ void XBridgeSessionEtherium::requestAddressBook()
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionEtherium::revertXBridgeTransaction(const uint256 & id)
+bool XBridgeSessionEthereum::revertXBridgeTransaction(const uint256 & id)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 

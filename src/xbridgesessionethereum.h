@@ -18,19 +18,19 @@
 
 //*****************************************************************************
 //*****************************************************************************
-class XBridgeSessionEtherium
+class XBridgeSessionEthereum
         : public XBridgeSession
 {
 public:
-    XBridgeSessionEtherium();
-    XBridgeSessionEtherium(const WalletParam & wallet);
+    XBridgeSessionEthereum();
+    XBridgeSessionEthereum(const WalletParam & wallet);
 
-    virtual ~XBridgeSessionEtherium();
+    virtual ~XBridgeSessionEthereum();
 
 public:
-    std::shared_ptr<XBridgeSessionEtherium> shared_from_this()
+    std::shared_ptr<XBridgeSessionEthereum> shared_from_this()
     {
-        return std::static_pointer_cast<XBridgeSessionEtherium>(XBridgeSession::shared_from_this());
+        return std::static_pointer_cast<XBridgeSessionEthereum>(XBridgeSession::shared_from_this());
     }
 
 private:
@@ -54,6 +54,6 @@ private:
     const uint64_t m_fee = 420000000000000;
 };
 
-typedef std::shared_ptr<XBridgeSessionEtherium> XBridgeSessionEtheriumPtr;
+typedef std::shared_ptr<XBridgeSessionEthereum> XBridgeSessionEtheriumPtr;
 
 #endif // XBRIFGESSESSIONETHERIUM_H
