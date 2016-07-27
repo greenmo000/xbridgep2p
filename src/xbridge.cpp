@@ -3,7 +3,9 @@
 
 #include "xbridge.h"
 #include "xbridgesession.h"
+#include "xbridgesessionbtc.h"
 #include "xbridgesessionethereum.h"
+#include "xbridgesessionrpccommon.h"
 #include "xbridgeapp.h"
 #include "util/logger.h"
 #include "util/settings.h"
@@ -66,13 +68,21 @@ XBridge::XBridge()
                 }
 
                 XBridgeSessionPtr session;
-                if (*i != "ETHER")
+                if (*i == "ETHER")
                 {
-                    session.reset(new XBridgeSession(wp));
+                    session.reset(new XBridgeSessionEthereum(wp));
+                }
+                else if (*i == "BTC")
+                {
+                    session.reset(new XBridgeSessionBtc(wp));
+                }
+                else if (*i == "SYS")
+                {
+                    session.reset(new XBridgeSessionRpc(wp));
                 }
                 else
                 {
-                    session.reset(new XBridgeSessionEthereum(wp));
+                    session.reset(new XBridgeSession(wp));
                 }
                 app.addSession(session);
                 // session->requestAddressBook();

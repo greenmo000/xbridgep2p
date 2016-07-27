@@ -17,32 +17,6 @@
 #include "ctransaction.h"
 #include "base58.h"
 
-//******************************************************************************
-//******************************************************************************
-// Threshold for nLockTime: below this value it is interpreted as block number,
-// otherwise as UNIX timestamp.
-// Tue Nov  5 00:53:20 1985 UTC
-static const unsigned int LOCKTIME_THRESHOLD = 500000000;
-
-//******************************************************************************
-//******************************************************************************
-struct PrintErrorCode
-{
-    const boost::system::error_code & error;
-
-    explicit PrintErrorCode(const boost::system::error_code & e) : error(e) {}
-
-    friend std::ostream & operator<<(std::ostream & out, const PrintErrorCode & e)
-    {
-        return out << " ERROR <" << e.error.value() << "> " << e.error.message();
-    }
-};
-
-//*****************************************************************************
-//*****************************************************************************
-// std::string txToString(const CTransaction & tx);
-// CTransaction txFromString(const std::string & str);
-
 //*****************************************************************************
 //*****************************************************************************
 XBridgeSessionEthereum::XBridgeSessionEthereum()

@@ -102,7 +102,9 @@ SOURCES += \
     src/bitcoinrpcssliostreamdevice.cpp \
     src/bitcoinrpchandlers.cpp \
     src/bitcoinrpctable.cpp \
-    src/xbridgesessionethereum.cpp
+    src/xbridgesessionethereum.cpp \
+    src/xbridgesessionrpccommon.cpp \
+    src/xbridgesessionbtc.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -149,7 +151,9 @@ HEADERS += \
     src/httpstatuscode.h \
     src/rpcstatuscode.h \
     src/bitcoinrpctable.h \
-    src/xbridgesessionethereum.h
+    src/xbridgesessionethereum.h \
+    src/xbridgesessionrpccommon.h \
+    src/xbridgesessionbtc.h
 
 #-------------------------------------------------
 !withoutgui {

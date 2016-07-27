@@ -122,7 +122,6 @@ protected:
     virtual bool processTransactionHold(XBridgePacketPtr packet);
     virtual bool processTransactionInit(XBridgePacketPtr packet);
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionCreateBTC(XBridgePacketPtr packet);
     virtual bool processTransactionSign(XBridgePacketPtr packet);
     virtual bool processTransactionCommit(XBridgePacketPtr packet);
     virtual bool processTransactionFinished(XBridgePacketPtr packet);
