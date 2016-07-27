@@ -2,8 +2,8 @@
 #define VERSION
 
 #define XBRIDGE_VERSION_MAJOR 0
-#define XBRIDGE_VERSION_MINOR 52
-#define XBRIDGE_VERSION_DESCR "Blocknet_DX_Beta_rpc1"
+#define XBRIDGE_VERSION_MINOR 53
+#define XBRIDGE_VERSION_DESCR "multicurrency"
 
 #define MAKE_VERSION(major,minor) (( major << 16 ) + minor )
 #define XBRIDGE_VERSION MAKE_VERSION(XBRIDGE_VERSION_MAJOR, XBRIDGE_VERSION_MINOR)
