@@ -22,7 +22,7 @@
 // Threshold for nLockTime: below this value it is interpreted as block number,
 // otherwise as UNIX timestamp.
 // Tue Nov  5 00:53:20 1985 UTC
-static const unsigned int LOCKTIME_THRESHOLD = 500000000;
+const unsigned int LOCKTIME_THRESHOLD = 500000000;
 
 //******************************************************************************
 //******************************************************************************
@@ -1480,8 +1480,8 @@ bool XBridgeSession::processTransactionSign(XBridgePacketPtr packet)
 
     // unserialize
     {
-        CBTCTransaction txpay = (m_wallet.currency == "BTC") ? txFromStringBTC(rawtxpay) : txFromString(rawtxpay);
-        CBTCTransaction txrev = (m_wallet.currency == "BTC") ? txFromStringBTC(rawtxrev) : txFromString(rawtxrev);
+        CTransaction txpay = txFromString(rawtxpay);
+        CTransaction txrev = txFromString(rawtxrev);
 
         if (txpay.nLockTime < LOCKTIME_THRESHOLD || txrev.nLockTime < LOCKTIME_THRESHOLD)
         {

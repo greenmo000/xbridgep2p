@@ -25,6 +25,7 @@ struct WalletParam
     uint64_t                   COIN;
     uint64_t                   minAmount;
     uint64_t                   dustAmount;
+    std::string                method;
 
     WalletParam()
         : fee(300)

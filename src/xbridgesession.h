@@ -16,6 +16,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/noncopyable.hpp>
 
+extern const unsigned int LOCKTIME_THRESHOLD;
+
 //*****************************************************************************
 //*****************************************************************************
 class XBridgeSession

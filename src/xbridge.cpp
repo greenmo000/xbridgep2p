@@ -53,6 +53,7 @@ XBridge::XBridge()
                 wp.COIN       = s.get<uint64_t>(*i + ".COIN", 0);
                 wp.minAmount  = s.get<uint64_t>(*i + ".MinimumAmount", 0);
                 wp.dustAmount = s.get<uint64_t>(*i + ".DustAmount", 0);
+                wp.method     = s.get<std::string>(*i + ".CreateTxMethod");
 
                 if (wp.ip.empty() || wp.port.empty() ||
                     wp.user.empty() || wp.passwd.empty() ||
@@ -68,15 +69,15 @@ XBridge::XBridge()
                 }
 
                 XBridgeSessionPtr session;
-                if (*i == "ETHER")
+                if (wp.method == "ETHER")
                 {
                     session.reset(new XBridgeSessionEthereum(wp));
                 }
-                else if (*i == "BTC")
+                else if (wp.method == "BTC")
                 {
                     session.reset(new XBridgeSessionBtc(wp));
                 }
-                else if (*i == "SYS")
+                else if (wp.method == "RPC")
                 {
                     session.reset(new XBridgeSessionRpc(wp));
                 }

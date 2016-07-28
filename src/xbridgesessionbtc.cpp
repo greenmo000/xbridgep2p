@@ -329,3 +329,83 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
     sendPacket(hubAddress, reply);
     return true;
 }
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeSessionBtc::processTransactionSign(XBridgePacketPtr packet)
+{
+    DEBUG_TRACE_LOG(currencyToLog());
+
+    if (packet->size() < 72)
+    {
+        ERR() << "incorrect packet size for xbcTransactionSign "
+              << "need more than 72 received " << packet->size() << " "
+              << __FUNCTION__;
+        return false;
+    }
+
+    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
+
+    size_t offset = 20;
+    std::vector<unsigned char> hubAddress(packet->data()+offset, packet->data()+offset+20);
+    offset += 20;
+
+    uint256 txid(packet->data()+offset);
+    offset += 32;
+
+    std::string rawtxpay(reinterpret_cast<const char *>(packet->data()+offset));
+    offset += rawtxpay.size()+1;
+
+    std::string rawtxrev(reinterpret_cast<const char *>(packet->data()+offset));
+
+    // check txid
+    XBridgeTransactionDescrPtr xtx;
+    {
+        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
+
+        if (!XBridgeApp::m_transactions.count(txid))
+        {
+            // wtf? unknown transaction
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
+        }
+
+        xtx = XBridgeApp::m_transactions[txid];
+    }
+
+    // unserialize
+    {
+        CBTCTransaction txpay = txFromStringBTC(rawtxpay);
+        CBTCTransaction txrev = txFromStringBTC(rawtxrev);
+
+        if (txpay.nLockTime < LOCKTIME_THRESHOLD || txrev.nLockTime < LOCKTIME_THRESHOLD)
+        {
+            // not signed, cancel tx
+            sendCancelTransaction(txid, crNotSigned);
+            return true;
+        }
+    }
+
+    // TODO check txpay, inputs-outputs
+
+    // sign txrevert
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, rawtxrev))
+    {
+        // do not sign, cancel
+        sendCancelTransaction(txid, crNotSigned);
+        return true;
+    }
+
+    xtx->state = XBridgeTransactionDescr::trSigned;
+    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
+
+    // send reply
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSigned));
+    reply->append(hubAddress);
+    reply->append(thisAddress);
+    reply->append(txid.begin(), 32);
+    reply->append(rawtxrev);
+
+    sendPacket(hubAddress, reply);
+    return true;
+}

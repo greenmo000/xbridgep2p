@@ -117,6 +117,10 @@ bool XBridgeSessionRpc::processTransactionCreate(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
+    assert(!"not implemented");
+    ERR() << "not implemented ";
+    return false;
+
     if (packet->size() != 124)
     {
         ERR() << "incorrect packet size for xbcTransactionCreate "
