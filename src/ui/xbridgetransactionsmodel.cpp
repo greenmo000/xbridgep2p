@@ -17,10 +17,10 @@
 XBridgeTransactionsModel::XBridgeTransactionsModel()
 {
     m_columns << trUtf8("Created")
-              << trUtf8("From") << trUtf8("Amount")
-              << trUtf8("To") << trUtf8("Amount")
+              << trUtf8("From") << trUtf8("Sell amount")
+              << trUtf8("To") << trUtf8("Buy amount")
               << trUtf8("State")
-              << trUtf8("Tax");
+              << trUtf8("Fee");
 
     uiConnector.NotifyXBridgePendingTransactionReceived.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionReceived, this, _1));
@@ -412,7 +412,7 @@ QString XBridgeTransactionsModel::transactionState(const XBridgeTransactionDescr
     {
         case XBridgeTransactionDescr::trInvalid:   return trUtf8("Invalid");
         case XBridgeTransactionDescr::trNew:       return trUtf8("New");
-        case XBridgeTransactionDescr::trPending:   return trUtf8("Pending");
+        case XBridgeTransactionDescr::trPending:   return trUtf8("Open");
         case XBridgeTransactionDescr::trAccepting: return trUtf8("Accepting");
         case XBridgeTransactionDescr::trHold:      return trUtf8("Hold");
         case XBridgeTransactionDescr::trCreated:   return trUtf8("Created");
