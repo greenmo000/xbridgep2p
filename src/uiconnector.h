@@ -12,8 +12,6 @@ class UIConnector
 public:
     boost::signals2::signal<void (const XBridgeTransactionDescr & tx)> NotifyXBridgePendingTransactionReceived;
 
-    boost::signals2::signal<void (const uint256 & id, const uint256 & newid)> NotifyXBridgeTransactionIdChanged;
-
     boost::signals2::signal<void (const uint256 & id,
                                   const unsigned int state)> NotifyXBridgeTransactionStateChanged;
     boost::signals2::signal<void (const uint256 & id,

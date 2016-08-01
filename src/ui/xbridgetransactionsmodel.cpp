@@ -30,9 +30,6 @@ XBridgeTransactionsModel::XBridgeTransactionsModel()
     uiConnector.NotifyXBridgeTransactionCancelled.connect
             (boost::bind(&XBridgeTransactionsModel::onTransactionCancelled, this, _1, _2, _3));
 
-    uiConnector.NotifyXBridgeTransactionIdChanged.connect
-            (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
-
     VERIFY(connect(&m_timer, SIGNAL(timeout()), this, SLOT(onTimer())));
     m_timer.start(3000);
 }
@@ -49,18 +46,7 @@ XBridgeTransactionsModel::~XBridgeTransactionsModel()
 
     uiConnector.NotifyXBridgeTransactionCancelled.disconnect
             (boost::bind(&XBridgeTransactionsModel::onTransactionCancelled, this, _1, _2, _3));
-
-    uiConnector.NotifyXBridgeTransactionIdChanged.disconnect
-            (boost::bind(&XBridgeTransactionsModel::onTransactionIdChanged, this, _1, _2));
 }
-
-//******************************************************************************
-//******************************************************************************
-// static
-//QString XBridgeTransactionsModel::thisCurrency()
-//{
-//    return QString::fromStdString(xbridge().thisCurrency());
-//}
 
 //******************************************************************************
 //******************************************************************************
@@ -231,12 +217,14 @@ bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> &
 //******************************************************************************
 //******************************************************************************
 bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
+                                                         const std::vector<unsigned char> & hub,
                                                          const std::vector<unsigned char> & from,
                                                          const std::vector<unsigned char> & to)
 {
-    for (unsigned int i = 0; i < m_transactions.size(); ++i)
+    unsigned int i = 0;
+    for (; i < m_transactions.size(); ++i)
     {
-        if (m_transactions[i].id == id)
+        if (m_transactions[i].id == id && m_transactions[i].hubAddress == hub)
         {
             // found
             XBridgeTransactionDescr & d = m_transactions[i];
@@ -254,6 +242,25 @@ bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
             d.txtime = boost::posix_time::second_clock::universal_time();
 
             break;
+        }
+    }
+
+    if (i == m_transactions.size())
+    {
+        // not found...assert ?
+        return false;
+    }
+
+    // remove all other tx with this id
+    for (unsigned int i = 0; i < m_transactions.size(); ++i)
+    {
+        if (m_transactions[i].id == id && m_transactions[i].hubAddress != hub)
+        {
+            emit beginRemoveRows(QModelIndex(), i, i);
+            m_transactions.erase(m_transactions.begin() + i);
+            emit endRemoveRows();
+
+            --i;
         }
     }
 
@@ -315,15 +322,16 @@ void XBridgeTransactionsModel::onTransactionReceived(const XBridgeTransactionDes
 {
     for (unsigned int i = 0; i < m_transactions.size(); ++i)
     {
-        if (m_transactions[i].id == tx.id)
+        const XBridgeTransactionDescr & descr = m_transactions.at(i);
+        if (descr.id == tx.id && descr.hubAddress == tx.hubAddress)
         {
             // found
-            if (m_transactions[i].from.size() == 0)
+            if (descr.from.size() == 0)
             {
                 m_transactions[i] = tx;
             }
 
-            else if (m_transactions[i].state < tx.state)
+            else if (descr.state < tx.state)
             {
                 m_transactions[i].state = tx.state;
             }
@@ -347,22 +355,6 @@ void XBridgeTransactionsModel::onTransactionReceived(const XBridgeTransactionDes
     m_transactions.insert(m_transactions.begin(), 1, tx);
     // std::sort(m_transactions.begin(), m_transactions.end(), std::greater<XBridgeTransactionDescr>());
     emit endInsertRows();
-}
-
-//******************************************************************************
-//******************************************************************************
-void XBridgeTransactionsModel::onTransactionIdChanged(const uint256 & id,
-                                                      const uint256 & newid)
-{
-    for (std::vector<XBridgeTransactionDescr>::iterator i = m_transactions.begin();
-         i != m_transactions.end(); ++i)
-    {
-        if (i->id == id)
-        {
-            i->id = newid;
-            break;
-        }
-    }
 }
 
 //******************************************************************************

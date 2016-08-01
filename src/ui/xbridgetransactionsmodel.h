@@ -55,6 +55,7 @@ public:
                         const double fromAmount,
                         const double toAmount);
     bool newTransactionFromPending(const uint256 & id,
+                                   const std::vector<unsigned char> & hub,
                                    const std::vector<unsigned char> & from,
                                    const std::vector<unsigned char> & to);
 
@@ -67,7 +68,6 @@ private slots:
 
 private:
     void onTransactionReceived(const XBridgeTransactionDescr & tx);
-    void onTransactionIdChanged(const uint256 & id, const uint256 & newid);
     void onTransactionStateChanged(const uint256 & id, const uint32_t state);
     void onTransactionCancelled(const uint256 & id, const uint32_t state, const uint32_t reason);
 

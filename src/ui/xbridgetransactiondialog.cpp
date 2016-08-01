@@ -66,9 +66,12 @@ XBridgeTransactionDialog::~XBridgeTransactionDialog()
 
 //******************************************************************************
 //******************************************************************************
-void XBridgeTransactionDialog::setPendingId(const uint256 & id)
+void XBridgeTransactionDialog::setPendingId(const uint256 & id,
+                                            const std::vector<unsigned char> & hubAddress)
 {
-    m_pendingId = id;
+    m_pendingId  = id;
+    m_hubAddress = hubAddress;
+
     bool isPending = m_pendingId != uint256();
 
     m_amountFrom->setEnabled(!isPending);
@@ -284,7 +287,7 @@ void XBridgeTransactionDialog::onSendTransaction()
     if (m_pendingId != uint256())
     {
         // accept pending tx
-        m_model.newTransactionFromPending(m_pendingId, from, to);
+        m_model.newTransactionFromPending(m_pendingId, m_hubAddress, from, to);
     }
     else
     {

@@ -787,7 +787,6 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
         xtx->state = XBridgeTransactionDescr::trHold;
     }
 
-    // uiConnector.NotifyXBridgeTransactionIdChanged(id, newid);
     uiConnector.NotifyXBridgeTransactionStateChanged(id, XBridgeTransactionDescr::trHold);
 
     // send hold apply
