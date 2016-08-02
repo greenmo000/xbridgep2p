@@ -323,25 +323,38 @@ void XBridgeTransactionsModel::onTransactionReceived(const XBridgeTransactionDes
     for (unsigned int i = 0; i < m_transactions.size(); ++i)
     {
         const XBridgeTransactionDescr & descr = m_transactions.at(i);
-        if (descr.id == tx.id && descr.hubAddress == tx.hubAddress)
+        if (descr.id != tx.id)
         {
-            // found
-            if (descr.from.size() == 0)
-            {
-                m_transactions[i] = tx;
-            }
+            continue;
+        }
 
-            else if (descr.state < tx.state)
-            {
-                m_transactions[i].state = tx.state;
-            }
-
-            // update timestamp
-            m_transactions[i].txtime = tx.txtime;
-
-            emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
+        if (isMyTransaction(i))
+        {
+            // transaction with id - is owned, not processed more
             return;
         }
+
+        if (descr.hubAddress != tx.hubAddress)
+        {
+            continue;
+        }
+
+        // found
+        if (descr.from.size() == 0)
+        {
+            m_transactions[i] = tx;
+        }
+
+        else if (descr.state < tx.state)
+        {
+            m_transactions[i].state = tx.state;
+        }
+
+        // update timestamp
+        m_transactions[i].txtime = tx.txtime;
+
+        emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
+        return;
     }
 
     // skip tx with other currencies
@@ -369,7 +382,6 @@ void XBridgeTransactionsModel::onTransactionStateChanged(const uint256 & id,
             // found
             m_transactions[i].state = static_cast<XBridgeTransactionDescr::State>(state);
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
-            return;
         }
     }
 }
@@ -389,7 +401,6 @@ void XBridgeTransactionsModel::onTransactionCancelled(const uint256 & id,
             tx.state = static_cast<XBridgeTransactionDescr::State>(state);
             tx.reason = reason;
             emit dataChanged(index(i, FirstColumn), index(i, LastColumn));
-            return;
         }
 
         ++i;
