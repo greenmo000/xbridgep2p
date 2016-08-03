@@ -278,7 +278,7 @@ void XBridgeTransactionDialog::onSendTransaction()
 
     double fromAmount      = m_amountFrom->text().toDouble();
     double toAmount        = m_amountTo->text().toDouble();
-    if (fromAmount == 0 || toAmount == 0)
+    if (fromAmount <= 0 || toAmount <= 0)
     {
         QMessageBox::warning(this, trUtf8("check parameters"), trUtf8("Invalid amount"));
         return;
