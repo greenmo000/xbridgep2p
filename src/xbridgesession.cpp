@@ -714,29 +714,13 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
 
                 // first
                 // TODO remove this log
-                LOG() << "send xbcTransactionHold to "
-                      << util::base64_encode(std::string((char *)&tr->firstAddress()[0], 20));
+                LOG() << "send xbcTransactionHold ";
 
                 XBridgePacketPtr reply1(new XBridgePacket(xbcTransactionHold));
-                reply1->append(tr->firstAddress());
                 reply1->append(sessionAddr(), 20);
                 reply1->append(tr->id().begin(), 32);
-                // reply1->append(transactionId.begin(), 32);
 
-                sendPacket(tr->firstAddress(), reply1);
-
-                // second
-                // TODO remove this log
-                LOG() << "send xbcTransactionHold to "
-                      << util::base64_encode(std::string((char *)&tr->secondAddress()[0], 20));
-
-                XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionHold));
-                reply2->append(tr->secondAddress());
-                reply2->append(sessionAddr(), 20);
-                reply2->append(tr->id().begin(), 32);
-                // reply2->append(transactionId.begin(), 32);
-
-                sendPacket(tr->secondAddress(), reply2);
+                sendPacketBroadcast(reply1);
             }
         }
     }
@@ -750,22 +734,41 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() != 72)
+    if (packet->size() != 52)
     {
         ERR() << "incorrect packet size for xbcTransactionHold "
-              << "need 72received " << packet->size() << " "
+              << "need 52 received " << packet->size() << " "
               << __FUNCTION__;
         return false;
     }
 
-    // this addr
-    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
-
     // smart hub addr
-    std::vector<unsigned char> hubAddress(packet->data()+20, packet->data()+40);
+    std::vector<unsigned char> hubAddress(packet->data(), packet->data()+20);
 
     // read packet data
-    uint256 id   (packet->data()+40);
+    uint256 id(packet->data()+20);
+
+    {
+        // for xchange node remove tx
+        // TODO mark as finished for debug
+        XBridgeExchange & e = XBridgeExchange::instance();
+        if (e.isEnabled())
+        {
+            XBridgeTransactionPtr tr = e.transaction(id);
+
+            boost::mutex::scoped_lock l(tr->m_lock);
+
+            if (!tr || tr->state() != XBridgeTransaction::trJoined)
+            {
+                e.deletePendingTransactions(id);
+                uiConnector.NotifyXBridgeTransactionStateChanged(id, XBridgeTransactionDescr::trFinished);
+            }
+
+            return true;
+        }
+    }
+
+    XBridgeTransactionDescrPtr xtx;
 
     {
         boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
@@ -778,24 +781,34 @@ bool XBridgeSession::processTransactionHold(XBridgePacketPtr packet)
         }
 
         // remove from pending
-        XBridgeTransactionDescrPtr xtx = XBridgeApp::m_pendingTransactions[id];
+        xtx = XBridgeApp::m_pendingTransactions[id];
         XBridgeApp::m_pendingTransactions.erase(id);
 
-        // move to processing
-        XBridgeApp::m_transactions[id] = xtx;
+        if (!xtx->isLocal())
+        {
+            xtx->state = XBridgeTransactionDescr::trFinished;
+        }
+        else
+        {
+            // move to processing
+            XBridgeApp::m_transactions[id] = xtx;
 
-        xtx->state = XBridgeTransactionDescr::trHold;
+            xtx->state = XBridgeTransactionDescr::trHold;
+        }
     }
 
-    uiConnector.NotifyXBridgeTransactionStateChanged(id, XBridgeTransactionDescr::trHold);
+    uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);
 
-    // send hold apply
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHoldApply));
-    reply->append(hubAddress);
-    reply->append(thisAddress);
-    reply->append(id.begin(), 32);
+    if (xtx->isLocal())
+    {
+        // send hold apply
+        XBridgePacketPtr reply(new XBridgePacket(xbcTransactionHoldApply));
+        reply->append(hubAddress);
+        reply->append(xtx->from);
+        reply->append(id.begin(), 32);
 
-    sendPacket(hubAddress, reply);
+        // sendPacket(hubAddress, reply);
+    }
     return true;
 }
 
@@ -1764,9 +1777,9 @@ bool XBridgeSession::processTransactionConfirm(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[txid];
     }
 
-    xtx->payTxId    = txhash;
-    xtx->hubAddress = hubAddress;
-    xtx->myAddress  = thisAddress;
+    xtx->payTxId        = txhash;
+    xtx->hubAddress     = hubAddress;
+    xtx->confirmAddress = thisAddress;
 
     // add to unconfirmed list
     {
@@ -2176,7 +2189,7 @@ void XBridgeSession::requestUnconfirmedTx()
 
             XBridgePacketPtr ptr(new XBridgePacket(xbcTransactionConfirmed));
             ptr->append(tx->hubAddress);
-            ptr->append(tx->myAddress);
+            ptr->append(tx->confirmAddress);
             ptr->append(i->first.begin(), 32);
 
             sendPacket(tx->hubAddress, ptr);

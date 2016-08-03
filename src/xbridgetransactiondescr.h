@@ -44,7 +44,7 @@ struct XBridgeTransactionDescr
     uint256                    id;
 
     std::vector<unsigned char> hubAddress;
-    std::vector<unsigned char> myAddress;
+    std::vector<unsigned char> confirmAddress;
 
     std::vector<unsigned char> from;
     std::string                fromCurrency;
@@ -125,6 +125,11 @@ struct XBridgeTransactionDescr
         }
     }
 
+    bool isLocal() const
+    {
+        return from.size() == 20 && to.size() == 20;
+    }
+
 private:
     void copyFrom(const XBridgeTransactionDescr & d)
     {
@@ -146,7 +151,7 @@ private:
 
         payTxId     = d.payTxId;
         hubAddress  = d.hubAddress;
-        myAddress   = d.myAddress;
+        confirmAddress   = d.confirmAddress;
     }
 };
 
