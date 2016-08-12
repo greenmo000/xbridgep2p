@@ -48,8 +48,8 @@ protected:
 private:
     XBridge::SocketPtr m_socket;
 
-    typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
-    PacketProcessorsMap m_processors;
+    typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketHandlersMap;
+    PacketHandlersMap m_handlers;
 
     const uint64_t m_fee = 420000000000000;
 };

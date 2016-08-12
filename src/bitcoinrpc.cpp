@@ -436,7 +436,7 @@ bool listaccounts(const std::string & rpcuser, const std::string & rpcpasswd,
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "listaccounts exception " << e.what();
         return false;
     }
 
@@ -491,7 +491,7 @@ bool getaddressesbyaccount(const std::string & rpcuser, const std::string & rpcp
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "getaddressesbyaccount exception " << e.what();
         return false;
     }
 
@@ -598,7 +598,7 @@ bool listUnspent(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "listunspent exception " << e.what();
         return false;
     }
 
@@ -648,7 +648,7 @@ bool decodeRawTransaction(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "signrawtransaction exception " << e.what();
+        LOG() << "decoderawtransaction exception " << e.what();
         return false;
     }
 
@@ -736,7 +736,6 @@ bool sendRawTransaction(const std::string & rpcuser,
         // Parse reply
         // const Value & result = find_value(reply, "result");
         const Value & error  = find_value(reply, "error");
-
         if (error.type() != null_type)
         {
             // Error
@@ -748,6 +747,95 @@ bool sendRawTransaction(const std::string & rpcuser,
     catch (std::exception & e)
     {
         LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool getNewPubKey(const std::string & rpcuser,
+                  const std::string & rpcpasswd,
+                  const std::string & rpcip,
+                  const std::string & rpcport,
+                  std::string & key)
+{
+    try
+    {
+        LOG() << "rpc call <getnewpubkey>";
+
+        Array params;
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "getnewpubkey", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        key = result.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "getnewpubkey exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool importPrivKey(const std::string & rpcuser,
+                   const std::string & rpcpasswd,
+                   const std::string & rpcip,
+                   const std::string & rpcport,
+                   const std::string & key,
+                   const std::string & label)
+{
+    try
+    {
+        LOG() << "rpc call <importprivkey>";
+
+        Array params;
+        params.push_back(key);
+        params.push_back(label);
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "importprivkey", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "importprivkey exception " << e.what();
         return false;
     }
 

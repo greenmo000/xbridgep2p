@@ -10,6 +10,7 @@
 #include "xbridgewallet.h"
 #include "FastDelegate.h"
 #include "util/uint256.h"
+#include "key.h"
 
 #include <memory>
 #include <set>
@@ -89,9 +90,11 @@ protected:
     void sendPacketBroadcast(XBridgePacketPtr packet);
 
     // return true if packet not for me, relayed
-    bool relayPacket(XBridgePacketPtr packet);
+    bool checkPacketAddress(XBridgePacketPtr packet);
 
     virtual std::string currencyToLog() const { return std::string("[") + m_wallet.currency + std::string("]"); }
+
+    bool makeNewPubKey(CPubKey & newPKey);
 
 protected:
     virtual bool processInvalid(XBridgePacketPtr packet);
@@ -135,23 +138,14 @@ protected:
 
     XBridge::SocketPtr m_socket;
 
-    typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
-    PacketProcessorsMap m_processors;
+    typedef fastdelegate::FastDelegate1<XBridgePacketPtr, bool> PacketHandler;
+    typedef std::map<const int, PacketHandler> PacketHandlersMap;
+    PacketHandlersMap m_handlers;
 
 protected:
     std::set<std::vector<unsigned char> > m_addressBook;
 
     WalletParam       m_wallet;
-
-//    std::string       m_currency;
-//    std::string       m_walletAddress;
-//    std::string       m_address;
-//    std::string       m_port;
-//    std::string       m_user;
-//    std::string       m_passwd;
-//    std::string       m_prefix;
-//    boost::uint64_t   m_COIN;
-//    boost::uint64_t   m_minAmount;
 };
 
 typedef std::shared_ptr<XBridgeSession> XBridgeSessionPtr;

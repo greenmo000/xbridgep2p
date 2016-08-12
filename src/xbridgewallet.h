@@ -26,12 +26,14 @@ struct WalletParam
     uint64_t                   minAmount;
     uint64_t                   dustAmount;
     std::string                method;
+    bool                       isGetNewPubKeySupported;
 
     WalletParam()
         : fee(300)
         , COIN(0)
         , minAmount(0)
         , dustAmount(0)
+        , isGetNewPubKeySupported(false)
     {
     }
 };

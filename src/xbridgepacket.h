@@ -142,15 +142,14 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     xbcTransactionInitialized = 9,
     //
-    // xbcTransactionCreate (124 bytes)
+    // xbcTransactionCreate (118 bytes)
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id
     //    uint160  destination address
-    //    uint32_t tx1 lock time (in seconds)
-    //    uint32_t tx2 lock time (in seconds)
     //    uint160  hub wallet address (for fee)
     //    uint32_t fee in percent, *1000 (0.3% == 300)
+    //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
     xbcTransactionCreate = 10,
     //
     // xbcTransactionCreated
@@ -354,6 +353,23 @@ public:
             }
             memcpy(&m_body[off], data, size);
         }
+    }
+
+//    template<typename _T>
+//    void append(const _T data)
+//    {
+//        m_body.reserve(m_body.size() + sizeof(data));
+//        unsigned char * ptr = (unsigned char *)&data;
+//        std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
+//        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
+//    }
+
+    void append(const uint16_t data)
+    {
+        m_body.reserve(m_body.size() + sizeof(data));
+        unsigned char * ptr = (unsigned char *)&data;
+        std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
     }
 
     void append(const uint32_t data)

@@ -42,8 +42,8 @@ protected:
 protected:
     XBridge::SocketPtr m_socket;
 
-    typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketProcessorsMap;
-    PacketProcessorsMap m_processors;
+    typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketHandlersMap;
+    PacketHandlersMap m_handlers;
 };
 
 typedef std::shared_ptr<XBridgeSessionRpc> XBridgeSessionRpcPtr;

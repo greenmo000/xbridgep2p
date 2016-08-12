@@ -70,6 +70,19 @@ namespace rpc
                         const std::string & txid);
                         // std::string & tx);
 
+    bool getNewPubKey(const std::string & rpcuser,
+                      const std::string & rpcpasswd,
+                      const std::string & rpcip,
+                      const std::string & rpcport,
+                      std::string & key);
+
+    bool importPrivKey(const std::string & rpcuser,
+                       const std::string & rpcpasswd,
+                       const std::string & rpcip,
+                       const std::string & rpcport,
+                       const std::string & key,
+                       const std::string & label);
+
     // ethereum rpc
     bool eth_gasPrice(const std::string & rpcip,
                       const std::string & rpcport,

@@ -64,9 +64,11 @@ struct XBridgeTransactionDescr
     boost::posix_time::ptime   created;
     boost::posix_time::ptime   txtime;
 
+    uint256                    binTxId;
+    std::string                binTx;
     uint256                    payTxId;
     std::string                payTx;
-    std::string                revTx;
+    std::string                refTx;
 
     XBridgePacketPtr           packet;
 
@@ -145,7 +147,7 @@ private:
         lockTimeTx2  = d.lockTimeTx2;
         state        = d.state;
         payTx        = d.payTx;
-        revTx        = d.revTx;
+        refTx        = d.refTx;
 
         updateTimestamp(d);
 

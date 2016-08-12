@@ -45,7 +45,7 @@ XBridgeSessionEthereum::~XBridgeSessionEthereum()
 //*****************************************************************************
 void XBridgeSessionEthereum::init()
 {
-    assert(!m_processors.size());
+    assert(!m_handlers.size());
 
     dht_random_bytes(m_myid, sizeof(m_myid));
     LOG() << "session <" << m_wallet.currency << "> generated id <"
@@ -53,55 +53,55 @@ void XBridgeSessionEthereum::init()
              << ">";
 
     // process invalid
-    m_processors[xbcInvalid]               .bind(this, &XBridgeSessionEthereum::processInvalid);
+    m_handlers[xbcInvalid]               .bind(this, &XBridgeSessionEthereum::processInvalid);
 
-    m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionEthereum::processAnnounceAddresses);
+    m_handlers[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionEthereum::processAnnounceAddresses);
 
     // process transaction from client wallet
     // if (XBridgeExchange::instance().isEnabled())
     {
-        m_processors[xbcTransaction]           .bind(this, &XBridgeSessionEthereum::processTransaction);
-        m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSessionEthereum::processTransactionAccepting);
+        m_handlers[xbcTransaction]           .bind(this, &XBridgeSessionEthereum::processTransaction);
+        m_handlers[xbcTransactionAccepting]   .bind(this, &XBridgeSessionEthereum::processTransactionAccepting);
     }
     // else
     {
-        m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSessionEthereum::processPendingTransaction);
+        m_handlers[xbcPendingTransaction]    .bind(this, &XBridgeSessionEthereum::processPendingTransaction);
     }
 
     // transaction processing
     {
-        m_processors[xbcTransactionHold]       .bind(this, &XBridgeSessionEthereum::processTransactionHold);
-        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSessionEthereum::processTransactionHoldApply);
+        m_handlers[xbcTransactionHold]       .bind(this, &XBridgeSessionEthereum::processTransactionHold);
+        m_handlers[xbcTransactionHoldApply]  .bind(this, &XBridgeSessionEthereum::processTransactionHoldApply);
 
-        m_processors[xbcTransactionInit]       .bind(this, &XBridgeSessionEthereum::processTransactionInit);
-        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSessionEthereum::processTransactionInitialized);
+        m_handlers[xbcTransactionInit]       .bind(this, &XBridgeSessionEthereum::processTransactionInit);
+        m_handlers[xbcTransactionInitialized].bind(this, &XBridgeSessionEthereum::processTransactionInitialized);
 
-        m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionEthereum::processTransactionCreate);
-        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSessionEthereum::processTransactionCreated);
+        m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionEthereum::processTransactionCreate);
+        m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionEthereum::processTransactionCreated);
 
-        m_processors[xbcTransactionSign]       .bind(this, &XBridgeSessionEthereum::processTransactionSign);
-        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionSigned);
+        m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionEthereum::processTransactionSign);
+        m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionSigned);
 
-        m_processors[xbcTransactionCommit]     .bind(this, &XBridgeSessionEthereum::processTransactionCommit);
-        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSessionEthereum::processTransactionCommited);
+        m_handlers[xbcTransactionCommit]     .bind(this, &XBridgeSessionEthereum::processTransactionCommit);
+        m_handlers[xbcTransactionCommited]   .bind(this, &XBridgeSessionEthereum::processTransactionCommited);
 
-        m_processors[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEthereum::processTransactionConfirm);
+        m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEthereum::processTransactionConfirm);
 
-        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSessionEthereum::processTransactionCancel);
-        m_processors[xbcTransactionRollback]   .bind(this, &XBridgeSessionEthereum::processTransactionRollback);
-        m_processors[xbcTransactionFinished]   .bind(this, &XBridgeSessionEthereum::processTransactionFinished);
-        m_processors[xbcTransactionDropped]    .bind(this, &XBridgeSessionEthereum::processTransactionDropped);
+        m_handlers[xbcTransactionCancel]     .bind(this, &XBridgeSessionEthereum::processTransactionCancel);
+        m_handlers[xbcTransactionRollback]   .bind(this, &XBridgeSessionEthereum::processTransactionRollback);
+        m_handlers[xbcTransactionFinished]   .bind(this, &XBridgeSessionEthereum::processTransactionFinished);
+        m_handlers[xbcTransactionDropped]    .bind(this, &XBridgeSessionEthereum::processTransactionDropped);
 
-        m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionEthereum::processTransactionConfirmed);
+        m_handlers[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionEthereum::processTransactionConfirmed);
 
         // wallet received transaction
-        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSessionEthereum::processBitcoinTransactionHash);
+        m_handlers[xbcReceivedTransaction]   .bind(this, &XBridgeSessionEthereum::processBitcoinTransactionHash);
     }
 
-    m_processors[xbcAddressBookEntry].bind(this, &XBridgeSessionEthereum::processAddressBookEntry);
+    m_handlers[xbcAddressBookEntry].bind(this, &XBridgeSessionEthereum::processAddressBookEntry);
 
     // retranslate messages to xbridge network
-    m_processors[xbcXChatMessage].bind(this, &XBridgeSessionEthereum::processXChatMessage);
+    m_handlers[xbcXChatMessage].bind(this, &XBridgeSessionEthereum::processXChatMessage);
 }
 
 //******************************************************************************

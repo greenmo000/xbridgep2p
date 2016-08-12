@@ -129,7 +129,7 @@ public:
     bool IsNull() const;
     bool IsCompressed() const;
 
-    void MakeNewKey(bool fCompressed);
+    void MakeNewKey(bool fCompressed = true);
     bool SetPrivKey(const CPrivKey& vchPrivKey);
     bool SetSecret(const CSecret& vchSecret, bool fCompressed = false);
     CSecret GetSecret(bool &fCompressed) const;

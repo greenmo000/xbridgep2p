@@ -44,7 +44,7 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 //*****************************************************************************
 void XBridgeSessionBtc::init()
 {
-    assert(!m_processors.size());
+    assert(!m_handlers.size());
 
     dht_random_bytes(m_myid, sizeof(m_myid));
     LOG() << "session <" << m_wallet.currency << "> generated id <"
@@ -52,55 +52,55 @@ void XBridgeSessionBtc::init()
              << ">";
 
     // process invalid
-    m_processors[xbcInvalid]               .bind(this, &XBridgeSessionBtc::processInvalid);
+    m_handlers[xbcInvalid]               .bind(this, &XBridgeSessionBtc::processInvalid);
 
-    m_processors[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionBtc::processAnnounceAddresses);
+    m_handlers[xbcAnnounceAddresses]     .bind(this, &XBridgeSessionBtc::processAnnounceAddresses);
 
     // process transaction from client wallet
     // if (XBridgeExchange::instance().isEnabled())
     {
-        m_processors[xbcTransaction]           .bind(this, &XBridgeSessionBtc::processTransaction);
-        m_processors[xbcTransactionAccepting]   .bind(this, &XBridgeSessionBtc::processTransactionAccepting);
+        m_handlers[xbcTransaction]           .bind(this, &XBridgeSessionBtc::processTransaction);
+        m_handlers[xbcTransactionAccepting]   .bind(this, &XBridgeSessionBtc::processTransactionAccepting);
     }
     // else
     {
-        m_processors[xbcPendingTransaction]    .bind(this, &XBridgeSessionBtc::processPendingTransaction);
+        m_handlers[xbcPendingTransaction]    .bind(this, &XBridgeSessionBtc::processPendingTransaction);
     }
 
     // transaction processing
     {
-        m_processors[xbcTransactionHold]       .bind(this, &XBridgeSessionBtc::processTransactionHold);
-        m_processors[xbcTransactionHoldApply]  .bind(this, &XBridgeSessionBtc::processTransactionHoldApply);
+        m_handlers[xbcTransactionHold]       .bind(this, &XBridgeSessionBtc::processTransactionHold);
+        m_handlers[xbcTransactionHoldApply]  .bind(this, &XBridgeSessionBtc::processTransactionHoldApply);
 
-        m_processors[xbcTransactionInit]       .bind(this, &XBridgeSessionBtc::processTransactionInit);
-        m_processors[xbcTransactionInitialized].bind(this, &XBridgeSessionBtc::processTransactionInitialized);
+        m_handlers[xbcTransactionInit]       .bind(this, &XBridgeSessionBtc::processTransactionInit);
+        m_handlers[xbcTransactionInitialized].bind(this, &XBridgeSessionBtc::processTransactionInitialized);
 
-        m_processors[xbcTransactionCreate]     .bind(this, &XBridgeSessionBtc::processTransactionCreate);
-        m_processors[xbcTransactionCreated]    .bind(this, &XBridgeSessionBtc::processTransactionCreated);
+        m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionBtc::processTransactionCreate);
+        m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionBtc::processTransactionCreated);
 
-        m_processors[xbcTransactionSign]       .bind(this, &XBridgeSessionBtc::processTransactionSign);
-        m_processors[xbcTransactionSigned]     .bind(this, &XBridgeSessionBtc::processTransactionSigned);
+        m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionBtc::processTransactionSign);
+        m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionBtc::processTransactionSigned);
 
-        m_processors[xbcTransactionCommit]     .bind(this, &XBridgeSessionBtc::processTransactionCommit);
-        m_processors[xbcTransactionCommited]   .bind(this, &XBridgeSessionBtc::processTransactionCommited);
+        m_handlers[xbcTransactionCommit]     .bind(this, &XBridgeSessionBtc::processTransactionCommit);
+        m_handlers[xbcTransactionCommited]   .bind(this, &XBridgeSessionBtc::processTransactionCommited);
 
-        m_processors[xbcTransactionConfirm]    .bind(this, &XBridgeSessionBtc::processTransactionConfirm);
+        m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionBtc::processTransactionConfirm);
 
-        m_processors[xbcTransactionCancel]     .bind(this, &XBridgeSessionBtc::processTransactionCancel);
-        m_processors[xbcTransactionRollback]   .bind(this, &XBridgeSessionBtc::processTransactionRollback);
-        m_processors[xbcTransactionFinished]   .bind(this, &XBridgeSessionBtc::processTransactionFinished);
-        m_processors[xbcTransactionDropped]    .bind(this, &XBridgeSessionBtc::processTransactionDropped);
+        m_handlers[xbcTransactionCancel]     .bind(this, &XBridgeSessionBtc::processTransactionCancel);
+        m_handlers[xbcTransactionRollback]   .bind(this, &XBridgeSessionBtc::processTransactionRollback);
+        m_handlers[xbcTransactionFinished]   .bind(this, &XBridgeSessionBtc::processTransactionFinished);
+        m_handlers[xbcTransactionDropped]    .bind(this, &XBridgeSessionBtc::processTransactionDropped);
 
-        m_processors[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionBtc::processTransactionConfirmed);
+        m_handlers[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionBtc::processTransactionConfirmed);
 
         // wallet received transaction
-        m_processors[xbcReceivedTransaction]   .bind(this, &XBridgeSessionBtc::processBitcoinTransactionHash);
+        m_handlers[xbcReceivedTransaction]   .bind(this, &XBridgeSessionBtc::processBitcoinTransactionHash);
     }
 
-    m_processors[xbcAddressBookEntry].bind(this, &XBridgeSessionBtc::processAddressBookEntry);
+    m_handlers[xbcAddressBookEntry].bind(this, &XBridgeSessionBtc::processAddressBookEntry);
 
     // retranslate messages to xbridge network
-    m_processors[xbcXChatMessage].bind(this, &XBridgeSessionBtc::processXChatMessage);
+    m_handlers[xbcXChatMessage].bind(this, &XBridgeSessionBtc::processXChatMessage);
 }
 
 //******************************************************************************
@@ -313,7 +313,7 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // store
-    xtx->revTx = unsignedTx2;
+    xtx->refTx = unsignedTx2;
 
     xtx->state = XBridgeTransactionDescr::trCreated;
     uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);

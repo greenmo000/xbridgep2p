@@ -42,18 +42,19 @@ XBridge::XBridge()
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
                 WalletParam wp;
-                wp.currency   = *i;
-                wp.title      = s.get<std::string>(*i + ".Title");
-                wp.address    = s.get<std::string>(*i + ".Address");
-                wp.ip         = s.get<std::string>(*i + ".Ip");
-                wp.port       = s.get<std::string>(*i + ".Port");
-                wp.user       = s.get<std::string>(*i + ".Username");
-                wp.passwd     = s.get<std::string>(*i + ".Password");
-                wp.prefix     = s.get<std::string>(*i + ".AddressPrefix");
-                wp.COIN       = s.get<uint64_t>(*i + ".COIN", 0);
-                wp.minAmount  = s.get<uint64_t>(*i + ".MinimumAmount", 0);
-                wp.dustAmount = s.get<uint64_t>(*i + ".DustAmount", 0);
-                wp.method     = s.get<std::string>(*i + ".CreateTxMethod");
+                wp.currency                = *i;
+                wp.title                   = s.get<std::string>(*i + ".Title");
+                wp.address                 = s.get<std::string>(*i + ".Address");
+                wp.ip                      = s.get<std::string>(*i + ".Ip");
+                wp.port                    = s.get<std::string>(*i + ".Port");
+                wp.user                    = s.get<std::string>(*i + ".Username");
+                wp.passwd                  = s.get<std::string>(*i + ".Password");
+                wp.prefix                  = s.get<std::string>(*i + ".AddressPrefix");
+                wp.COIN                    = s.get<uint64_t>(*i + ".COIN", 0);
+                wp.minAmount               = s.get<uint64_t>(*i + ".MinimumAmount", 0);
+                wp.dustAmount              = s.get<uint64_t>(*i + ".DustAmount", 0);
+                wp.method                  = s.get<std::string>(*i + ".CreateTxMethod");
+                wp.isGetNewPubKeySupported = s.get<bool>(*i + ".GetNewKeySupported", false);
 
                 if (wp.ip.empty() || wp.port.empty() ||
                     wp.user.empty() || wp.passwd.empty() ||
@@ -71,22 +72,27 @@ XBridge::XBridge()
                 XBridgeSessionPtr session;
                 if (wp.method == "ETHER")
                 {
-                    session.reset(new XBridgeSessionEthereum(wp));
+                    assert(!"not implemented");
+                    // session.reset(new XBridgeSessionEthereum(wp));
                 }
                 else if (wp.method == "BTC")
                 {
+                    // assert(!"not implemented");
                     session.reset(new XBridgeSessionBtc(wp));
                 }
                 else if (wp.method == "RPC")
                 {
-                    session.reset(new XBridgeSessionRpc(wp));
+                    assert(!"not implemented");
+                    // session.reset(new XBridgeSessionRpc(wp));
                 }
                 else
                 {
                     session.reset(new XBridgeSession(wp));
                 }
-                app.addSession(session);
-                // session->requestAddressBook();
+                if (session)
+                {
+                    app.addSession(session);
+                }
             }
         }
     }

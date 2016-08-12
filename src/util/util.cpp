@@ -248,10 +248,10 @@ static const signed char phexdigit[256] =
 
 //*****************************************************************************
 //******************************************************************************
-std::vector<char> ParseHex(const char* psz)
+std::vector<unsigned char> ParseHex(const char* psz)
 {
     // convert hex dump to vector
-    std::vector<char> vch;
+    std::vector<unsigned char> vch;
     while (true)
     {
         while (isspace(*psz))
@@ -271,7 +271,7 @@ std::vector<char> ParseHex(const char* psz)
 
 //*****************************************************************************
 //******************************************************************************
-std::vector<char> ParseHex(const std::string& str)
+std::vector<unsigned char> ParseHex(const std::string& str)
 {
     return ParseHex(str.c_str());
 }
