@@ -2,13 +2,13 @@
 #define VERSION
 
 #define XBRIDGE_VERSION_MAJOR 0
-#define XBRIDGE_VERSION_MINOR 57
-#define XBRIDGE_VERSION_DESCR "DX Beta - multicurrency release"
+#define XBRIDGE_VERSION_MINOR 60
+#define XBRIDGE_VERSION_DESCR "multicurrency second stage"
 
 #define MAKE_VERSION(major,minor) (( major << 16 ) + minor )
 #define XBRIDGE_VERSION MAKE_VERSION(XBRIDGE_VERSION_MAJOR, XBRIDGE_VERSION_MINOR)
 
-#define XBRIDGE_PROTOCOL_VERSION 0xff000009
+#define XBRIDGE_PROTOCOL_VERSION 0xff00000a
 
 #endif // VERSION
 
