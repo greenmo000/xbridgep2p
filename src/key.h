@@ -69,6 +69,7 @@ private:
 public:
     CPubKey() { }
     CPubKey(const std::vector<unsigned char> &vchPubKeyIn) : vchPubKey(vchPubKeyIn) { }
+    CPubKey(const unsigned char * begin, const unsigned char * end) { SetRaw(begin, end); }
     friend bool operator==(const CPubKey &a, const CPubKey &b) { return a.vchPubKey == b.vchPubKey; }
     friend bool operator!=(const CPubKey &a, const CPubKey &b) { return a.vchPubKey != b.vchPubKey; }
     friend bool operator<(const CPubKey &a, const CPubKey &b) { return a.vchPubKey < b.vchPubKey; }
@@ -95,6 +96,11 @@ public:
 
     std::vector<unsigned char> Raw() const {
         return vchPubKey;
+    }
+    bool SetRaw(const unsigned char * begin, const unsigned char * end) {
+        vchPubKey.clear();
+        std::copy(begin, end, std::back_inserter(vchPubKey));
+        return IsValid();
     }
 };
 

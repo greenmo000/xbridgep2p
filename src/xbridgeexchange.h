@@ -62,7 +62,9 @@ public:
     bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx,
                                                 const std::vector<unsigned char> & from);
     bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
-                                                  const std::vector<unsigned char> & from);
+                                                  const std::vector<unsigned char> & from,
+                                                  const uint160 & x,
+                                                  const CPubKey & pk);
     bool updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
                                               const std::vector<unsigned char> & from,
                                               const std::string & rawpaytx,

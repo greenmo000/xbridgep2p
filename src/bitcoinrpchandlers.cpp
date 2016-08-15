@@ -239,11 +239,11 @@ Value getTransactionList(const Array & params, bool fHelp)
         {
             Object jtr;
             jtr.push_back(Pair("id", tr->id().GetHex()));
-            jtr.push_back(Pair("from", tr->firstCurrency()));
-            double fromAmount = static_cast<double>(tr->firstAmount()) / XBridgeTransactionDescr::COIN;
+            jtr.push_back(Pair("from", tr->a_currency()));
+            double fromAmount = static_cast<double>(tr->a_amount()) / XBridgeTransactionDescr::COIN;
             jtr.push_back(Pair("fromAmount", boost::lexical_cast<std::string>(fromAmount)));
-            jtr.push_back(Pair("to", tr->secondCurrency()));
-            double toAmount = static_cast<double>(tr->secondAmount()) / XBridgeTransactionDescr::COIN;
+            jtr.push_back(Pair("to", tr->b_currency()));
+            double toAmount = static_cast<double>(tr->b_amount()) / XBridgeTransactionDescr::COIN;
             jtr.push_back(Pair("toAmount", boost::lexical_cast<std::string>(toAmount)));
             jtr.push_back(Pair("state", tr->strState()));
 
@@ -258,11 +258,11 @@ Value getTransactionList(const Array & params, bool fHelp)
         {
             Object jtr;
             jtr.push_back(Pair("id", tr->id().GetHex()));
-            jtr.push_back(Pair("from", tr->firstCurrency()));
-            double fromAmount = static_cast<double>(tr->firstAmount()) / XBridgeTransactionDescr::COIN;
+            jtr.push_back(Pair("from", tr->a_currency()));
+            double fromAmount = static_cast<double>(tr->a_amount()) / XBridgeTransactionDescr::COIN;
             jtr.push_back(Pair("fromAmount", boost::lexical_cast<std::string>(fromAmount)));
-            jtr.push_back(Pair("to", tr->secondCurrency()));
-            double toAmount = static_cast<double>(tr->secondAmount()) / XBridgeTransactionDescr::COIN;
+            jtr.push_back(Pair("to", tr->b_currency()));
+            double toAmount = static_cast<double>(tr->b_amount()) / XBridgeTransactionDescr::COIN;
             jtr.push_back(Pair("toAmount", boost::lexical_cast<std::string>(toAmount)));
             jtr.push_back(Pair("state", tr->strState()));
 
