@@ -81,8 +81,8 @@ void XBridgeSessionBtc::init()
         m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionBtc::processTransactionSign);
         m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionBtc::processTransactionSigned);
 
-        m_handlers[xbcTransactionCommit]     .bind(this, &XBridgeSessionBtc::processTransactionCommit);
-        m_handlers[xbcTransactionCommited]   .bind(this, &XBridgeSessionBtc::processTransactionCommited);
+        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionBtc::processTransactionCommitStage1);
+        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionBtc::processTransactionCommitedStage1);
 
         m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionBtc::processTransactionConfirm);
 

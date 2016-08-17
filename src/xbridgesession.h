@@ -108,7 +108,8 @@ protected:
     virtual bool processTransactionInitialized(XBridgePacketPtr packet);
     virtual bool processTransactionCreated(XBridgePacketPtr packet);
     virtual bool processTransactionSigned(XBridgePacketPtr packet);
-    virtual bool processTransactionCommited(XBridgePacketPtr packet);
+    virtual bool processTransactionCommitedStage1(XBridgePacketPtr packet);
+    virtual bool processTransactionCommitedStage2(XBridgePacketPtr packet);
     virtual bool processTransactionConfirm(XBridgePacketPtr packet);
     virtual bool processTransactionConfirmed(XBridgePacketPtr packet);
     virtual bool processTransactionCancel(XBridgePacketPtr packet);
@@ -128,7 +129,8 @@ protected:
     virtual bool processTransactionInit(XBridgePacketPtr packet);
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
     virtual bool processTransactionSign(XBridgePacketPtr packet);
-    virtual bool processTransactionCommit(XBridgePacketPtr packet);
+    virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
+    virtual bool processTransactionCommitStage2(XBridgePacketPtr packet);
     virtual bool processTransactionFinished(XBridgePacketPtr packet);
     virtual bool processTransactionRollback(XBridgePacketPtr packet);
     virtual bool processTransactionDropped(XBridgePacketPtr packet);

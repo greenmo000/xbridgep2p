@@ -71,7 +71,8 @@ public:
                                               const std::string & rawrevtx);
     bool updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
                                              const std::vector<unsigned char> & from,
-                                             const std::string & rawrevtx);
+                                             const std::string & payTx,
+                                             const std::string & refTx);
     bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
                                                const std::vector<unsigned char> & from,
                                                const uint256 & txhash);

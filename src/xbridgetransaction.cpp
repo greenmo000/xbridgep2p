@@ -349,7 +349,7 @@ std::string XBridgeTransaction::a_rawPayTx() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::a_rawRevTx() const
+std::string XBridgeTransaction::a_rawRefTx() const
 {
     return m_rawrevtx1;
 }
@@ -419,7 +419,7 @@ std::string XBridgeTransaction::b_rawPayTx() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::b_rawRevTx() const
+std::string XBridgeTransaction::b_rawRefTx() const
 {
     return m_rawrevtx2;
 }
@@ -560,38 +560,20 @@ bool XBridgeTransaction::setKeys(const std::vector<unsigned char> & addr,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::setRawPayTx(const std::vector<unsigned char> & addr,
-                                     const std::string & rawpaytx,
-                                     const std::string & rawrevtx)
+bool XBridgeTransaction::setRawTx(const std::vector<unsigned char> & addr,
+                                     const std::string & payTx,
+                                     const std::string & refTx)
 {
-    if (m_b.source() == addr)
+    if (m_b.source() == addr || m_a.dest() == addr)
     {
-        m_rawpaytx2 = rawpaytx;
-        m_rawrevtx2 = rawrevtx;
+        m_rawpaytx2 = payTx;
+        m_rawrevtx2 = refTx;
         return true;
     }
-    else if (m_a.source() == addr)
+    else if (m_a.source() == addr || m_b.dest() == addr)
     {
-        m_rawpaytx1 = rawpaytx;
-        m_rawrevtx1 = rawrevtx;
-        return true;
-    }
-    return false;
-}
-
-//*****************************************************************************
-//*****************************************************************************
-bool XBridgeTransaction::updateRawRevTx(const std::vector<unsigned char> & addr,
-                                        const std::string & rawrevtx)
-{
-    if (m_b.dest() == addr)
-    {
-        m_rawrevtx1 = rawrevtx;
-        return true;
-    }
-    else if (m_a.dest() == addr)
-    {
-        m_rawrevtx2 = rawrevtx;
+        m_rawpaytx1 = payTx;
+        m_rawrevtx1 = refTx;
         return true;
     }
     return false;

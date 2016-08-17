@@ -82,8 +82,8 @@ void XBridgeSessionEthereum::init()
         m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionEthereum::processTransactionSign);
         m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionSigned);
 
-        m_handlers[xbcTransactionCommit]     .bind(this, &XBridgeSessionEthereum::processTransactionCommit);
-        m_handlers[xbcTransactionCommited]   .bind(this, &XBridgeSessionEthereum::processTransactionCommited);
+        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionEthereum::processTransactionCommitStage1);
+        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionEthereum::processTransactionCommitedStage1);
 
         m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEthereum::processTransactionConfirm);
 
@@ -247,7 +247,7 @@ bool XBridgeSessionEthereum::processTransactionSign(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionEthereum::processTransactionCommit(XBridgePacketPtr packet)
+bool XBridgeSessionEthereum::processTransactionCommitStage1(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -294,7 +294,7 @@ bool XBridgeSessionEthereum::processTransactionCommit(XBridgePacketPtr packet)
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
     // send commit apply to hub
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommited));
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommitedStage1));
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);

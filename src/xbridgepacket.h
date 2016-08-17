@@ -160,71 +160,92 @@ enum XBridgeCommand
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw transaction
+    //    string  raw payment transaction
+    //    string  raw refund transaction
     xbcTransactionCreated = 11,
     //
     // xbcTransactionSign
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    string  raw transaction
+    //    string  raw payment transaction
+    //    string  raw refund transaction
     xbcTransactionSign = 12,
     //
     // xbcTransactionSigned
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw transaction (signed)
+    //    string  raw payment transaction (signed)
+    //    string  raw refund transaction (signed)
     xbcTransactionSigned = 13,
     //
-    // xbcTransactionCommit
+    // xbcTransactionCommitStage1
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw transaction (signed)
-    xbcTransactionCommit = 14,
+    //    string  raw payment transaction (signed)
+    //    string  raw refund transaction (signed)
+    xbcTransactionCommitStage1 = 14,
     //
-    // xbcTransactionCommited
+    // xbcTransactionCommitedStage1
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionCommited = 15,
+    //    string  x private key for import for second client
+    xbcTransactionCommitedStage1 = 15,
+    //
+    // xbcTransactionCommitStage2
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    string  x private key for import
+    //    string  raw payment transaction (signed)
+    //    string  raw refund transaction (signed)
+    xbcTransactionCommitStage2 = 16,
+    //
+    // xbcTransactionCommitedStage2
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    uint256 pay tx hash
+    xbcTransactionCommitedStage2 = 17,
     //
     // xbcTransactionConfirm
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionConfirm = 16,
+    xbcTransactionConfirm = 18,
     //
     // xbcTransactionConfirmed
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionConfirmed = 17,
+    xbcTransactionConfirmed = 19,
     //
     // xbcTransactionCancel (36 bytes)
     //    uint256  hub transaction id
     //    uint32_t reason
-    xbcTransactionCancel = 18,
+    xbcTransactionCancel = 20,
     //
     // xbcTransactionRollback
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionRollback = 19,
+    xbcTransactionRollback = 21,
     //
     // xbcTransactionFinished
     //    uint160 client address
     //    uint256 hub transaction id
     //
-    xbcTransactionFinished = 20,
+    xbcTransactionFinished = 22,
     //
     // xbcTransactionDropped
     //    uint160 address
     //    uint256 hub transaction id
     //
-    xbcTransactionDropped = 21,
+    xbcTransactionDropped = 23,
 
     // smart hub periodically send this message for invitations to trading
     // this message contains address of smart hub and
@@ -233,18 +254,18 @@ enum XBridgeCommand
     //
     // xbcExchangeWallets
     //     {wallet id (string)}|{wallet title (string)}|{wallet id (string)}|{wallet title (string)}
-    xbcExchangeWallets = 22,
+    xbcExchangeWallets = 24,
 
     // wallet send transaction hash when transaction received
     //
     // xbcReceivedTransaction
     //     uint256 transaction id (bitcoin transaction hash)
-    xbcReceivedTransaction = 23,
+    xbcReceivedTransaction = 25,
 
     // address book entry
     //
     // xbcAddressBook
-    xbcAddressBookEntry = 24
+    xbcAddressBookEntry = 26
 };
 
 //******************************************************************************

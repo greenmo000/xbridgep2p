@@ -76,6 +76,13 @@ namespace rpc
                       const std::string & rpcport,
                       std::string & key);
 
+    bool dumpPrivKey(const std::string & rpcuser,
+                     const std::string & rpcpasswd,
+                     const std::string & rpcip,
+                     const std::string & rpcport,
+                     const std::string & address,
+                     std::string & key);
+
     bool importPrivKey(const std::string & rpcuser,
                        const std::string & rpcpasswd,
                        const std::string & rpcip,

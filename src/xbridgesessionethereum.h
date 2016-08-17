@@ -43,7 +43,7 @@ protected:
 
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
     virtual bool processTransactionSign(XBridgePacketPtr packet);
-    virtual bool processTransactionCommit(XBridgePacketPtr packet);
+    virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
 
 private:
     XBridge::SocketPtr m_socket;

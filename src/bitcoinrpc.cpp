@@ -803,6 +803,57 @@ bool getNewPubKey(const std::string & rpcuser,
 
 //*****************************************************************************
 //*****************************************************************************
+bool dumpPrivKey(const std::string & rpcuser,
+                 const std::string & rpcpasswd,
+                 const std::string & rpcip,
+                 const std::string & rpcport,
+                 const std::string & address,
+                 string & key)
+{
+    try
+    {
+        LOG() << "rpc call <dumpprivkey>";
+
+        Array params;
+        params.push_back(address);
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "dumpprivkey", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        key = result.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "dumpprivkey exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool importPrivKey(const std::string & rpcuser,
                    const std::string & rpcpasswd,
                    const std::string & rpcip,

@@ -409,7 +409,7 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr
                                                            const std::string & rawpaytx,
                                                            const std::string & rawrevtx)
 {
-    if (!tx->setRawPayTx(from, rawpaytx, rawrevtx))
+    if (!tx->setRawTx(from, rawpaytx, rawrevtx))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
@@ -428,9 +428,10 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
                                                           const std::vector<unsigned char> & from,
-                                                          const std::string & rawrevtx)
+                                                          const std::string & payTx,
+                                                          const std::string & refTx)
 {
-    if (!tx->updateRawRevTx(from, rawrevtx))
+    if (!tx->setRawTx(from, payTx, refTx))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";

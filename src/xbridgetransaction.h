@@ -100,7 +100,7 @@ public:
     std::string                a_currency() const;
     boost::uint64_t            a_amount() const;
     std::string                a_rawPayTx() const;
-    std::string                a_rawRevTx() const;
+    std::string                a_rawRefTx() const;
     uint256                    a_txHash() const;
 
     // uint160                    a_x() const;
@@ -112,7 +112,7 @@ public:
     std::string                b_currency() const;
     boost::uint64_t            b_amount() const;
     std::string                b_rawPayTx() const;
-    std::string                b_rawRevTx() const;
+    std::string                b_rawRefTx() const;
     uint256                    b_txHash() const;
 
     uint160                    b_x() const;
@@ -129,11 +129,9 @@ public:
     bool                       setKeys(const std::vector<unsigned char> & addr,
                                        const uint160 & x,
                                        const CPubKey & pk);
-    bool                       setRawPayTx(const std::vector<unsigned char> & addr,
-                                           const std::string & rawpaytx,
-                                           const std::string & rawrevtx);
-    bool                       updateRawRevTx(const std::vector<unsigned char> & addr,
-                                              const std::string & rawrevytx);
+    bool                       setRawTx(const std::vector<unsigned char> & addr,
+                                           const std::string & payTx,
+                                           const std::string & refTx);
     bool                       setTxHash(const std::vector<unsigned char> & addr,
                                          const uint256 & hash);
 
