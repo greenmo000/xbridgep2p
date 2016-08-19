@@ -140,7 +140,7 @@ enum XBridgeCommand
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    uint160 hash160(x)
+    //    uint160 x address
     //    public key, 33 bytes
     xbcTransactionInitialized = 9,
     //
@@ -152,8 +152,8 @@ enum XBridgeCommand
     //    uint160  hub wallet address (for fee)
     //    uint32_t fee in percent, *1000 (0.3% == 300)
     //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
-    //    uint160 hash160(x)
-    //    public key, 33 bytes
+    //    uint160 x address
+    //    opponent public key, 33 bytes
     xbcTransactionCreate = 10,
     //
     // xbcTransactionCreated

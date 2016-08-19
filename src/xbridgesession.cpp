@@ -928,30 +928,26 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
     ptr->toCurrency   = toCurrency;
     ptr->toAmount     = toAmount;
 
-    {
-        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
-        XBridgeApp::m_transactions[txid] = ptr;
-    }
-
-    CPubKey key;
-    if (!makeNewPubKey(key))
+    if (!makeNewPubKey(ptr->multisigPubKey))
     {
         // cancel transaction
         sendCancelTransaction(txid, crRpcError);
         return true;
     }
 
-    uint160 x;
+    if (!makeNewPubKey(ptr->xPubKey))
     {
-        CPubKey keyx;
-        if (!makeNewPubKey(keyx))
-        {
-            // cancel transaction
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
-        x = keyx.GetID();
+        // cancel transaction
+        sendCancelTransaction(txid, crRpcError);
+        return true;
     }
+
+    {
+        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
+        XBridgeApp::m_transactions[txid] = ptr;
+    }
+
+    uint160 x = ptr->xPubKey.GetID();
 
     // send initialized
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionInitialized));
@@ -959,7 +955,7 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
     reply->append(x.begin(), 20);
-    reply->append(key.Raw());
+    reply->append(ptr->multisigPubKey.Raw());
 
     sendPacket(hubAddress, reply);
     return true;
@@ -1275,6 +1271,23 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             }
 
             pka1 = pk1;
+        }
+
+        // create multisig address
+        {
+            std::vector<std::string> keys;
+            keys.push_back(HexStr(pka1.Raw()));
+            keys.push_back(HexStr(pkb1.Raw()));
+
+            std::string multisigAddress;
+            if (!rpc::addMultisigAddress(m_wallet.user, m_wallet.passwd,
+                                         m_wallet.ip, m_wallet.port,
+                                         keys, multisigAddress))
+            {
+                // no money, cancel transaction
+                sendCancelTransaction(id, crRpcError);
+                return true;
+            }
         }
 
         // outputs

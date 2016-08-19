@@ -607,6 +607,62 @@ bool listUnspent(const std::string & rpcuser,
 
 //*****************************************************************************
 //*****************************************************************************
+bool createRawTransaction(const std::string & rpcuser,
+                          const std::string & rpcpasswd,
+                          const std::string & rpcip,
+                          const std::string & rpcport,
+                          const std::vector<std::pair<std::string, double> > & destinations,
+                          std::string & tx)
+{
+    try
+    {
+        LOG() << "rpc call <createrawtransaction>";
+
+        Object o;
+        for (const std::pair<std::string, double> & dest : destinations)
+        {
+            o.push_back(Pair(dest.first, dest.second));
+        }
+
+        Array params;
+        params.push_back(o);
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "createrawtransaction", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != obj_type)
+        {
+            // Result
+            LOG() << "result not an object " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        tx = write_string(result, false);
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "createrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool decodeRawTransaction(const std::string & rpcuser,
                           const std::string & rpcpasswd,
                           const std::string & rpcip,
@@ -934,7 +990,65 @@ bool getNewAddress(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "signrawtransaction exception " << e.what();
+        LOG() << "getnewaddress exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool addMultisigAddress(const std::string & rpcuser,
+                        const std::string & rpcpasswd,
+                        const std::string & rpcip,
+                        const std::string & rpcport,
+                        const std::vector<std::string> & keys,
+                        std::string & addr)
+{
+    try
+    {
+        LOG() << "rpc call <addmultisigaddress>";
+
+        Array params;
+        params.push_back(static_cast<int>(keys.size()));
+
+        Array paramKeys;
+        for (const std::string & key : keys)
+        {
+            paramKeys.push_back(key);
+        }
+        params.push_back(paramKeys);
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "addmultisigaddress", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        addr = result.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "addmultisigaddress exception " << e.what();
         return false;
     }
 

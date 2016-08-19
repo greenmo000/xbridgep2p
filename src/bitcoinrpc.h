@@ -38,6 +38,13 @@ namespace rpc
                      const std::string & rpcport,
                      std::vector<Unspent> & entries);
 
+    bool createRawTransaction(const std::string & rpcuser,
+                              const std::string & rpcpasswd,
+                              const std::string & rpcip,
+                              const std::string & rpcport,
+                              const std::vector<std::pair<std::string, double> > & destinations,
+                              std::string & tx);
+
     bool decodeRawTransaction(const std::string & rpcuser,
                               const std::string & rpcpasswd,
                               const std::string & rpcip,
@@ -62,6 +69,13 @@ namespace rpc
                        const std::string & rpcip,
                        const std::string & rpcport,
                        std::string & addr);
+
+    bool addMultisigAddress(const std::string & rpcuser,
+                            const std::string & rpcpasswd,
+                            const std::string & rpcip,
+                            const std::string & rpcport,
+                            const std::vector<std::string> & keys,
+                            std::string & addr);
 
     bool getTransaction(const std::string & rpcuser,
                         const std::string & rpcpasswd,

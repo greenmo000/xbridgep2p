@@ -3,6 +3,7 @@
 
 #include "util/uint256.h"
 #include "xbridgepacket.h"
+#include "key.h"
 
 #include <string>
 #include <boost/cstdint.hpp>
@@ -71,6 +72,9 @@ struct XBridgeTransactionDescr
     std::string                refTx;
 
     XBridgePacketPtr           packet;
+
+    CPubKey                    multisigPubKey;
+    CPubKey                    xPubKey;
 
     XBridgeTransactionDescr()
         : tax(0)
