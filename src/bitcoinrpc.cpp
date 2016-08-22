@@ -112,6 +112,18 @@ bool DecodeBase58Check(const char * psz, std::vector<unsigned char> & vchRet)
 
 //******************************************************************************
 //******************************************************************************
+std::vector<unsigned char> toXAddr(const std::string & addr)
+{
+    std::vector<unsigned char> vaddr;
+    if (rpc::DecodeBase58Check(addr.c_str(), vaddr))
+    {
+        vaddr.erase(vaddr.begin());
+    }
+    return vaddr;
+}
+
+//******************************************************************************
+//******************************************************************************
 std::string real_strprintf(const std::string &format, int dummy, ...);
 #define strprintf(format, ...) real_strprintf(format, 0, __VA_ARGS__)
 std::string vstrprintf(const char *format, va_list ap);

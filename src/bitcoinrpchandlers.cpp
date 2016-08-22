@@ -303,35 +303,38 @@ Value getCurrencyList(const Array & params, bool fHelp)
 //******************************************************************************
 Value createTransaction(const Array & params, bool fHelp)
 {
-    if (fHelp || params.size() != 6)
-    {
-        throw runtime_error("createTransaction "
-                            "(address from) (currency from) (amount from) "
-                            "(address to) (currency to) (amount to)\n"
-                            "Create xbridge transaction.");
-    }
+//    if (fHelp || params.size() != 6)
+//    {
+//        throw runtime_error("createTransaction "
+//                            "(address from) (currency from) (amount from) "
+//                            "(address to) (currency to) (amount to)\n"
+//                            "Create xbridge transaction.");
+//    }
 
-    std::string f = util::base64_decode(params[0].get_str());
-    std::vector<unsigned char> from(f.begin(), f.end());
-    std::string fromCurrency = params[1].get_str();
-    double      fromAmount   = params[2].get_real();
-    std::string t = util::base64_decode(params[3].get_str());
-    std::vector<unsigned char> to(t.begin(), t.end());
-    std::string toCurrency   = params[4].get_str();
-    double      toAmount     = params[5].get_real();
+//    std::string f = util::base64_decode(params[0].get_str());
+//    std::vector<unsigned char> from(f.begin(), f.end());
+//    std::string fromCurrency = params[1].get_str();
+//    double      fromAmount   = params[2].get_real();
+//    std::string t = util::base64_decode(params[3].get_str());
+//    std::vector<unsigned char> to(t.begin(), t.end());
+//    std::string toCurrency   = params[4].get_str();
+//    double      toAmount     = params[5].get_real();
 
-    if (from.size() != 20 || to.size() != 20)
-    {
-        throw runtime_error("incorrect address");
-    }
+//    if (from.size() != 20 || to.size() != 20)
+//    {
+//        throw runtime_error("incorrect address");
+//    }
 
-    uint256 id = XBridgeApp::instance().sendXBridgeTransaction
-            (from, fromCurrency, (boost::uint64_t)(fromAmount * XBridgeTransactionDescr::COIN),
-             to,   toCurrency,   (boost::uint64_t)(toAmount * XBridgeTransactionDescr::COIN));
+//    uint256 id = XBridgeApp::instance().sendXBridgeTransaction
+//            (from, fromCurrency, (boost::uint64_t)(fromAmount * XBridgeTransactionDescr::COIN),
+//             to,   toCurrency,   (boost::uint64_t)(toAmount * XBridgeTransactionDescr::COIN));
 
+
+    // TODO implementation
+    assert(false);
 
     Object obj;
-    obj.push_back(Pair("id", id.GetHex()));
+//    obj.push_back(Pair("id", id.GetHex()));
     return obj;
 }
 
@@ -339,28 +342,30 @@ Value createTransaction(const Array & params, bool fHelp)
 //******************************************************************************
 Value acceptTransaction(const Array & params, bool fHelp)
 {
-    if (fHelp || params.size() != 3)
-    {
-        throw runtime_error("acceptTransaction (id) "
-                            "(address from) (address to)\n"
-                            "Accept xbridge transaction.");
-    }
+//    if (fHelp || params.size() != 3)
+//    {
+//        throw runtime_error("acceptTransaction (id) "
+//                            "(address from) (address to)\n"
+//                            "Accept xbridge transaction.");
+//    }
 
-    uint256 id(params[0].get_str());
-    std::string f = util::base64_decode(params[1].get_str());
-    std::vector<unsigned char> from(f.begin(), f.end());
-    std::string t = util::base64_decode(params[2].get_str());
-    std::vector<unsigned char> to(t.begin(), t.end());
+//    uint256 id(params[0].get_str());
+//    std::string f = util::base64_decode(params[1].get_str());
+//    std::vector<unsigned char> from(f.begin(), f.end());
+//    std::string t = util::base64_decode(params[2].get_str());
+//    std::vector<unsigned char> to(t.begin(), t.end());
 
-    if (from.size() != 20 || to.size() != 20)
-    {
-        throw runtime_error("incorrect address");
-    }
+//    if (from.size() != 20 || to.size() != 20)
+//    {
+//        throw runtime_error("incorrect address");
+//    }
 
-    uint256 idresult = XBridgeApp::instance().acceptXBridgeTransaction(id, from, to);
+//    uint256 idresult = XBridgeApp::instance().acceptXBridgeTransaction(id, from, to);
 
+    // TODO implementation
+    assert(false);
     Object obj;
-    obj.push_back(Pair("id", idresult.GetHex()));
+//    obj.push_back(Pair("id", idresult.GetHex()));
     return obj;
 }
 

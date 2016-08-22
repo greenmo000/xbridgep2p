@@ -58,12 +58,12 @@ public:
 public:
     XBridgeTransaction();
     XBridgeTransaction(const uint256 & id,
-                       const std::vector<unsigned char> & sourceAddr,
+                       const std::string & sourceAddr,
                        const std::string & sourceCurrency,
-                       const boost::uint64_t & sourceAmount,
-                       const std::vector<unsigned char> & destAddr,
+                       const uint64_t & sourceAmount,
+                       const std::string & destAddr,
                        const std::string & destCurrency,
-                       const boost::uint64_t & destAmount,
+                       const uint64_t & destAmount,
                        const uint32_t & tax,
                        const std::vector<unsigned char> & taxAddress);
     ~XBridgeTransaction();
@@ -73,7 +73,7 @@ public:
     // state of transaction
     State state() const;
     // update state counter and update state
-    State increaseStateCounter(State state, const std::vector<unsigned char> & from);
+    State increaseStateCounter(State state, const std::string & from);
 
     static std::string strState(const State state);
     std::string strState() const;
@@ -95,8 +95,8 @@ public:
     uint256 hash2() const;
 
     // uint256                    firstId() const;
-    std::vector<unsigned char> a_address() const;
-    std::vector<unsigned char> a_destination() const;
+    std::string                a_address() const;
+    std::string                a_destination() const;
     std::string                a_currency() const;
     boost::uint64_t            a_amount() const;
     std::string                a_rawPayTx() const;
@@ -107,8 +107,8 @@ public:
     CPubKey                    a_pk1() const;
 
     // uint256                    secondId() const;
-    std::vector<unsigned char> b_address() const;
-    std::vector<unsigned char> b_destination() const;
+    std::string                b_address() const;
+    std::string                b_destination() const;
     std::string                b_currency() const;
     boost::uint64_t            b_amount() const;
     std::string                b_rawPayTx() const;
@@ -118,6 +118,8 @@ public:
     uint160                    b_x() const;
     CPubKey                    b_pk1() const;
 
+    std::string                fromXAddr(const std::vector<unsigned char> & xaddr) const;
+
     boost::uint32_t            tax() const;
     std::vector<unsigned char> a_taxAddress() const;
     std::vector<unsigned char> b_taxAddress() const;
@@ -126,13 +128,13 @@ public:
 
     // std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
 
-    bool                       setKeys(const std::vector<unsigned char> & addr,
+    bool                       setKeys(const std::string & addr,
                                        const uint160 & x,
                                        const CPubKey & pk);
-    bool                       setRawTx(const std::vector<unsigned char> & addr,
-                                           const std::string & payTx,
-                                           const std::string & refTx);
-    bool                       setTxHash(const std::vector<unsigned char> & addr,
+    bool                       setRawTx(const std::string & addr,
+                                        const std::string & payTx,
+                                        const std::string & refTx);
+    bool                       setTxHash(const std::string & addr,
                                          const uint256 & hash);
 
 public:

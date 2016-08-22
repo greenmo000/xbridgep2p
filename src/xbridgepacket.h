@@ -26,7 +26,8 @@ enum TxCancelReason
     crNotAccepted     = 6,
     crRollback        = 7,
     crRpcRequest      = 8,
-    crXbridgeRejected = 9
+    crXbridgeRejected = 9,
+    crInvalidAddress
 };
 
 //******************************************************************************
@@ -78,13 +79,13 @@ enum XBridgeCommand
 
     // exchange transaction
     //
-    // xbcTransaction  (104 bytes)
+    // xbcTransaction  (132 bytes min)
     // clients not process this messages, only exchange
     //    uint256 client transaction id
-    //    uint160 source address
+    //    string source address (33-34 byte + 0)
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
+    //    string destination address (33-34 byte + 0)
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransaction = 3,
@@ -100,14 +101,14 @@ enum XBridgeCommand
     //    uint32_t fee in percent, *1000 (0.3% == 300)
     xbcPendingTransaction = 4,
     //
-    // xbcTransactionAccepting (124 bytes)
+    // xbcTransactionAccepting (152 bytes min)
     // client accepting opened tx
     //    uint160 hub address
     //    uint256 client transaction id
-    //    uint160 source address
+    //    string source address (33-34 byte + 0)
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
+    //    string destination address (33-34 byte + 0)
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransactionAccepting = 5,
@@ -124,14 +125,14 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     xbcTransactionHoldApply = 7,
     //
-    // xbcTransactionInit
+    // xbcTransactionInit (172 bytes min)
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    uint160 source address
+    //    string source address (33-34 byte + 0)
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
+    //    string destination address (33-34 byte + 0)
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransactionInit = 8,

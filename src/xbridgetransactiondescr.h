@@ -47,10 +47,10 @@ struct XBridgeTransactionDescr
     std::vector<unsigned char> hubAddress;
     std::vector<unsigned char> confirmAddress;
 
-    std::vector<unsigned char> from;
+    std::string                from;
     std::string                fromCurrency;
     boost::uint64_t            fromAmount;
-    std::vector<unsigned char> to;
+    std::string                to;
     std::string                toCurrency;
     boost::uint64_t            toAmount;
 
@@ -133,7 +133,7 @@ struct XBridgeTransactionDescr
 
     bool isLocal() const
     {
-        return from.size() == 20 && to.size() == 20;
+        return from.size() != 0 && to.size() != 0;
     }
 
 private:

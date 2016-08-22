@@ -19,6 +19,7 @@
 
 #include <thread>
 #include <chrono>
+#include <assert.h>
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -1103,12 +1104,12 @@ void XBridgeApp::checkUnconfirmedTx()
 
 //******************************************************************************
 //******************************************************************************
-uint256 XBridgeApp::sendXBridgeTransaction(const std::vector<unsigned char> & from,
+uint256 XBridgeApp::sendXBridgeTransaction(const std::string & from,
                                            const std::string & fromCurrency,
-                                           const boost::uint64_t fromAmount,
-                                           const std::vector<unsigned char> & to,
+                                           const uint64_t & fromAmount,
+                                           const std::string & to,
                                            const std::string & toCurrency,
-                                           const boost::uint64_t toAmount)
+                                           const uint64_t & toAmount)
 {
     if (fromCurrency.size() > 8 || toCurrency.size() > 8)
     {
@@ -1175,7 +1176,7 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 
         // 32 bytes - id of transaction
         // 2x
-        // 20 bytes - address
+        // 34 bytes - address
         //  8 bytes - currency
         //  8 bytes - amount
         ptr->packet->append(ptr->id.begin(), 32);
@@ -1198,8 +1199,8 @@ bool XBridgeApp::sendPendingTransaction(XBridgeTransactionDescrPtr & ptr)
 //******************************************************************************
 //******************************************************************************
 uint256 XBridgeApp::acceptXBridgeTransaction(const uint256 & id,
-                                             const std::vector<unsigned char> & from,
-                                             const std::vector<unsigned char> & to)
+                                             const std::string & from,
+                                             const std::string & to)
 {
     XBridgeTransactionDescrPtr ptr;
 
@@ -1240,7 +1241,7 @@ bool XBridgeApp::sendAcceptingTransaction(XBridgeTransactionDescrPtr & ptr)
 
     // 20 bytes - id of transaction
     // 2x
-    // 20 bytes - address
+    // 34 bytes - address
     //  8 bytes - currency
     //  4 bytes - amount
     ptr->packet->append(ptr->hubAddress);

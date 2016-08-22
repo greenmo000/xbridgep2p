@@ -19,6 +19,8 @@ namespace rpc
 
     bool DecodeBase58Check(const char * psz, std::vector<unsigned char> & vchRet);
 
+    std::vector<unsigned char> toXAddr(const std::string & addr);
+
     typedef std::pair<std::string, std::vector<std::string> > AddressBookEntry;
     bool requestAddressBook(const std::string & rpcuser,
                             const std::string & rpcpasswd,

@@ -48,16 +48,16 @@ public:
 
     bool isMyTransaction(const unsigned int index) const;
 
-    bool newTransaction(const std::vector<unsigned char> & from,
-                        const std::vector<unsigned char> & to,
+    bool newTransaction(const std::string & from,
+                        const std::string & to,
                         const std::string & fromCurrency,
                         const std::string & toCurrency,
                         const double fromAmount,
                         const double toAmount);
     bool newTransactionFromPending(const uint256 & id,
                                    const std::vector<unsigned char> & hub,
-                                   const std::vector<unsigned char> & from,
-                                   const std::vector<unsigned char> & to);
+                                   const std::string & from,
+                                   const std::string & to);
 
     bool cancelTransaction(const uint256 & id);
 

@@ -177,8 +177,8 @@ bool XBridgeTransactionsModel::isMyTransaction(const unsigned int index) const
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> & from,
-                                              const std::vector<unsigned char> & to,
+bool XBridgeTransactionsModel::newTransaction(const std::string & from,
+                                              const std::string & to,
                                               const std::string & fromCurrency,
                                               const std::string & toCurrency,
                                               const double fromAmount,
@@ -193,8 +193,8 @@ bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> &
 
     // TODO check amount
     uint256 id = XBridgeApp::instance().sendXBridgeTransaction
-            (from, fromCurrency, (boost::uint64_t)(fromAmount * XBridgeTransactionDescr::COIN),
-             to,   toCurrency,   (boost::uint64_t)(toAmount * XBridgeTransactionDescr::COIN));
+            (from, fromCurrency, (uint64_t)(fromAmount * XBridgeTransactionDescr::COIN),
+             to,   toCurrency,   (uint64_t)(toAmount * XBridgeTransactionDescr::COIN));
 
     if (id != uint256())
     {
@@ -218,8 +218,8 @@ bool XBridgeTransactionsModel::newTransaction(const std::vector<unsigned char> &
 //******************************************************************************
 bool XBridgeTransactionsModel::newTransactionFromPending(const uint256 & id,
                                                          const std::vector<unsigned char> & hub,
-                                                         const std::vector<unsigned char> & from,
-                                                         const std::vector<unsigned char> & to)
+                                                         const std::string & from,
+                                                         const std::string & to)
 {
     unsigned int i = 0;
     for (; i < m_transactions.size(); ++i)
