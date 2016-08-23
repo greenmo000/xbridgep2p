@@ -19,7 +19,7 @@ struct WalletParam
     std::string                port;
     std::string                user;
     std::string                passwd;
-    std::string                prefix;
+    char                       prefix[8];
     std::vector<unsigned char> feeaddr;
     unsigned int               fee;
     uint64_t                   COIN;
@@ -27,6 +27,7 @@ struct WalletParam
     uint64_t                   dustAmount;
     std::string                method;
     bool                       isGetNewPubKeySupported;
+    bool                       isImportWithNoScanSupported;
 
     WalletParam()
         : fee(300)
@@ -34,7 +35,9 @@ struct WalletParam
         , minAmount(0)
         , dustAmount(0)
         , isGetNewPubKeySupported(false)
+        , isImportWithNoScanSupported(false)
     {
+        memset(prefix, 0, sizeof(prefix));
     }
 };
 

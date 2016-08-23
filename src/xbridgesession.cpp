@@ -2833,7 +2833,8 @@ bool XBridgeSession::makeNewPubKey(CPubKey & newPKey)
         vch.insert(vch.begin(), m_wallet.prefix[0]);
         if (!rpc::importPrivKey(m_wallet.user, m_wallet.passwd,
                                 m_wallet.ip, m_wallet.port,
-                                EncodeBase58Check(vch), ""))
+                                EncodeBase58Check(vch), "",
+                                m_wallet.isImportWithNoScanSupported))
         {
             return false;
         }

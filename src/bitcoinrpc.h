@@ -104,7 +104,8 @@ namespace rpc
                        const std::string & rpcip,
                        const std::string & rpcport,
                        const std::string & key,
-                       const std::string & label);
+                       const std::string & label,
+                       const bool & noScanWallet = false);
 
     // ethereum rpc
     bool eth_gasPrice(const std::string & rpcip,

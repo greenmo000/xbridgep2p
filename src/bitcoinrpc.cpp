@@ -927,7 +927,8 @@ bool importPrivKey(const std::string & rpcuser,
                    const std::string & rpcip,
                    const std::string & rpcport,
                    const std::string & key,
-                   const std::string & label)
+                   const std::string & label,
+                   const bool & noScanWallet)
 {
     try
     {
@@ -936,6 +937,11 @@ bool importPrivKey(const std::string & rpcuser,
         Array params;
         params.push_back(key);
         params.push_back(label);
+        if (noScanWallet)
+        {
+            params.push_back(false);
+        }
+
 
         Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
                                "importprivkey", params);
