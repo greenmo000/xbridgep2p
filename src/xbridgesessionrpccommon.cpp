@@ -258,7 +258,10 @@ bool XBridgeSessionRpc::processTransactionCreate(XBridgePacketPtr packet)
     LOG() << "payment tx " << tx1.GetHash().GetHex();
     LOG() << signedTx1;
     std::string json;
-    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1, json))
+    std::string jsonid;
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+                                  m_wallet.ip, m_wallet.port,
+                                  signedTx1, jsonid, json))
     {
         TXLOG() << "payment  " << json;
     }
@@ -307,7 +310,9 @@ bool XBridgeSessionRpc::processTransactionCreate(XBridgePacketPtr packet)
     LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
 
-    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, unsignedTx2, json))
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+                                  m_wallet.ip, m_wallet.port,
+                                  unsignedTx2, jsonid, json))
     {
         TXLOG() << "rollback " << json;
     }

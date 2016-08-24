@@ -44,7 +44,9 @@ namespace rpc
                               const std::string & rpcpasswd,
                               const std::string & rpcip,
                               const std::string & rpcport,
+                              const std::vector<std::pair<std::string, int> > & inputs,
                               const std::vector<std::pair<std::string, double> > & destinations,
+                              const uint32_t lockTime,
                               std::string & tx);
 
     bool decodeRawTransaction(const std::string & rpcuser,
@@ -52,6 +54,7 @@ namespace rpc
                               const std::string & rpcip,
                               const std::string & rpcport,
                               const std::string & rawtx,
+                              std::string & txid,
                               std::string & tx);
 
     bool signRawTransaction(const std::string & rpcuser,

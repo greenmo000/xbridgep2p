@@ -27,7 +27,7 @@ enum TxCancelReason
     crRollback        = 7,
     crRpcRequest      = 8,
     crXbridgeRejected = 9,
-    crInvalidAddress
+    crInvalidAddress  = 10
 };
 
 //******************************************************************************
@@ -149,8 +149,8 @@ enum XBridgeCommand
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id
-    //    uint160  destination address
-    //    uint160  hub wallet address (for fee)
+    //    string destination address (33-34 byte + 0)
+    //    string hub wallet address (33-34 byte + 0)
     //    uint32_t fee in percent, *1000 (0.3% == 300)
     //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
     //    uint160 x address

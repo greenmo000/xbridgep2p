@@ -60,7 +60,7 @@ public:
     void requestUnconfirmedTx();
 
 private:
-    void init();
+    virtual void init();
 
     void disconnect();
 

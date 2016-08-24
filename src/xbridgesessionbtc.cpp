@@ -22,7 +22,6 @@
 XBridgeSessionBtc::XBridgeSessionBtc()
     : XBridgeSession()
 {
-    init();
 }
 
 //*****************************************************************************
@@ -30,7 +29,6 @@ XBridgeSessionBtc::XBridgeSessionBtc()
 XBridgeSessionBtc::XBridgeSessionBtc(const WalletParam & wallet)
     : XBridgeSession(wallet)
 {
-    init();
 }
 
 //*****************************************************************************
@@ -48,8 +46,8 @@ void XBridgeSessionBtc::init()
 
     dht_random_bytes(m_myid, sizeof(m_myid));
     LOG() << "session <" << m_wallet.currency << "> generated id <"
-             << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
-             << ">";
+          << util::base64_encode(std::string((char *)m_myid, sizeof(m_myid))).c_str()
+          << ">";
 
     // process invalid
     m_handlers[xbcInvalid]               .bind(this, &XBridgeSessionBtc::processInvalid);
@@ -253,7 +251,10 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
     LOG() << signedTx1;
 
     std::string json;
-    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1, json))
+    std::string jsonid;
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+                                  m_wallet.ip, m_wallet.port,
+                                  signedTx1, jsonid, json))
     {
         TXLOG() << "payment  " << json;
     }
@@ -302,7 +303,9 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
     LOG() << "revert tx (unsigned) " << tx2.GetHash().GetHex();
     LOG() << unsignedTx2;
 
-    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, unsignedTx2, json))
+    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+                                  m_wallet.ip, m_wallet.port,
+                                  unsignedTx2, jsonid, json))
     {
         TXLOG() << "rollback " << json;
     }

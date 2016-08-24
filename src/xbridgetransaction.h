@@ -57,15 +57,15 @@ public:
 
 public:
     XBridgeTransaction();
-    XBridgeTransaction(const uint256 & id,
+    XBridgeTransaction(const uint256     & id,
                        const std::string & sourceAddr,
                        const std::string & sourceCurrency,
-                       const uint64_t & sourceAmount,
+                       const uint64_t    & sourceAmount,
                        const std::string & destAddr,
                        const std::string & destCurrency,
-                       const uint64_t & destAmount,
-                       const uint32_t & tax,
-                       const std::vector<unsigned char> & taxAddress);
+                       const uint64_t    & destAmount,
+                       const uint32_t    & tax,
+                       const std::string & taxAddress);
     ~XBridgeTransaction();
 
     uint256 id() const;
@@ -121,8 +121,8 @@ public:
     std::string                fromXAddr(const std::vector<unsigned char> & xaddr) const;
 
     boost::uint32_t            tax() const;
-    std::vector<unsigned char> a_taxAddress() const;
-    std::vector<unsigned char> b_taxAddress() const;
+    std::string                a_taxAddress() const;
+    std::string                b_taxAddress() const;
 
     bool tryJoin(const XBridgeTransactionPtr other);
 
@@ -176,8 +176,8 @@ private:
     CPubKey                    m_b_pk1;
 
     boost::uint32_t            m_tax;
-    std::vector<unsigned char> m_a_taxAddress;
-    std::vector<unsigned char> m_b_taxAddress;
+    std::string                m_a_taxAddress;
+    std::string                m_b_taxAddress;
 };
 
 #endif // XBRIDGETRANSACTION_H

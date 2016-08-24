@@ -71,21 +71,6 @@ bool XBridgeExchange::init()
             continue;
         }
 
-        m_wallets[*i].feeaddr.clear();
-        if (!rpc::DecodeBase58Check(feeAddress.c_str(), m_wallets[*i].feeaddr))
-        {
-            LOG() << "DecodeBase58Check failed for " << feeAddress;
-        }
-
-        m_wallets[*i].feeaddr.erase(m_wallets[*i].feeaddr.begin());
-
-        if (m_wallets[*i].feeaddr.size() != 20)
-        {
-            LOG() << "incorrect wallet address size for tax for " << *i;
-            m_wallets.erase(*i);
-            continue;
-        }
-
         WalletParam & wp = m_wallets[*i];
         wp.currency   = *i;
         wp.title      = label;
@@ -96,6 +81,7 @@ bool XBridgeExchange::init()
         wp.fee        = s.exchangeTax();
         wp.minAmount  = minAmount;
         wp.dustAmount = dustAmount;
+        wp.taxaddr    = feeAddress;
 
         LOG() << "read wallet " << *i << " \"" << label << "\" address <" << address << ">";
     }
@@ -196,7 +182,7 @@ bool XBridgeExchange::createTransaction(const uint256     & id,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
                                                     destAmount,
-                                                    taxPercent, wp.feeaddr));
+                                                    taxPercent, wp.taxaddr));
 
     LOG() << tr->hash1().ToString();
     LOG() << tr->hash2().ToString();
@@ -265,7 +251,7 @@ bool XBridgeExchange::acceptTransaction(const uint256     & id,
                                                     sourceAmount,
                                                     destAddr, destCurrency,
                                                     destAmount,
-                                                    wp.fee, wp.feeaddr));
+                                                    wp.fee, wp.taxaddr));
 
     transactionId = id;
 

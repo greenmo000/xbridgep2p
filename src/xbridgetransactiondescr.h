@@ -65,7 +65,7 @@ struct XBridgeTransactionDescr
     boost::posix_time::ptime   created;
     boost::posix_time::ptime   txtime;
 
-    uint256                    binTxId;
+    std::string                binTxId;
     std::string                binTx;
     uint256                    payTxId;
     std::string                payTx;

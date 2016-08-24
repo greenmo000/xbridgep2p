@@ -29,7 +29,7 @@ XBridgeTransaction::XBridgeTransaction(const uint256     & id,
                                        const std::string & destCurrency,
                                        const uint64_t    & destAmount,
                                        const uint32_t    & tax,
-                                       const std::vector<unsigned char> & taxAddress)
+                                       const std::string & taxAddress)
     : m_id(id)
     , m_created(boost::posix_time::second_clock::universal_time())
     , m_state(trNew)
@@ -478,14 +478,14 @@ boost::uint32_t XBridgeTransaction::tax() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::a_taxAddress() const
+std::string XBridgeTransaction::a_taxAddress() const
 {
     return m_a_taxAddress;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-std::vector<unsigned char> XBridgeTransaction::b_taxAddress() const
+std::string XBridgeTransaction::b_taxAddress() const
 {
     return m_b_taxAddress;
 }
@@ -567,13 +567,13 @@ bool XBridgeTransaction::setKeys(const std::string & addr,
                                  const uint160 & x,
                                  const CPubKey & pk)
 {
-    if (m_b.source() == addr)
+    if (m_b.dest() == addr)
     {
         m_b_x   = x;
         m_b_pk1 = pk;
         return true;
     }
-    else if (m_a.source() == addr)
+    else if (m_a.dest() == addr)
     {
         m_a_x   = x;
         m_a_pk1 = pk;

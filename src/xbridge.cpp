@@ -79,7 +79,8 @@ XBridge::XBridge()
                 else if (wp.method == "BTC")
                 {
                     // assert(!"not implemented");
-                    session.reset(new XBridgeSessionBtc(wp));
+                    // session.reset(new XBridgeSessionBtc(wp));
+                    session.reset(new XBridgeSession(wp));
                 }
                 else if (wp.method == "RPC")
                 {

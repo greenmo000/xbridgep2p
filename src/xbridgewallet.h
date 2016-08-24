@@ -20,7 +20,7 @@ struct WalletParam
     std::string                user;
     std::string                passwd;
     char                       prefix[8];
-    std::vector<unsigned char> feeaddr;
+    std::string                taxaddr;
     unsigned int               fee;
     uint64_t                   COIN;
     uint64_t                   minAmount;

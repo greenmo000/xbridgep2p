@@ -623,13 +623,25 @@ bool createRawTransaction(const std::string & rpcuser,
                           const std::string & rpcpasswd,
                           const std::string & rpcip,
                           const std::string & rpcport,
+                          const std::vector<std::pair<string, int> > & inputs,
                           const std::vector<std::pair<std::string, double> > & destinations,
+                          const uint32_t lockTime,
                           std::string & tx)
 {
     try
     {
         LOG() << "rpc call <createrawtransaction>";
 
+        // inputs
+        Array i;
+        for (const std::pair<string, int> & input : inputs)
+        {
+            Object tmp;
+            tmp.push_back(Pair("txid", input.first));
+            tmp.push_back(Pair("vout", input.second));
+        }
+
+        // outputs
         Object o;
         for (const std::pair<std::string, double> & dest : destinations)
         {
@@ -637,7 +649,15 @@ bool createRawTransaction(const std::string & rpcuser,
         }
 
         Array params;
+        params.push_back(i);
         params.push_back(o);
+
+        // locktime
+        if (lockTime > 0)
+        {
+            params.push_back(uint64_t(lockTime));
+        }
+
         Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
                                "createrawtransaction", params);
 
@@ -680,6 +700,7 @@ bool decodeRawTransaction(const std::string & rpcuser,
                           const std::string & rpcip,
                           const std::string & rpcport,
                           const std::string & rawtx,
+                          std::string & txid,
                           std::string & tx)
 {
     try
@@ -712,7 +733,13 @@ bool decodeRawTransaction(const std::string & rpcuser,
             return false;
         }
 
-        tx = write_string(result, false);
+        tx   = write_string(result, false);
+
+        const Value & vtxid = find_value(result.get_obj(), "txid");
+        if (vtxid.type() == str_type)
+        {
+            txid = vtxid.get_str();
+        }
     }
     catch (std::exception & e)
     {
