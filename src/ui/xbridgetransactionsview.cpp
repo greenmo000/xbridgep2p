@@ -23,7 +23,7 @@
 XBridgeTransactionsView::XBridgeTransactionsView(QWidget *parent)
     : QWidget(parent)
     // , m_walletModel(0)
-    , m_dlg(m_txModel)
+    , m_dlg(m_txModel, this)
 {
     setupUi();
 }

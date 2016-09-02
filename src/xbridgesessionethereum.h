@@ -42,7 +42,7 @@ protected:
     virtual bool revertXBridgeTransaction(const uint256 & id);
 
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionSign(XBridgePacketPtr packet);
+    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
     virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
 
 private:

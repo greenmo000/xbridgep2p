@@ -99,11 +99,12 @@ public:
     std::string                a_destination() const;
     std::string                a_currency() const;
     boost::uint64_t            a_amount() const;
-    std::string                a_rawPayTx() const;
-    std::string                a_rawRefTx() const;
+    std::string                a_prevtxs() const;
+    std::string                a_payTx() const;
+    std::string                a_refTx() const;
     uint256                    a_txHash() const;
 
-    // uint160                    a_x() const;
+    // CPubKey                    a_x() const;
     CPubKey                    a_pk1() const;
 
     // uint256                    secondId() const;
@@ -111,11 +112,12 @@ public:
     std::string                b_destination() const;
     std::string                b_currency() const;
     boost::uint64_t            b_amount() const;
-    std::string                b_rawPayTx() const;
-    std::string                b_rawRefTx() const;
+    std::string                b_prevtxs() const;
+    std::string                b_payTx() const;
+    std::string                b_refTx() const;
     uint256                    b_txHash() const;
 
-    uint160                    b_x() const;
+    CPubKey                    b_x() const;
     CPubKey                    b_pk1() const;
 
     std::string                fromXAddr(const std::vector<unsigned char> & xaddr) const;
@@ -129,10 +131,10 @@ public:
     // std::vector<unsigned char> opponentAddress(const std::vector<unsigned char> & addr);
 
     bool                       setKeys(const std::string & addr,
-                                       const uint160 & x,
+                                       const CPubKey & x,
                                        const CPubKey & pk);
-    bool                       setRawTx(const std::string & addr,
-                                        const std::string & payTx,
+    bool                       setRefTx(const std::string & addr,
+                                        const std::string & prevtxs,
                                         const std::string & refTx);
     bool                       setTxHash(const std::string & addr,
                                          const uint256 & hash);
@@ -158,6 +160,9 @@ private:
     boost::uint64_t            m_sourceAmount;
     boost::uint64_t            m_destAmount;
 
+    std::string                m_prevtxs1;
+    std::string                m_prevtxs2;
+
     std::string                m_rawpaytx1;
     std::string                m_rawrevtx1;
     std::string                m_rawpaytx2;
@@ -169,8 +174,8 @@ private:
     XBridgeTransactionMember   m_a;
     XBridgeTransactionMember   m_b;
 
-    uint160                    m_a_x;
-    uint160                    m_b_x;
+    CPubKey                    m_a_x;
+    CPubKey                    m_b_x;
 
     CPubKey                    m_a_pk1;
     CPubKey                    m_b_pk1;

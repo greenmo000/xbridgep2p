@@ -65,16 +65,30 @@ struct XBridgeTransactionDescr
     boost::posix_time::ptime   created;
     boost::posix_time::ptime   txtime;
 
+    // raw bitcoin transactions
     std::string                binTxId;
     std::string                binTx;
-    uint256                    payTxId;
+    std::string                payTxId;
     std::string                payTx;
+    std::string                refTxId;
     std::string                refTx;
+
+    // multisig address and redeem script
+    std::string                multisig;
+    std::string                redeem;
+
+    // prevtxs for signrawtransaction
+    std::string                prevtxs;
 
     XBridgePacketPtr           packet;
 
-    CPubKey                    multisigPubKey;
+    // multisig key
+    CPubKey                    mPubKey;
+    CSecret                    mSecret;
+
+    // X key
     CPubKey                    xPubKey;
+    CSecret                    xSecret;
 
     XBridgeTransactionDescr()
         : tax(0)
@@ -150,14 +164,36 @@ private:
         lockTimeTx1  = d.lockTimeTx1;
         lockTimeTx2  = d.lockTimeTx2;
         state        = d.state;
+        reason       = d.reason;
         payTx        = d.payTx;
         refTx        = d.refTx;
 
-        updateTimestamp(d);
+        binTxId      = d.binTxId;
+        binTx        = d.binTx;
+        payTxId      = d.payTxId;
+        payTx        = d.payTx;
+        refTxId      = d.refTxId;
+        refTx        = d.refTx;
 
-        payTxId     = d.payTxId;
-        hubAddress  = d.hubAddress;
-        confirmAddress   = d.confirmAddress;
+        // multisig address and redeem script
+        multisig     = d.multisig;
+        redeem       = d.redeem;
+
+        // prevtxs for signrawtransaction
+        prevtxs      = d.prevtxs;
+
+        // multisig key
+        mPubKey      = d.mPubKey;
+        mSecret      = d.mSecret;
+
+        // X key
+        xPubKey      = d.xPubKey;
+        xSecret      = d.xSecret;
+
+        hubAddress     = d.hubAddress;
+        confirmAddress = d.confirmAddress;
+
+        updateTimestamp(d);
     }
 };
 

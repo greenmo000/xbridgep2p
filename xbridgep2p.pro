@@ -38,6 +38,7 @@ CONFIG(release, debug|release) {
 }
 else:CONFIG(debug, debug|release){
     TARGET = ../bin/xbridgep2p-debug
+    DEFINES += __DEBUG__
 }
 
 
@@ -72,6 +73,10 @@ DEFINES +=\
 
 } #win32
 
+INCLUDEPATH += \
+    $$PWD \
+    $$PWD/src \
+
 #-------------------------------------------------
 SOURCES += \
     src/main.cpp\
@@ -104,7 +109,8 @@ SOURCES += \
     src/bitcoinrpctable.cpp \
     src/xbridgesessionethereum.cpp \
     src/xbridgesessionrpccommon.cpp \
-    src/xbridgesessionbtc.cpp
+    src/xbridgesessionbtc.cpp \
+    src/ui/uiutil.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -153,7 +159,8 @@ HEADERS += \
     src/bitcoinrpctable.h \
     src/xbridgesessionethereum.h \
     src/xbridgesessionrpccommon.h \
-    src/xbridgesessionbtc.h
+    src/xbridgesessionbtc.h \
+    src/ui/uiutil.h
 
 #-------------------------------------------------
 !withoutgui {

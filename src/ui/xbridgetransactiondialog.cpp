@@ -34,6 +34,7 @@ XBridgeTransactionDialog::XBridgeTransactionDialog(XBridgeTransactionsModel & mo
     : QDialog(parent)
     // , m_walletModel(0)
     , m_model(model)
+    , m_addressBook(this)
 {
     setupUI();
 

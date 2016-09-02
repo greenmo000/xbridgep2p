@@ -28,6 +28,8 @@ private slots:
 private:
     QLabel m_peers;
     QTimer m_timer;
+
+    static const char * m_windowName;
 };
 
 #endif // MAINWINDOW_H

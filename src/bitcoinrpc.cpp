@@ -639,6 +639,8 @@ bool createRawTransaction(const std::string & rpcuser,
             Object tmp;
             tmp.push_back(Pair("txid", input.first));
             tmp.push_back(Pair("vout", input.second));
+
+            i.push_back(tmp);
         }
 
         // outputs
@@ -672,17 +674,24 @@ bool createRawTransaction(const std::string & rpcuser,
             // int code = find_value(error.get_obj(), "code").get_int();
             return false;
         }
-        else if (result.type() != obj_type)
+        else if (result.type() != str_type)
         {
             // Result
-            LOG() << "result not an object " <<
+            LOG() << "result not an string " <<
                      (result.type() == null_type ? "" :
-                      result.type() == str_type  ? result.get_str() :
                                                    write_string(result, true));
             return false;
         }
 
         tx = write_string(result, false);
+        if (tx[0] == '\"')
+        {
+            tx.erase(0, 1);
+        }
+        if (tx[tx.size()-1] == '\"')
+        {
+            tx.erase(tx.size()-1, 1);
+        }
     }
     catch (std::exception & e)
     {
@@ -752,11 +761,58 @@ bool decodeRawTransaction(const std::string & rpcuser,
 
 //*****************************************************************************
 //*****************************************************************************
+std::string prevtxsJson(const std::vector<std::tuple<std::string, int, std::string, std::string> > & prevtxs)
+{
+    // prevtxs
+    if (!prevtxs.size())
+    {
+        return std::string();
+    }
+
+    Array arrtx;
+    for (const std::tuple<std::string, int, std::string, std::string> & prev : prevtxs)
+    {
+        Object o;
+        o.push_back(Pair("txid",         std::get<0>(prev)));
+        o.push_back(Pair("vout",         std::get<1>(prev)));
+        o.push_back(Pair("scriptPubKey", std::get<2>(prev)));
+        std::string redeem = std::get<3>(prev);
+        if (redeem.size())
+        {
+            o.push_back(Pair("redeemScript", redeem));
+        }
+        arrtx.push_back(o);
+    }
+
+    return write_string(Value(arrtx));
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool signRawTransaction(const std::string & rpcuser,
                         const std::string & rpcpasswd,
                         const std::string & rpcip,
                         const std::string & rpcport,
-                        std::string & rawtx)
+                        std::string & rawtx,
+                        bool & complete)
+{
+    std::vector<std::tuple<std::string, int, std::string, std::string> > arr;
+    std::string prevtxs = prevtxsJson(arr);
+    std::vector<string> keys;
+    return signRawTransaction(rpcuser, rpcpasswd, rpcip, rpcport,
+                              rawtx, prevtxs, keys, complete);
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool signRawTransaction(const std::string & rpcuser,
+                        const std::string & rpcpasswd,
+                        const std::string & rpcip,
+                        const std::string & rpcport,
+                        std::string & rawtx,
+                        const string & prevtxs,
+                        const std::vector<std::string> & keys,
+                        bool & complete)
 {
     try
     {
@@ -764,6 +820,40 @@ bool signRawTransaction(const std::string & rpcuser,
 
         Array params;
         params.push_back(rawtx);
+
+        // prevtxs
+        if (!prevtxs.size())
+        {
+            params.push_back(Value::null);
+        }
+        else
+        {
+            Value v;
+            if (!read_string(prevtxs, v))
+            {
+                ERR() << "error read json " << __FUNCTION__;
+                ERR() << prevtxs;
+                params.push_back(Value::null);
+            }
+            else
+            {
+                params.push_back(v.get_array());
+            }
+        }
+
+        // priv keys
+        if (!keys.size())
+        {
+            params.push_back(Value::null);
+        }
+        else
+        {
+            Array jkeys;
+            std::copy(keys.begin(), keys.end(), std::back_inserter(jkeys));
+
+            params.push_back(jkeys);
+        }
+
         Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
                                "signrawtransaction", params);
 
@@ -789,9 +879,10 @@ bool signRawTransaction(const std::string & rpcuser,
         }
 
         Object obj = result.get_obj();
-        const Value & tx = find_value(obj, "hex");
+        const Value    & tx = find_value(obj, "hex");
+        const Value & compl = find_value(obj, "complete");
 
-        if (tx.type() != str_type)
+        if (tx.type() != str_type || compl.type() != bool_type)
         {
             LOG() << "bad hex " <<
                      (tx.type() == null_type ? "" :
@@ -800,7 +891,9 @@ bool signRawTransaction(const std::string & rpcuser,
             return false;
         }
 
-        rawtx = tx.get_str();
+        rawtx    = tx.get_str();
+        complete = compl.get_bool();
+
     }
     catch (std::exception & e)
     {

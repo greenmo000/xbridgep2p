@@ -79,8 +79,8 @@ void XBridgeSessionEthereum::init()
         m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionEthereum::processTransactionCreate);
         m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionEthereum::processTransactionCreated);
 
-        m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionEthereum::processTransactionSign);
-        m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionSigned);
+        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionEthereum::processTransactionSignRefund);
+        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionRefundSigned);
 
         m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionEthereum::processTransactionCommitStage1);
         m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionEthereum::processTransactionCommitedStage1);
@@ -192,7 +192,7 @@ bool XBridgeSessionEthereum::processTransactionCreate(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionEthereum::processTransactionSign(XBridgePacketPtr packet)
+bool XBridgeSessionEthereum::processTransactionSignRefund(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -235,7 +235,7 @@ bool XBridgeSessionEthereum::processTransactionSign(XBridgePacketPtr packet)
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
     // send reply
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSigned));
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionRefundSigned));
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
@@ -293,12 +293,14 @@ bool XBridgeSessionEthereum::processTransactionCommitStage1(XBridgePacketPtr pac
     xtx->state = XBridgeTransactionDescr::trCommited;
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
+    assert(!"not finished");
+
     // send commit apply to hub
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommitedStage1));
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    reply->append(xtx->payTxId.begin(), 32);
+    // reply->append(xtx->payTxId.begin(), 32);
 
     sendPacket(hubAddress, reply);
     return true;

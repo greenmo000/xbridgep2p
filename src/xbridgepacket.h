@@ -137,15 +137,15 @@ enum XBridgeCommand
     //    uint64 destination amount
     xbcTransactionInit = 8,
     //
-    // xbcTransactionInitialized (125 bytes)
+    // xbcTransactionInitialized (138 bytes)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    uint160 x address
+    //    x public key, 33 bytes
     //    public key, 33 bytes
     xbcTransactionInitialized = 9,
     //
-    // xbcTransactionCreate (171 bytes)
+    // xbcTransactionCreate (212 bytes min)
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id
@@ -153,39 +153,37 @@ enum XBridgeCommand
     //    string hub wallet address (33-34 byte + 0)
     //    uint32_t fee in percent, *1000 (0.3% == 300)
     //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
-    //    uint160 x address
+    //    x public key, 33 bytes
     //    opponent public key, 33 bytes
     xbcTransactionCreate = 10,
     //
-    // xbcTransactionCreated
+    // xbcTransactionCreated (74 bytes min)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw payment transaction
+    //    string  prevtxs for sign refund
     //    string  raw refund transaction
     xbcTransactionCreated = 11,
     //
-    // xbcTransactionSign
+    // xbcTransactionSignRefund (74 bytes min)
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    string  raw payment transaction
+    //    string  prevtxs for sign refund
     //    string  raw refund transaction
-    xbcTransactionSign = 12,
+    xbcTransactionSignRefund = 12,
     //
     // xbcTransactionSigned
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw payment transaction (signed)
     //    string  raw refund transaction (signed)
-    xbcTransactionSigned = 13,
+    xbcTransactionRefundSigned = 13,
     //
     // xbcTransactionCommitStage1
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw payment transaction (signed)
     //    string  raw refund transaction (signed)
     xbcTransactionCommitStage1 = 14,
     //

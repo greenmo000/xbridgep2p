@@ -19,7 +19,9 @@ struct WalletParam
     std::string                port;
     std::string                user;
     std::string                passwd;
-    char                       prefix[8];
+    char                       addrPrefix[8];
+    char                       scriptPrefix[8];
+    char                       secretPrefix[8];
     std::string                taxaddr;
     unsigned int               fee;
     uint64_t                   COIN;
@@ -37,7 +39,9 @@ struct WalletParam
         , isGetNewPubKeySupported(false)
         , isImportWithNoScanSupported(false)
     {
-        memset(prefix, 0, sizeof(prefix));
+        memset(addrPrefix,   0, sizeof(addrPrefix));
+        memset(scriptPrefix, 0, sizeof(scriptPrefix));
+        memset(secretPrefix, 0, sizeof(secretPrefix));
     }
 };
 

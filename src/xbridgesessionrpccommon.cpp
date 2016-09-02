@@ -78,8 +78,8 @@ void XBridgeSessionRpc::init()
         m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionRpc::processTransactionCreate);
         m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionRpc::processTransactionCreated);
 
-        m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionRpc::processTransactionSign);
-        m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionRpc::processTransactionSigned);
+        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionRpc::processTransactionSignRefund);
+        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionRpc::processTransactionRefundSigned);
 
         m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionRpc::processTransactionCommitStage1);
         m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionRpc::processTransactionCommitedStage1);
@@ -214,13 +214,13 @@ bool XBridgeSessionRpc::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_wallet.prefix[0])));
+    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_wallet.addrPrefix[0])));
     if (taxToSend)
     {
-        tx1.vout.push_back(CTxOut(taxToSend, destination(taxAddress, m_wallet.prefix[0])));
+        tx1.vout.push_back(CTxOut(taxToSend, destination(taxAddress, m_wallet.addrPrefix[0])));
     }
 
-    LOG() << "OUTPUTS <" << destination(destAddress, m_wallet.prefix[0]).ToString()
+    LOG() << "OUTPUTS <" << destination(destAddress, m_wallet.addrPrefix[0]).ToString()
           << "> amount "
           << (outAmount) / m_wallet.COIN;
 
@@ -246,12 +246,15 @@ bool XBridgeSessionRpc::processTransactionCreate(XBridgePacketPtr packet)
     std::string unsignedTx1 = txToString(tx1);
     std::string signedTx1 = unsignedTx1;
 
-    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1))
+    bool complete = false;
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1, complete))
     {
         // do not sign, cancel
         sendCancelTransaction(id, crNotSigned);
         return true;
     }
+
+    assert(complete && "not fully signed");
 
     tx1 = txFromString(signedTx1);
 
@@ -271,7 +274,9 @@ bool XBridgeSessionRpc::processTransactionCreate(XBridgePacketPtr packet)
         TXLOG() << signedTx1;
     }
 
-    xtx->payTxId = tx1.GetHash();
+    assert(!"not finished");
+
+    // xtx->payTxId = tx1.GetHash();
     xtx->payTx   = signedTx1;
 
     // create tx2

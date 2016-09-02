@@ -292,10 +292,11 @@ public:
         return true;
     }
 
-//    bool Set(const CScriptID &id) {
-//        SetData(fTestNet ? SCRIPT_ADDRESS_TEST : SCRIPT_ADDRESS, &id, 20);
-//        return true;
-//    }
+    bool Set(const CScriptID &id, const char prefix) {
+        // SetData(fTestNet ? SCRIPT_ADDRESS_TEST : SCRIPT_ADDRESS, &id, 20);
+        SetData(prefix, &id, 20);
+        return true;
+    }
 
 //    bool Set(const CTxDestination &dest)
 //    {

@@ -370,7 +370,7 @@ bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(XBridgeTransactionP
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
                                                                const std::string & from,
-                                                               const uint160 & x,
+                                                               const CPubKey & x,
                                                                const CPubKey & pk)
 {
     if (!tx->setKeys(from, x, pk))
@@ -392,10 +392,10 @@ bool XBridgeExchange::updateTransactionWhenInitializedReceived(XBridgeTransactio
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
                                                            const std::string & from,
-                                                           const std::string & rawpaytx,
+                                                           const std::string & prevtxs,
                                                            const std::string & rawrevtx)
 {
-    if (!tx->setRawTx(from, rawpaytx, rawrevtx))
+    if (!tx->setRefTx(from, prevtxs, rawrevtx))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
@@ -414,10 +414,9 @@ bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
                                                           const std::string & from,
-                                                          const std::string & payTx,
                                                           const std::string & refTx)
 {
-    if (!tx->setRawTx(from, payTx, refTx))
+    if (!tx->setRefTx(from, std::string(), refTx))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";

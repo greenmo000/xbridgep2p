@@ -343,14 +343,21 @@ boost::uint64_t XBridgeTransaction::a_amount() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::a_rawPayTx() const
+std::string XBridgeTransaction::a_prevtxs() const
+{
+    return m_prevtxs1;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::a_payTx() const
 {
     return m_rawpaytx1;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::a_rawRefTx() const
+std::string XBridgeTransaction::a_refTx() const
 {
     return m_rawrevtx1;
 }
@@ -364,7 +371,7 @@ uint256 XBridgeTransaction::a_txHash() const
 
 //*****************************************************************************
 //*****************************************************************************
-//uint160 XBridgeTransaction::a_x() const
+//CPubKey XBridgeTransaction::a_x() const
 //{
 //    return m_a_x;
 //}
@@ -413,14 +420,21 @@ boost::uint64_t XBridgeTransaction::b_amount() const
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::b_rawPayTx() const
+std::string XBridgeTransaction::b_prevtxs() const
+{
+    return m_prevtxs2;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::b_payTx() const
 {
     return m_rawpaytx2;
 }
 
 //*****************************************************************************
 //*****************************************************************************
-std::string XBridgeTransaction::b_rawRefTx() const
+std::string XBridgeTransaction::b_refTx() const
 {
     return m_rawrevtx2;
 }
@@ -434,7 +448,7 @@ uint256 XBridgeTransaction::b_txHash() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint160 XBridgeTransaction::b_x() const
+CPubKey XBridgeTransaction::b_x() const
 {
     return m_b_x;
 }
@@ -564,7 +578,7 @@ bool XBridgeTransaction::tryJoin(const XBridgeTransactionPtr other)
 //*****************************************************************************
 //*****************************************************************************
 bool XBridgeTransaction::setKeys(const std::string & addr,
-                                 const uint160 & x,
+                                 const CPubKey & x,
                                  const CPubKey & pk)
 {
     if (m_b.dest() == addr)
@@ -584,19 +598,25 @@ bool XBridgeTransaction::setKeys(const std::string & addr,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::setRawTx(const std::string & addr,
-                                  const std::string & payTx,
+bool XBridgeTransaction::setRefTx(const std::string & addr,
+                                  const std::string & prevtxs,
                                   const std::string & refTx)
 {
     if (m_b.source() == addr || m_a.dest() == addr)
     {
-        m_rawpaytx2 = payTx;
+        if (prevtxs.size())
+        {
+            m_prevtxs2  = prevtxs;
+        }
         m_rawrevtx2 = refTx;
         return true;
     }
     else if (m_a.source() == addr || m_b.dest() == addr)
     {
-        m_rawpaytx1 = payTx;
+        if (prevtxs.size())
+        {
+            m_prevtxs1  = prevtxs;
+        }
         m_rawrevtx1 = refTx;
         return true;
     }

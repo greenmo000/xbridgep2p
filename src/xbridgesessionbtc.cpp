@@ -76,8 +76,8 @@ void XBridgeSessionBtc::init()
         m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionBtc::processTransactionCreate);
         m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionBtc::processTransactionCreated);
 
-        m_handlers[xbcTransactionSign]       .bind(this, &XBridgeSessionBtc::processTransactionSign);
-        m_handlers[xbcTransactionSigned]     .bind(this, &XBridgeSessionBtc::processTransactionSigned);
+        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionBtc::processTransactionSignRefund);
+        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionBtc::processTransactionRefundSigned);
 
         m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionBtc::processTransactionCommitStage1);
         m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionBtc::processTransactionCommitedStage1);
@@ -208,13 +208,13 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
     }
 
     // outputs
-    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_wallet.prefix[0])));
+    tx1.vout.push_back(CTxOut(outAmount, destination(destAddress, m_wallet.addrPrefix[0])));
     if (taxToSend)
     {
-        tx1.vout.push_back(CTxOut(taxToSend, destination(taxAddress, m_wallet.prefix[0])));
+        tx1.vout.push_back(CTxOut(taxToSend, destination(taxAddress, m_wallet.addrPrefix[0])));
     }
 
-    LOG() << "OUTPUTS <" << destination(destAddress, m_wallet.prefix[0]).ToString()
+    LOG() << "OUTPUTS <" << destination(destAddress, m_wallet.addrPrefix[0]).ToString()
             << "> amount " << (outAmount) / m_wallet.COIN;
 
     if (inAmount > outAmount)
@@ -238,12 +238,16 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
     std::string unsignedTx1 = txToStringBTC(tx1);
     std::string signedTx1 = unsignedTx1;
 
-    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, signedTx1))
+    bool complete = false;
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port,
+                                 signedTx1, complete))
     {
         // do not sign, cancel
         sendCancelTransaction(id, crNotSigned);
         return true;
     }
+
+    assert(complete && "not fully signed");
 
     tx1 = txFromStringBTC(signedTx1);
 
@@ -264,7 +268,9 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
         TXLOG() << signedTx1;
     }
 
-    xtx->payTxId = tx1.GetHash();
+    assert(!"not finished");
+
+    // xtx->payTxId = tx1.GetHash();
     xtx->payTx   = signedTx1;
 
     // create tx2
@@ -335,7 +341,7 @@ bool XBridgeSessionBtc::processTransactionCreate(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-bool XBridgeSessionBtc::processTransactionSign(XBridgePacketPtr packet)
+bool XBridgeSessionBtc::processTransactionSignRefund(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
@@ -392,18 +398,22 @@ bool XBridgeSessionBtc::processTransactionSign(XBridgePacketPtr packet)
     // TODO check txpay, inputs-outputs
 
     // sign txrevert
-    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, rawtxrev))
+    bool complete = false;
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port,
+                                 rawtxrev, complete))
     {
         // do not sign, cancel
         sendCancelTransaction(txid, crNotSigned);
         return true;
     }
 
+    assert(complete && "not fully signed");
+
     xtx->state = XBridgeTransactionDescr::trSigned;
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
     // send reply
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSigned));
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionRefundSigned));
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);

@@ -95,7 +95,8 @@ protected:
 
     virtual std::string currencyToLog() const { return std::string("[") + m_wallet.currency + std::string("]"); }
 
-    bool makeNewPubKey(CPubKey & newPKey);
+    bool makeNewPubKey(CPubKey & newPKey) const;
+    std::string secretToString(CSecret & secret) const;
 
 protected:
     virtual bool processInvalid(XBridgePacketPtr packet);
@@ -108,7 +109,7 @@ protected:
     virtual bool processTransactionHoldApply(XBridgePacketPtr packet);
     virtual bool processTransactionInitialized(XBridgePacketPtr packet);
     virtual bool processTransactionCreated(XBridgePacketPtr packet);
-    virtual bool processTransactionSigned(XBridgePacketPtr packet);
+    virtual bool processTransactionRefundSigned(XBridgePacketPtr packet);
     virtual bool processTransactionCommitedStage1(XBridgePacketPtr packet);
     virtual bool processTransactionCommitedStage2(XBridgePacketPtr packet);
     virtual bool processTransactionConfirm(XBridgePacketPtr packet);
@@ -129,7 +130,7 @@ protected:
     virtual bool processTransactionHold(XBridgePacketPtr packet);
     virtual bool processTransactionInit(XBridgePacketPtr packet);
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionSign(XBridgePacketPtr packet);
+    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
     virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
     virtual bool processTransactionCommitStage2(XBridgePacketPtr packet);
     virtual bool processTransactionFinished(XBridgePacketPtr packet);

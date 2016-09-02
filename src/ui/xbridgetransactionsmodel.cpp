@@ -93,7 +93,7 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
                 QString text;
                 if (d.from.size())
                 {
-                    text = QString::fromStdString(util::base64_encode(d.from));
+                    text = QString::fromStdString(d.from);
                 }
                 return QVariant(text);
             }
@@ -108,7 +108,7 @@ QVariant XBridgeTransactionsModel::data(const QModelIndex & idx, int role) const
                 QString text;
                 if (d.to.size())
                 {
-                    text = QString::fromStdString(util::base64_encode(d.to));
+                    text = QString::fromStdString(d.to);
                 }
                 return QVariant(text);
             }

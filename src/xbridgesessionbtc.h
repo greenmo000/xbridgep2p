@@ -38,7 +38,7 @@ private:
 
 protected:
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionSign(XBridgePacketPtr packet);
+    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
 
 protected:
     XBridge::SocketPtr m_socket;
