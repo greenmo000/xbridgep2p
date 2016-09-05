@@ -44,6 +44,8 @@ struct XBridgeTransactionDescr
 
     uint256                    id;
 
+    char                       role;
+
     std::vector<unsigned char> hubAddress;
     std::vector<unsigned char> confirmAddress;
 
@@ -91,7 +93,8 @@ struct XBridgeTransactionDescr
     CSecret                    xSecret;
 
     XBridgeTransactionDescr()
-        : tax(0)
+        : role(0)
+        , tax(0)
         , state(trNew)
         , reason(0)
         , created(boost::posix_time::second_clock::universal_time())
@@ -154,6 +157,7 @@ private:
     void copyFrom(const XBridgeTransactionDescr & d)
     {
         id           = d.id;
+        role         = d.role;
         from         = d.from;
         fromCurrency = d.fromCurrency;
         fromAmount   = d.fromAmount;

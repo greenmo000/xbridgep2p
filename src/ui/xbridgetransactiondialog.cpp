@@ -25,7 +25,7 @@ const QString testTo("BWU9J85uL4242RnXXhZfRdA8p9s=");
 // const QString testFromCurrency("XC");
 // const QString testToCurrency("SWIFT");
 const QString testFromAmount("0.001");
-const QString testToAmount("0.002");
+const QString testToAmount("0.0001");
 
 //******************************************************************************
 //******************************************************************************

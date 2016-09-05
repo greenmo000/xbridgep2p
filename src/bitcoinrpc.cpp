@@ -24,6 +24,8 @@
 #include "util/logger.h"
 #include "httpstatuscode.h"
 
+// #define HTTP_DEBUG
+
 //*****************************************************************************
 //*****************************************************************************
 namespace rpc
@@ -377,6 +379,11 @@ Object CallRPC(const std::string & rpcuser, const std::string & rpcpasswd,
 
     // Send request
     string strRequest = JSONRPCRequest(strMethod, params, 1);
+
+#ifdef HTTP_DEBUG
+    LOG() << "HTTP: req  " << strMethod << " " << strRequest;
+#endif
+
     string strPost = HTTPPost(strRequest, mapRequestHeaders);
     stream << strPost << std::flush;
 
@@ -384,6 +391,11 @@ Object CallRPC(const std::string & rpcuser, const std::string & rpcpasswd,
     map<string, string> mapHeaders;
     string strReply;
     int nStatus = readHTTP(stream, mapHeaders, strReply);
+
+#ifdef HTTP_DEBUG
+    LOG() << "HTTP: resp " << nStatus << " " << strReply;
+#endif
+
     if (nStatus == HTTP_UNAUTHORIZED)
         throw runtime_error("incorrect rpcuser or rpcpassword (authorization failed)");
     else if (nStatus >= 400 && nStatus != HTTP_BAD_REQUEST && nStatus != HTTP_NOT_FOUND && nStatus != HTTP_INTERNAL_SERVER_ERROR)
