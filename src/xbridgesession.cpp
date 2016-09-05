@@ -1283,6 +1283,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[txid];
     }
 
+    xtx->role = role;
+
     std::vector<rpc::Unspent> entries;
     if (!rpc::listUnspent(m_wallet.user, m_wallet.passwd,
                           m_wallet.ip, m_wallet.port, entries))
@@ -1522,21 +1524,21 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         }
 
         // sign
-//        std::vector<std::string> keys;
-//        keys.push_back(secretToString(xtx->mSecret));
+        std::vector<std::string> keys;
+        keys.push_back(secretToString(xtx->mSecret));
 
-//        bool complete = false;
-//        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
-//                                     m_wallet.ip, m_wallet.port,
-//                                     paytx, xtx->prevtxs, keys, complete))
-//        {
-//            // do not sign, cancel
-//            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-//            sendCancelTransaction(txid, crNotSigned);
-//            return true;
-//        }
+        bool complete = false;
+        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
+                                     m_wallet.ip, m_wallet.port,
+                                     paytx, xtx->prevtxs, keys, complete))
+        {
+            // do not sign, cancel
+            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
+            sendCancelTransaction(txid, crNotSigned);
+            return true;
+        }
 
-//        assert(!complete && "not fully signed");
+        assert(!complete && "not fully signed");
 
         std::string json;
         std::string paytxid;
@@ -1586,11 +1588,11 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         time_t local = time(0); // GetAdjustedTime();
         if (role == 'A')
         {
-            lockTime = local + 259200; // 72h in seconds
+            lockTime = local + 600; // 259200; // 72h in seconds
         }
         else if (role == 'B')
         {
-            lockTime = local + 259200/2; // 36h in seconds
+            lockTime = local + 300; // 259200/2; // 36h in seconds
         }
 
         std::string reftx;
@@ -1608,18 +1610,18 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         std::vector<std::string> keys;
         keys.push_back(secretToString(xtx->mSecret));
 
-//        bool complete = false;
-//        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
-//                                     m_wallet.ip, m_wallet.port,
-//                                     reftx, xtx->prevtxs, keys, complete))
-//        {
-//            // do not sign, cancel
-//            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-//            sendCancelTransaction(txid, crNotSigned);
-//            return true;
-//        }
+        bool complete = false;
+        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
+                                     m_wallet.ip, m_wallet.port,
+                                     reftx, xtx->prevtxs, keys, complete))
+        {
+            // do not sign, cancel
+            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
+            sendCancelTransaction(txid, crNotSigned);
+            return true;
+        }
 
-//        assert(!complete && "not fully signed");
+        assert(!complete && "not fully signed");
 
         std::string json;
         std::string reftxid;
@@ -1820,7 +1822,7 @@ bool XBridgeSession::processTransactionSignRefund(XBridgePacketPtr packet)
         return true;
     }
 
-    assert(!complete && "not fully signed");
+    assert(complete && "not fully signed");
 
     TXLOG() << "refund   signed " << reftx;
 
@@ -1990,39 +1992,28 @@ bool XBridgeSession::processTransactionCommitStage1(XBridgePacketPtr packet)
         xtx = XBridgeApp::m_transactions[txid];
     }
 
+    // refund tx
+    // TODO check signature etc.
     xtx->refTx = refTx;
 
-    TXLOG() << "refund unsigned stage 2 " << xtx->refTx;
-
-    // sign ref tx
-    std::vector<std::string> keys;
-    keys.push_back(secretToString(xtx->mSecret));
-
-    // sign refund tx
-    bool complete = false;
-    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port,
-                                 xtx->refTx, xtx->prevtxs, keys, complete))
-    {
-        // do not sign, cancel
-        sendCancelTransaction(txid, crNotSigned);
-        return true;
-    }
-
-    assert(complete && "not fully signed");
-
-    TXLOG() << "refund signed stage 2   " << xtx->refTx;
-
-    assert(!"not finished");
-    return true;
-
-    // TODO send binTx before payTx
-    if (!rpc::sendRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, xtx->payTx))
+    if (!rpc::sendRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, xtx->binTx))
     {
         // not commited....send cancel???
         // sendCancelTransaction(id, crNotAccepted);
-        LOG() << "transaction not commited " << util::to_str(txid) << " " << __FUNCTION__;
+        LOG() << "bin tx not commited " << util::to_str(txid) << " " << __FUNCTION__;
         return true;
     }
+
+    if (!rpc::sendRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, xtx->refTx))
+    {
+        // not commited....send cancel???
+        // sendCancelTransaction(id, crNotAccepted);
+        LOG() << "ref tx not commited " << util::to_str(txid) << " " << __FUNCTION__;
+        return true;
+    }
+
+    assert(!"not finished");
+    return true;
 
 //    uint256 walletTxId = (static_cast<CTransaction *>(&xtx->payTx))->GetHash();
 //    m_mapWalletTxToXBridgeTx[walletTxId] = txid;
@@ -3031,6 +3022,9 @@ bool XBridgeSession::makeNewPubKey(CPubKey & newPKey) const
         newKey.MakeNewKey();
         bool compressed;
         CSecret s = newKey.GetSecret(compressed);
+
+        assert(compressed && "must be compressed key");
+
         if (!rpc::importPrivKey(m_wallet.user, m_wallet.passwd,
                                 m_wallet.ip, m_wallet.port,
                                 secretToString(s), "",
@@ -3050,5 +3044,6 @@ std::string XBridgeSession::secretToString(CSecret & secret) const
 {
     std::vector<unsigned char> vch(secret.begin(), secret.end());
     vch.insert(vch.begin(), m_wallet.secretPrefix[0]);
+    vch.push_back(1);
     return EncodeBase58Check(vch);
 }
