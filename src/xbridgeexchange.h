@@ -75,7 +75,7 @@ public:
                                              const std::string & refTx);
     bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
                                                const std::string & from,
-                                               const uint256 & txhash);
+                                               const std::string & txid);
     bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx,
                                                 const std::string & from);
 
@@ -104,7 +104,7 @@ private:
     std::map<uint256, XBridgeTransactionPtr> m_transactions;
 
     mutable boost::mutex                     m_unconfirmedLock;
-    std::map<uint256, uint256>               m_unconfirmed;
+    std::map<std::string, uint256>           m_unconfirmed;
 
     // TODO use deque and limit size
     std::set<uint256>                        m_walletTransactions;

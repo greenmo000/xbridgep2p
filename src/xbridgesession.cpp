@@ -1643,9 +1643,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     } // refTx
 
-    assert(!"return");
-    return true;
-
     xtx->state = XBridgeTransactionDescr::trCreated;
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
@@ -2029,7 +2026,7 @@ bool XBridgeSession::processTransactionCommitStage1(XBridgePacketPtr packet)
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    // reply->append(xtx->payTxId.begin(), 32);
+    reply->append(xtx->binTxId);
 
     sendPacket(hubAddress, reply);
     return true;
@@ -2042,11 +2039,11 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
     // DEBUG_TRACE();
     DEBUG_TRACE_LOG(currencyToLog());
 
-    // size must be == 104 bytes
-    if (packet->size() != 104)
+    // size must be > 72 bytes
+    if (packet->size() <= 72)
     {
         ERR() << "invalid packet size for xbcTransactionCommited "
-              << "need 104 received " << packet->size() << " "
+              << "need bin 72 bytes, received " << packet->size() << " "
               << __FUNCTION__;
         return false;
     }
@@ -2065,7 +2062,7 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
 
     std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
     uint256 txid(packet->data()+40);
-    uint256 txhash(packet->data()+72);
+    std::string bintxid(reinterpret_cast<const char *>(packet->data()+72));
 
     XBridgeTransactionPtr tr = e.transaction(txid);
     boost::mutex::scoped_lock l(tr->m_lock);
@@ -2080,7 +2077,7 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
         return true;
     }
 
-    e.updateTransactionWhenCommitedReceived(tr, sfrom, txhash);
+    e.updateTransactionWhenCommitedReceived(tr, sfrom, bintxid);
 
     if (tr->state() == XBridgeTransaction::trSigned)
     {
@@ -2180,86 +2177,89 @@ bool XBridgeSession::processTransactionCommitStage2(XBridgePacketPtr packet)
 //*****************************************************************************
 bool XBridgeSession::processTransactionCommitedStage2(XBridgePacketPtr packet)
 {
-    // DEBUG_TRACE();
-    DEBUG_TRACE_LOG(currencyToLog());
-
-    // size must be == 104 bytes
-    if (packet->size() != 104)
-    {
-        ERR() << "invalid packet size for xbcTransactionCommited "
-              << "need 104 received " << packet->size() << " "
-              << __FUNCTION__;
-        return false;
-    }
-
-    // check is for me
-    if (!checkPacketAddress(packet))
-    {
-        return true;
-    }
-
-    XBridgeExchange & e = XBridgeExchange::instance();
-    if (!e.isEnabled())
-    {
-        return true;
-    }
-
-    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
-    uint256 txid(packet->data()+40);
-    uint256 txhash(packet->data()+72);
-
-    XBridgeTransactionPtr tr = e.transaction(txid);
-    boost::mutex::scoped_lock l(tr->m_lock);
-
-    tr->updateTimestamp();
-
-    std::string sfrom = tr->fromXAddr(from);
-    if (!sfrom.size())
-    {
-        ERR() << "invalid transaction address " << __FUNCTION__;
-        sendCancelTransaction(txid, crInvalidAddress);
-        return true;
-    }
-
-    if (e.updateTransactionWhenCommitedReceived(tr, sfrom, txhash))
-    {
-        if (tr->state() == XBridgeTransaction::trCommited)
-        {
-            // transaction commited, wait for confirm
-            LOG() << "commit transaction, wait for confirm. id <"
-                  << txid.GetHex() << ">" << std::endl
-                  << "    hash <" << tr->a_txHash().GetHex() << ">" << std::endl
-                  << "    hash <" << tr->b_txHash().GetHex() << ">";
-
-            // send confirm request to clients
-
-//            // TODO remove this log
-//            LOG() << "send xbcTransactionCommit to "
-//                  << util::base64_encode(std::string((char *)&tr->firstDestination()[0], 20));
-
-            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionConfirm));
-            reply->append(tr->a_destination());
-            reply->append(sessionAddr(), 20);
-            reply->append(txid.begin(), 32);
-            reply->append(tr->b_txHash().begin(), 32);
-
-            sendPacket(tr->a_destination(), reply);
-
-//            // TODO remove this log
-//            LOG() << "send xbcTransactionCommit to "
-//                  << util::base64_encode(std::string((char *)&tr->secondDestination()[0], 20));
-
-            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionConfirm));
-            reply2->append(tr->b_destination());
-            reply2->append(sessionAddr(), 20);
-            reply2->append(txid.begin(), 32);
-            reply2->append(tr->a_txHash().begin(), 32);
-
-            sendPacket(tr->b_destination(), reply2);
-        }
-    }
-
+    assert(!"not implemented");
     return true;
+
+//    // DEBUG_TRACE();
+//    DEBUG_TRACE_LOG(currencyToLog());
+
+//    // size must be == 104 bytes
+//    if (packet->size() != 104)
+//    {
+//        ERR() << "invalid packet size for xbcTransactionCommited "
+//              << "need 104 received " << packet->size() << " "
+//              << __FUNCTION__;
+//        return false;
+//    }
+
+//    // check is for me
+//    if (!checkPacketAddress(packet))
+//    {
+//        return true;
+//    }
+
+//    XBridgeExchange & e = XBridgeExchange::instance();
+//    if (!e.isEnabled())
+//    {
+//        return true;
+//    }
+
+//    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
+//    uint256 txid(packet->data()+40);
+//    uint256 txhash(packet->data()+72);
+
+//    XBridgeTransactionPtr tr = e.transaction(txid);
+//    boost::mutex::scoped_lock l(tr->m_lock);
+
+//    tr->updateTimestamp();
+
+//    std::string sfrom = tr->fromXAddr(from);
+//    if (!sfrom.size())
+//    {
+//        ERR() << "invalid transaction address " << __FUNCTION__;
+//        sendCancelTransaction(txid, crInvalidAddress);
+//        return true;
+//    }
+
+//    if (e.updateTransactionWhenCommitedReceived(tr, sfrom, txhash))
+//    {
+//        if (tr->state() == XBridgeTransaction::trCommited)
+//        {
+//            // transaction commited, wait for confirm
+//            LOG() << "commit transaction, wait for confirm. id <"
+//                  << txid.GetHex() << ">" << std::endl
+//                  << "    hash <" << tr->a_txHash().GetHex() << ">" << std::endl
+//                  << "    hash <" << tr->b_txHash().GetHex() << ">";
+
+//            // send confirm request to clients
+
+////            // TODO remove this log
+////            LOG() << "send xbcTransactionCommit to "
+////                  << util::base64_encode(std::string((char *)&tr->firstDestination()[0], 20));
+
+//            XBridgePacketPtr reply(new XBridgePacket(xbcTransactionConfirm));
+//            reply->append(tr->a_destination());
+//            reply->append(sessionAddr(), 20);
+//            reply->append(txid.begin(), 32);
+//            reply->append(tr->b_txHash().begin(), 32);
+
+//            sendPacket(tr->a_destination(), reply);
+
+////            // TODO remove this log
+////            LOG() << "send xbcTransactionCommit to "
+////                  << util::base64_encode(std::string((char *)&tr->secondDestination()[0], 20));
+
+//            XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionConfirm));
+//            reply2->append(tr->b_destination());
+//            reply2->append(sessionAddr(), 20);
+//            reply2->append(txid.begin(), 32);
+//            reply2->append(tr->a_txHash().begin(), 32);
+
+//            sendPacket(tr->b_destination(), reply2);
+//        }
+//    }
+
+//    return true;
 }
 
 //******************************************************************************

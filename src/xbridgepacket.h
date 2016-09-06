@@ -191,8 +191,7 @@ enum XBridgeCommand
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    uint256 pay tx hash
-    //    string  x private key for import for second client
+    //    string bail in tx id
     xbcTransactionCommitedStage1 = 15,
     //
     // xbcTransactionCommitStage2

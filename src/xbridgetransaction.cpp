@@ -272,9 +272,9 @@ void XBridgeTransaction::finish()
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::confirm(const uint256 & hash)
+bool XBridgeTransaction::confirm(const std::string & id)
 {
-    if (m_txhash1 == hash || m_txhash2 == hash)
+    if (m_bintxid1 == id || m_bintxid1 == id)
     {
         if (++m_confirmationCounter >= 2)
         {
@@ -364,9 +364,9 @@ std::string XBridgeTransaction::a_refTx() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint256 XBridgeTransaction::a_txHash() const
+std::string XBridgeTransaction::a_bintxid() const
 {
-    return m_txhash1;
+    return m_bintxid1;
 }
 
 //*****************************************************************************
@@ -441,9 +441,9 @@ std::string XBridgeTransaction::b_refTx() const
 
 //*****************************************************************************
 //*****************************************************************************
-uint256 XBridgeTransaction::b_txHash() const
+std::string XBridgeTransaction::b_bintxid() const
 {
-    return m_txhash2;
+    return m_bintxid2;
 }
 
 //*****************************************************************************
@@ -625,17 +625,17 @@ bool XBridgeTransaction::setRefTx(const std::string & addr,
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeTransaction::setTxHash(const std::string & addr,
-                                   const uint256 & hash)
+bool XBridgeTransaction::setBinTxId(const std::string & addr,
+                                    const std::string & id)
 {
     if (m_b.source() == addr)
     {
-        m_txhash1 = hash;
+        m_bintxid1 = id;
         return true;
     }
     else if (m_a.source() == addr)
     {
-        m_txhash2 = hash;
+        m_bintxid2 = id;
         return true;
     }
     return false;

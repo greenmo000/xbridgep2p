@@ -88,7 +88,7 @@ public:
     void drop();
     void finish();
 
-    bool confirm(const uint256 & hash);
+    bool confirm(const std::string & id);
 
     // hash of transaction
     uint256 hash1() const;
@@ -102,7 +102,7 @@ public:
     std::string                a_prevtxs() const;
     std::string                a_payTx() const;
     std::string                a_refTx() const;
-    uint256                    a_txHash() const;
+    std::string                a_bintxid() const;
 
     // CPubKey                    a_x() const;
     CPubKey                    a_pk1() const;
@@ -115,7 +115,7 @@ public:
     std::string                b_prevtxs() const;
     std::string                b_payTx() const;
     std::string                b_refTx() const;
-    uint256                    b_txHash() const;
+    std::string                b_bintxid() const;
 
     CPubKey                    b_x() const;
     CPubKey                    b_pk1() const;
@@ -136,8 +136,8 @@ public:
     bool                       setRefTx(const std::string & addr,
                                         const std::string & prevtxs,
                                         const std::string & refTx);
-    bool                       setTxHash(const std::string & addr,
-                                         const uint256 & hash);
+    bool                       setBinTxId(const std::string & addr,
+                                          const std::string & id);
 
 public:
     boost::mutex               m_lock;
@@ -168,8 +168,8 @@ private:
     std::string                m_rawpaytx2;
     std::string                m_rawrevtx2;
 
-    uint256                    m_txhash1;
-    uint256                    m_txhash2;
+    std::string                m_bintxid1;
+    std::string                m_bintxid2;
 
     XBridgeTransactionMember   m_a;
     XBridgeTransactionMember   m_b;

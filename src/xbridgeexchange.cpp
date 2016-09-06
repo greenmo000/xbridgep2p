@@ -436,9 +436,9 @@ bool XBridgeExchange::updateTransactionWhenSignedReceived(XBridgeTransactionPtr 
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
                                                             const std::string & from,
-                                                            const uint256 & txhash)
+                                                            const std::string & txid)
 {
-    if (!tx->setTxHash(from, txhash))
+    if (!tx->setBinTxId(from, txid))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
@@ -447,7 +447,7 @@ bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPt
 
     {
         boost::mutex::scoped_lock l (m_unconfirmedLock);
-        m_unconfirmed[txhash] = tx->id();
+        m_unconfirmed[txid] = tx->id();
     }
 
     // update transaction state
@@ -477,35 +477,38 @@ bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionP
 //*****************************************************************************
 bool XBridgeExchange::updateTransaction(const uint256 & hash)
 {
-    // DEBUG_TRACE();
+    assert(!"not implemented");
+    return true;
 
-    // store
-    m_walletTransactions.insert(hash);
+//    // DEBUG_TRACE();
 
-    // check unconfirmed
-    boost::mutex::scoped_lock l (m_unconfirmedLock);
-    if (m_unconfirmed.size())
-    {
-        for (std::map<uint256, uint256>::iterator i = m_unconfirmed.begin(); i != m_unconfirmed.end();)
-        {
-            if (m_walletTransactions.count(i->first))
-            {
-                LOG() << "confirm transaction, id <" << i->second.GetHex()
-                      << "> hash <" << i->first.GetHex() << ">";
+//    // store
+//    m_walletTransactions.insert(hash);
 
-                XBridgeTransactionPtr tr = transaction(i->second);
-                boost::mutex::scoped_lock l(tr->m_lock);
+//    // check unconfirmed
+//    boost::mutex::scoped_lock l (m_unconfirmedLock);
+//    if (m_unconfirmed.size())
+//    {
+//        for (std::map<uint256, uint256>::iterator i = m_unconfirmed.begin(); i != m_unconfirmed.end();)
+//        {
+//            if (m_walletTransactions.count(i->first))
+//            {
+//                LOG() << "confirm transaction, id <" << i->second.GetHex()
+//                      << "> hash <" << i->first.GetHex() << ">";
 
-                tr->confirm(i->first);
+//                XBridgeTransactionPtr tr = transaction(i->second);
+//                boost::mutex::scoped_lock l(tr->m_lock);
 
-                i = m_unconfirmed.erase(i);
-            }
-            else
-            {
-                ++i;
-            }
-        }
-    }
+//                tr->confirm(i->first);
+
+//                i = m_unconfirmed.erase(i);
+//            }
+//            else
+//            {
+//                ++i;
+//            }
+//        }
+//    }
 
 
 //    uint256 txid;
