@@ -52,7 +52,7 @@ XBridge::XBridge()
                 wp.addrPrefix[0]               = s.get<int>(*i + ".AddressPrefix", 0);
                 wp.scriptPrefix[0]             = s.get<int>(*i + ".ScriptPrefix", 0);
                 wp.secretPrefix[0]             = s.get<int>(*i + ".SecretPrefix", 0);
-                wp.COIN                        = s.get<uint64_t>(*i + ".COIN", 0);
+                // wp.COIN                        = s.get<uint64_t>(*i + ".COIN", 0);
                 wp.minAmount                   = s.get<uint64_t>(*i + ".MinimumAmount", 0);
                 wp.dustAmount                  = s.get<uint64_t>(*i + ".DustAmount", 0);
                 wp.method                      = s.get<std::string>(*i + ".CreateTxMethod");
@@ -60,9 +60,11 @@ XBridge::XBridge()
                 wp.isImportWithNoScanSupported = s.get<bool>(*i + ".ImportWithNoScanSupported", false);
 
                 if (wp.ip.empty() || wp.port.empty() ||
-                    wp.user.empty() || wp.passwd.empty() ||
+                    wp.user.empty() || wp.passwd.empty()
+                    // ||
                     // wp.prefix[0] == 0 || wp.sprefix[0] == 0 || // can be 0
-                    wp.COIN == 0)
+                    // wp.COIN == 0
+                        )
                 {
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
@@ -70,7 +72,7 @@ XBridge::XBridge()
                 else
                 {
                     LOG() << "read wallet " << *i << " [" << wp.title << "] " << wp.ip
-                          << ":" << wp.port << " COIN=" << wp.COIN;
+                          << ":" << wp.port; // << " COIN=" << wp.COIN;
                 }
 
                 XBridgeSessionPtr session;

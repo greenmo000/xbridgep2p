@@ -29,7 +29,7 @@ XBridgeSessionEthereum::XBridgeSessionEthereum()
 XBridgeSessionEthereum::XBridgeSessionEthereum(const WalletParam & wallet)
     : XBridgeSession(wallet)
 {
-    m_wallet.COIN = 1000000000000000000;
+    // m_wallet.COIN = 1000000000000000000;
 
     init();
 }
@@ -108,86 +108,89 @@ void XBridgeSessionEthereum::init()
 //******************************************************************************
 bool XBridgeSessionEthereum::processTransactionCreate(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE_LOG(currencyToLog());
+    assert(!"not implemented");
+    return true;
 
-    if (packet->size() != 124)
-    {
-        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
-        return false;
-    }
+//    DEBUG_TRACE_LOG(currencyToLog());
 
-    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
-    std::vector<unsigned char> hubAddress(packet->data()+20, packet->data()+40);
+//    if (packet->size() != 124)
+//    {
+//        ERR() << "incorrect packet size for xbcTransactionCreate" << __FUNCTION__;
+//        return false;
+//    }
 
-    // transaction id
-    uint256 id   (packet->data()+40);
+//    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
+//    std::vector<unsigned char> hubAddress(packet->data()+20, packet->data()+40);
 
-    // destination address
-    std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
+//    // transaction id
+//    uint256 id   (packet->data()+40);
 
-    // tax
-    std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
-    const uint32_t tax = *reinterpret_cast<uint32_t*>(packet->data()+120);
+//    // destination address
+//    std::vector<unsigned char> destAddress(packet->data()+72, packet->data()+92);
 
-    XBridgeTransactionDescrPtr xtx;
-    {
-        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
+//    // tax
+//    std::vector<unsigned char> taxAddress(packet->data()+100, packet->data()+120);
+//    const uint32_t tax = *reinterpret_cast<uint32_t*>(packet->data()+120);
 
-        if (!XBridgeApp::m_transactions.count(id))
-        {
-            // wtf? unknown transaction
-            // TODO log
-            return false;
-        }
+//    XBridgeTransactionDescrPtr xtx;
+//    {
+//        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
 
-        xtx = XBridgeApp::m_transactions[id];
-    }
+//        if (!XBridgeApp::m_transactions.count(id))
+//        {
+//            // wtf? unknown transaction
+//            // TODO log
+//            return false;
+//        }
 
-    // lock time
-    xtx->lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
-    xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
+//        xtx = XBridgeApp::m_transactions[id];
+//    }
 
-    uint64_t amount = 0;
-    if (!rpc::eth_getBalance(m_wallet.ip, m_wallet.port, m_wallet.address, amount))
-    {
-        LOG() << "rpc::eth_getBalance failed" << __FUNCTION__;
-        return false;
-    }
+//    // lock time
+//    xtx->lockTimeTx1 = *reinterpret_cast<boost::uint32_t *>(packet->data()+92);
+//    xtx->lockTimeTx2 = *reinterpret_cast<boost::uint32_t *>(packet->data()+96);
 
-//    uint64_t gasPrice = 0;
-//    if (!rpc::eth_gasPrice(m_address, m_port, gasPrice))
+//    uint64_t amount = 0;
+//    if (!rpc::eth_getBalance(m_wallet.ip, m_wallet.port, m_wallet.address, amount))
 //    {
 //        LOG() << "rpc::eth_getBalance failed" << __FUNCTION__;
 //        return false;
 //    }
 
-    boost::uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+m_fee;
-    boost::uint64_t taxAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
+////    uint64_t gasPrice = 0;
+////    if (!rpc::eth_gasPrice(m_address, m_port, gasPrice))
+////    {
+////        LOG() << "rpc::eth_getBalance failed" << __FUNCTION__;
+////        return false;
+////    }
 
-    boost::uint64_t fee = 0;
-    boost::uint64_t inAmount  = 0;
+//    boost::uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN)+m_fee;
+//    boost::uint64_t taxAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount*tax/100000)/XBridgeTransactionDescr::COIN);
 
-    // check amount
-    if (amount < outAmount)
-    {
-        // no money, cancel transaction
-        sendCancelTransaction(id, crNoMoney);
-        return false;
-    }
+//    boost::uint64_t fee = 0;
+//    boost::uint64_t inAmount  = 0;
 
-    xtx->state = XBridgeTransactionDescr::trCreated;
-    uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);
+//    // check amount
+//    if (amount < outAmount)
+//    {
+//        // no money, cancel transaction
+//        sendCancelTransaction(id, crNoMoney);
+//        return false;
+//    }
 
-    // send reply
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCreated));
-    reply->append(hubAddress);
-    reply->append(thisAddress);
-    reply->append(id.begin(), 32);
-    reply->append("ETHEREUM_TRANSACTION");
-    reply->append("ETHEREUM_TRANSACTION");
+//    xtx->state = XBridgeTransactionDescr::trCreated;
+//    uiConnector.NotifyXBridgeTransactionStateChanged(id, xtx->state);
 
-    sendPacket(hubAddress, reply);
-    return true;
+//    // send reply
+//    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCreated));
+//    reply->append(hubAddress);
+//    reply->append(thisAddress);
+//    reply->append(id.begin(), 32);
+//    reply->append("ETHEREUM_TRANSACTION");
+//    reply->append("ETHEREUM_TRANSACTION");
+
+//    sendPacket(hubAddress, reply);
+//    return true;
 }
 
 //******************************************************************************
@@ -249,61 +252,64 @@ bool XBridgeSessionEthereum::processTransactionSignRefund(XBridgePacketPtr packe
 //******************************************************************************
 bool XBridgeSessionEthereum::processTransactionCommitStage1(XBridgePacketPtr packet)
 {
-    DEBUG_TRACE_LOG(currencyToLog());
-
-    if (packet->size() < 72)
-    {
-        ERR() << "incorrect packet size for xbcTransactionCommit" << __FUNCTION__;
-        return false;
-    }
-
-    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
-    std::vector<unsigned char> hubAddress(packet->data()+20, packet->data()+40);
-
-    uint256 txid(packet->data()+40);
-
-    // std::string rawtx(reinterpret_cast<const char *>(packet->data()+72));
-
-    // send pay transaction to network
-    XBridgeTransactionDescrPtr xtx;
-    {
-        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
-
-        if (!XBridgeApp::m_transactions.count(txid))
-        {
-            // wtf? unknown transaction
-            // TODO log
-            return false;
-        }
-
-        xtx = XBridgeApp::m_transactions[txid];
-    }
-
-    std::string from = "0x" + std::string(reinterpret_cast<char *>(&xtx->from[0]), 20);
-    std::string to   = "0x" + std::string(reinterpret_cast<char *>(&xtx->to[0]), 20);
-
-    uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
-    if (!rpc::eth_sendTransaction(m_wallet.ip, m_wallet.port, from, to, outAmount, m_fee))
-    {
-        // not commited....send cancel???
-        // sendCancelTransaction(id);
-        return false;
-    }
-
-    xtx->state = XBridgeTransactionDescr::trCommited;
-    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
-
-    assert(!"not finished");
-
-    // send commit apply to hub
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommitedStage1));
-    reply->append(hubAddress);
-    reply->append(thisAddress);
-    reply->append(txid.begin(), 32);
-    // reply->append(xtx->payTxId.begin(), 32);
-
-    sendPacket(hubAddress, reply);
+    assert(!"not implemented");
     return true;
+
+//    DEBUG_TRACE_LOG(currencyToLog());
+
+//    if (packet->size() < 72)
+//    {
+//        ERR() << "incorrect packet size for xbcTransactionCommit" << __FUNCTION__;
+//        return false;
+//    }
+
+//    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
+//    std::vector<unsigned char> hubAddress(packet->data()+20, packet->data()+40);
+
+//    uint256 txid(packet->data()+40);
+
+//    // std::string rawtx(reinterpret_cast<const char *>(packet->data()+72));
+
+//    // send pay transaction to network
+//    XBridgeTransactionDescrPtr xtx;
+//    {
+//        boost::mutex::scoped_lock l(XBridgeApp::m_txLocker);
+
+//        if (!XBridgeApp::m_transactions.count(txid))
+//        {
+//            // wtf? unknown transaction
+//            // TODO log
+//            return false;
+//        }
+
+//        xtx = XBridgeApp::m_transactions[txid];
+//    }
+
+//    std::string from = "0x" + std::string(reinterpret_cast<char *>(&xtx->from[0]), 20);
+//    std::string to   = "0x" + std::string(reinterpret_cast<char *>(&xtx->to[0]), 20);
+
+//    uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
+//    if (!rpc::eth_sendTransaction(m_wallet.ip, m_wallet.port, from, to, outAmount, m_fee))
+//    {
+//        // not commited....send cancel???
+//        // sendCancelTransaction(id);
+//        return false;
+//    }
+
+//    xtx->state = XBridgeTransactionDescr::trCommited;
+//    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
+
+//    assert(!"not finished");
+
+//    // send commit apply to hub
+//    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommitedStage1));
+//    reply->append(hubAddress);
+//    reply->append(thisAddress);
+//    reply->append(txid.begin(), 32);
+//    // reply->append(xtx->payTxId.begin(), 32);
+
+//    sendPacket(hubAddress, reply);
+//    return true;
 }
 
 //*****************************************************************************

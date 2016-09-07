@@ -22,6 +22,9 @@
 #include "json/json_spirit_writer_template.h"
 #include "json/json_spirit_utils.h"
 
+#include <mpir.h>
+#include <mpirxx.h>
+
 using namespace json_spirit;
 
 //******************************************************************************
@@ -673,7 +676,7 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
 
     // source
     uint32_t offset = 52;
-    std:: string saddr(reinterpret_cast<const char *>(packet->data()+offset));
+    std::string saddr(reinterpret_cast<const char *>(packet->data()+offset));
     offset += saddr.size()+1;
     std::string scurrency((const char *)packet->data()+offset);
     offset += 8;
@@ -1257,8 +1260,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     std::string taxAddress(reinterpret_cast<const char *>(packet->data()+offset));
     offset += taxAddress.size()+1;
 
-    const uint32_t tp = *reinterpret_cast<uint32_t *>(packet->data()+offset);
-    double taxPercent = static_cast<double>(tp)/100000;
+    const uint32_t taxPercent = *reinterpret_cast<uint32_t *>(packet->data()+offset);
     offset += sizeof(uint32_t);
 
     const char role = static_cast<char>((*reinterpret_cast<uint16_t *>(packet->data()+offset)));
@@ -1294,19 +1296,30 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         return true;
     }
 
-    uint64_t outAmount = m_wallet.COIN*(static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN);
-    uint64_t taxToSend = outAmount*taxPercent;
+    mpf_class outAmount(xtx->fromAmount);
+    outAmount /= XBridgeTransactionDescr::COIN;
+    mpf_class taxToSend = outAmount;
+    taxToSend *= taxPercent;
+    taxToSend /= 100000;
 
-    uint64_t fee1      = 0;
-    uint64_t fee2      = m_wallet.COIN*minTxFee(2, 1)/XBridgeTransactionDescr::COIN;
-    uint64_t inAmount  = 0;
+    // double outAmount = static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN;
+    // double taxToSend = outAmount*(taxPercent/100000);
+
+    mpf_class fee1(0);
+    mpf_class fee2(minTxFee(2, 1));
+    fee2 /= XBridgeTransactionDescr::COIN;
+    mpf_class inAmount(0);
+
+    // double fee1      = 0;
+    // double fee2      = static_cast<double>(minTxFee(2, 1))/XBridgeTransactionDescr::COIN;
+    // double inAmount  = 0;
 
     std::vector<rpc::Unspent> usedInTx;
     for (const rpc::Unspent & entry : entries)
     {
         usedInTx.push_back(entry);
-        inAmount += entry.amount*m_wallet.COIN;
-        fee1 = m_wallet.COIN * minTxFee(usedInTx.size(), taxToSend > 0 ? 4 : 3) / XBridgeTransactionDescr::COIN;
+        inAmount += entry.amount;
+        fee1 = static_cast<double>(minTxFee(usedInTx.size(), taxToSend > 0 ? 4 : 3)) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee1;
 
@@ -1381,18 +1394,18 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         // outputs
 
         // amount
-        outputs.push_back(std::make_pair(xtx->multisig, (double)outAmount/m_wallet.COIN));
+        outputs.push_back(std::make_pair(xtx->multisig, outAmount.get_d()));
 
         // fee2 to x
         CBitcoinAddress baddr;
         baddr.Set(x.GetID(), m_wallet.addrPrefix[0]);
 
-        outputs.push_back(std::make_pair(baddr.ToString(), (double)fee2/m_wallet.COIN));
+        outputs.push_back(std::make_pair(baddr.ToString(), fee2.get_d()));
 
         // tax
-        if (taxToSend)
+        if (taxToSend > 0)
         {
-            outputs.push_back(std::make_pair(taxAddress, (double)taxToSend/m_wallet.COIN));
+            outputs.push_back(std::make_pair(taxAddress, taxToSend.get_d()));
         }
 
         // rest
@@ -1409,8 +1422,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
                 return true;
             }
 
-            double rest = inAmount-outAmount-fee1-fee2-taxToSend;
-            outputs.push_back(std::make_pair(addr, rest/m_wallet.COIN));
+            mpf_class rest = inAmount-outAmount-fee1-fee2-taxToSend;
+            outputs.push_back(std::make_pair(addr, rest.get_d()));
         }
 
         std::string bintx;
@@ -1511,7 +1524,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         inputs.push_back(std::make_pair(xtx->binTxId, 1));
 
         // outputs
-        outputs.push_back(std::make_pair(destAddress, double(outAmount)/m_wallet.COIN));
+        outputs.push_back(std::make_pair(destAddress, outAmount.get_d()));
 
         std::string paytx;
         if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
@@ -1579,9 +1592,12 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
                 return true;
             }
 
-            uint64_t fee3 = m_wallet.COIN * minTxFee(1, 1) / XBridgeTransactionDescr::COIN;
+            mpf_class fee3(minTxFee(1, 1));
+            fee3 /= XBridgeTransactionDescr::COIN;
 
-            outputs.push_back(std::make_pair(addr, double(outAmount-fee3)/m_wallet.COIN));
+            mpf_class amount = outAmount;
+            amount -= fee3;
+            outputs.push_back(std::make_pair(addr, amount.get_d()));
         }
 
         // lock time

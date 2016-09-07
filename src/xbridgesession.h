@@ -32,7 +32,7 @@ public:
 
     const unsigned char * sessionAddr() const { return m_myid; }
     std::string currency() const  { return m_wallet.currency; }
-    double      minAmount() const { return (double)m_wallet.minAmount / m_wallet.COIN; }
+    double      minAmount() const { return (double)m_wallet.minAmount / 100000; }
 
     void start(XBridge::SocketPtr socket);
 
