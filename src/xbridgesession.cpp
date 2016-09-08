@@ -4,6 +4,7 @@
 // #include <boost/asio.hpp>
 // #include <boost/asio/buffer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "xbridgesession.h"
 #include "xbridgeapp.h"
@@ -1230,6 +1231,29 @@ boost::uint64_t minTxFee(const uint32_t inputCount, const uint32_t outputCount)
 
 //******************************************************************************
 //******************************************************************************
+std::string round_x(const long double val, uint32_t prec)
+{
+    long double value = val;
+    value *= pow(10, prec);
+
+    value += .5;
+    value = std::floor(value);
+
+    std::string svalue = boost::lexical_cast<std::string>(value); // std::to_string(value);
+
+    if (prec >= svalue.length())
+    {
+        svalue.insert(0, prec-svalue.length()+1, '0');
+    }
+    svalue.insert(svalue.length()-prec, 1, '.');
+
+//    value = std::stold(svalue);
+//    return value;
+    return svalue;
+}
+
+//******************************************************************************
+//******************************************************************************
 bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
@@ -1293,19 +1317,19 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         return true;
     }
 
-    long double outAmount = static_cast<long double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN;
-    long double taxToSend = outAmount*(taxPercent/100000);
+    double outAmount = static_cast<double>(xtx->fromAmount)/XBridgeTransactionDescr::COIN;
+    double taxToSend = outAmount*(taxPercent/100000);
 
-    long double fee1      = 0;
-    long double fee2      = static_cast<long double>(minTxFee(2, 1))/XBridgeTransactionDescr::COIN;
-    long double inAmount  = 0;
+    double fee1      = 0;
+    double fee2      = static_cast<double>(minTxFee(2, 1))/XBridgeTransactionDescr::COIN;
+    double inAmount  = 0;
 
     std::vector<rpc::Unspent> usedInTx;
     for (const rpc::Unspent & entry : entries)
     {
         usedInTx.push_back(entry);
         inAmount += entry.amount;
-        fee1 = static_cast<long double>(minTxFee(usedInTx.size(), taxToSend > 0 ? 4 : 3)) / XBridgeTransactionDescr::COIN;
+        fee1 = static_cast<double>(minTxFee(usedInTx.size(), taxToSend > 0 ? 4 : 3)) / XBridgeTransactionDescr::COIN;
 
         LOG() << "USED FOR TX <" << entry.txId << "> amount " << entry.amount << " " << entry.vout << " fee " << fee1;
 
@@ -1369,7 +1393,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     std::string binjson;
     {
         std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, double> > outputs;
+        std::vector<std::pair<std::string, std::string> > outputs;
 
         // inputs
         for (const rpc::Unspent & entry : usedInTx)
@@ -1380,18 +1404,18 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         // outputs
 
         // amount
-        outputs.push_back(std::make_pair(xtx->multisig, outAmount));
+        outputs.push_back(std::make_pair(xtx->multisig, round_x(outAmount, 6)));
 
         // fee2 to x
         CBitcoinAddress baddr;
         baddr.Set(x.GetID(), m_wallet.addrPrefix[0]);
 
-        outputs.push_back(std::make_pair(baddr.ToString(), fee2));
+        outputs.push_back(std::make_pair(baddr.ToString(), round_x(fee2, 6)));
 
         // tax
         if (taxToSend)
         {
-            outputs.push_back(std::make_pair(taxAddress, taxToSend));
+            outputs.push_back(std::make_pair(taxAddress, round_x(taxToSend, 6)));
         }
 
         // rest
@@ -1408,8 +1432,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
                 return true;
             }
 
-            long double rest = inAmount-outAmount-fee1-fee2-taxToSend;
-            outputs.push_back(std::make_pair(addr, rest));
+            double rest = inAmount-outAmount-fee1-fee2-taxToSend;
+            outputs.push_back(std::make_pair(addr, round_x(rest, 6)));
         }
 
         std::string bintx;
@@ -1503,14 +1527,14 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // payTx
     {
         std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, double> > outputs;
+        std::vector<std::pair<std::string, std::string> > outputs;
 
         // inputs from binTx
         inputs.push_back(std::make_pair(xtx->binTxId, 0));
         inputs.push_back(std::make_pair(xtx->binTxId, 1));
 
         // outputs
-        outputs.push_back(std::make_pair(destAddress, outAmount));
+        outputs.push_back(std::make_pair(destAddress, round_x(outAmount, 6)));
 
         std::string paytx;
         if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
@@ -1562,7 +1586,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // refTx
     {
         std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, double> > outputs;
+        std::vector<std::pair<std::string, std::string> > outputs;
 
         // inputs from binTx
         inputs.push_back(std::make_pair(xtx->binTxId, 0));
@@ -1578,9 +1602,9 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
                 return true;
             }
 
-            long double fee3 = static_cast<double>(minTxFee(1, 1)) / XBridgeTransactionDescr::COIN;
+            double fee3 = static_cast<double>(minTxFee(1, 1)) / XBridgeTransactionDescr::COIN;
 
-            outputs.push_back(std::make_pair(addr, outAmount-fee3));
+            outputs.push_back(std::make_pair(addr, round_x(outAmount-fee3, 6)));
         }
 
         // lock time

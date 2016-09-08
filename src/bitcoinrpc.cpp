@@ -636,7 +636,7 @@ bool createRawTransaction(const std::string & rpcuser,
                           const std::string & rpcip,
                           const std::string & rpcport,
                           const std::vector<std::pair<string, int> > & inputs,
-                          const std::vector<std::pair<std::string, double> > & destinations,
+                          const std::vector<std::pair<std::string, std::string> > & outputs,
                           const uint32_t lockTime,
                           std::string & tx)
 {
@@ -657,7 +657,7 @@ bool createRawTransaction(const std::string & rpcuser,
 
         // outputs
         Object o;
-        for (const std::pair<std::string, double> & dest : destinations)
+        for (const std::pair<std::string, std::string> & dest : outputs)
         {
             o.push_back(Pair(dest.first, dest.second));
         }
