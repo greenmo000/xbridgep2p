@@ -273,7 +273,7 @@ public:
     bool operator()(const CNoDestination &no) const;
 };
 
-bool fTestNet = false;
+#define fTestNet false
 
 class CBitcoinAddress : public CBase58Data
 {
@@ -292,10 +292,11 @@ public:
         return true;
     }
 
-//    bool Set(const CScriptID &id) {
-//        SetData(fTestNet ? SCRIPT_ADDRESS_TEST : SCRIPT_ADDRESS, &id, 20);
-//        return true;
-//    }
+    bool Set(const CScriptID &id, const char prefix) {
+        // SetData(fTestNet ? SCRIPT_ADDRESS_TEST : SCRIPT_ADDRESS, &id, 20);
+        SetData(prefix, &id, 20);
+        return true;
+    }
 
 //    bool Set(const CTxDestination &dest)
 //    {
@@ -422,6 +423,7 @@ class CBitcoinSecret : public CBase58Data
 public:
     void SetSecret(const CSecret& vchSecret, bool fCompressed)
     {
+        assert(false);
         assert(vchSecret.size() == 32);
         SetData(128 + (fTestNet ? CBitcoinAddress::PUBKEY_ADDRESS_TEST : CBitcoinAddress::PUBKEY_ADDRESS), &vchSecret[0], vchSecret.size());
         if (fCompressed)
@@ -442,6 +444,7 @@ public:
         bool fExpectTestNet = false;
         switch(nVersion)
         {
+            assert(false);
             case (128 + CBitcoinAddress::PUBKEY_ADDRESS):
                 break;
 

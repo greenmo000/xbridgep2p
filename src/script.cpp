@@ -1468,7 +1468,7 @@ private:
     const CKeyStore *keystore;
 public:
     CKeyStoreIsMineVisitor(const CKeyStore *keystoreIn) : keystore(keystoreIn) { }
-    bool operator()(const CNoDestination &dest) const { return false; }
+    bool operator()(const CNoDestination &/*dest*/) const { return false; }
     bool operator()(const CKeyID &keyID) const { return keystore->HaveKey(keyID); }
     bool operator()(const CScriptID &scriptID) const { return keystore->HaveCScript(scriptID); }
 };
@@ -1855,7 +1855,7 @@ private:
 public:
     CScriptVisitor(CScript *scriptin) { script = scriptin; }
 
-    bool operator()(const CNoDestination &dest) const {
+    bool operator()(const CNoDestination &/*dest*/) const {
         script->clear();
         std::cerr << "Chose no destination" << std::endl;
         return false;

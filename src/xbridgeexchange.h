@@ -6,6 +6,7 @@
 
 #include "util/uint256.h"
 #include "xbridgetransaction.h"
+#include "xbridgewallet.h"
 
 #include <string>
 #include <set>
@@ -18,18 +19,6 @@
 //*****************************************************************************
 //*****************************************************************************
 typedef std::pair<std::string, std::string> StringPair;
-
-//*****************************************************************************
-//*****************************************************************************
-struct WalletParam
-{
-    std::string                title;
-    std::vector<unsigned char> address;
-    std::string                ip;
-    unsigned int               port;
-    std::string                user;
-    std::string                passwd;
-};
 
 //*****************************************************************************
 //*****************************************************************************
@@ -48,39 +37,52 @@ public:
     bool isEnabled();
     bool haveConnectedWallet(const std::string & walletName);
 
-    std::vector<unsigned char> walletAddress(const std::string & walletName);
+    // std::vector<unsigned char> walletAddress(const std::string & walletName);
 
-    bool createTransaction(const uint256 & id,
-                           const std::vector<unsigned char> & sourceAddr,
+    bool createTransaction(const uint256     & id,
+                           const std::string & sourceAddr,
                            const std::string & sourceCurrency,
-                           const boost::uint64_t & sourceAmount,
-                           const std::vector<unsigned char> & destAddr,
+                           const uint64_t    & sourceAmount,
+                           const std::string & destAddr,
                            const std::string & destCurrency,
-                           const boost::uint64_t & destAmount,
-                           uint256 & transactionId);
+                           const uint64_t    & destAmount,
+                           uint256           & pendingId);
+
+    bool acceptTransaction(const uint256     & id,
+                           const std::string & sourceAddr,
+                           const std::string & sourceCurrency,
+                           const uint64_t    & sourceAmount,
+                           const std::string & destAddr,
+                           const std::string & destCurrency,
+                           const uint64_t    & destAmount,
+                           uint256           & transactionId);
+
     bool deletePendingTransactions(const uint256 & id);
     bool deleteTransaction(const uint256 & id);
 
     bool updateTransactionWhenHoldApplyReceived(XBridgeTransactionPtr tx,
-                                                const std::vector<unsigned char> & from);
+                                                const std::string & from);
     bool updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
-                                                  const std::vector<unsigned char> & from);
+                                                  const std::string & from,
+                                                  const CPubKey & x,
+                                                  const CPubKey & pk);
     bool updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
-                                              const std::vector<unsigned char> & from,
+                                              const std::string & from,
                                               const std::string & rawpaytx,
                                               const std::string & rawrevtx);
     bool updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
-                                             const std::vector<unsigned char> & from,
-                                             const std::string & rawrevtx);
+                                             const std::string & from,
+                                             const std::string & refTx);
     bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
-                                               const std::vector<unsigned char> & from,
-                                               const uint256 & txhash);
+                                               const std::string & from,
+                                               const std::string & txid);
     bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx,
-                                                const std::vector<unsigned char> & from);
+                                                const std::string & from);
 
     bool updateTransaction(const uint256 & hash);
 
     const XBridgeTransactionPtr transaction(const uint256 & hash);
+    const XBridgeTransactionPtr pendingTransaction(const uint256 & hash);
     std::list<XBridgeTransactionPtr> pendingTransactions() const;
     std::list<XBridgeTransactionPtr> transactions() const;
     std::list<XBridgeTransactionPtr> finishedTransactions() const;
@@ -102,7 +104,7 @@ private:
     std::map<uint256, XBridgeTransactionPtr> m_transactions;
 
     mutable boost::mutex                     m_unconfirmedLock;
-    std::map<uint256, uint256>               m_unconfirmed;
+    std::map<std::string, uint256>           m_unconfirmed;
 
     // TODO use deque and limit size
     std::set<uint256>                        m_walletTransactions;

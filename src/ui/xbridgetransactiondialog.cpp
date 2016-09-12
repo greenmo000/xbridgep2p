@@ -25,7 +25,7 @@ const QString testTo("BWU9J85uL4242RnXXhZfRdA8p9s=");
 // const QString testFromCurrency("XC");
 // const QString testToCurrency("SWIFT");
 const QString testFromAmount("0.001");
-const QString testToAmount("0.002");
+const QString testToAmount("0.0001");
 
 //******************************************************************************
 //******************************************************************************
@@ -34,6 +34,7 @@ XBridgeTransactionDialog::XBridgeTransactionDialog(XBridgeTransactionsModel & mo
     : QDialog(parent)
     // , m_walletModel(0)
     , m_model(model)
+    , m_addressBook(this)
 {
     setupUI();
 
@@ -66,9 +67,12 @@ XBridgeTransactionDialog::~XBridgeTransactionDialog()
 
 //******************************************************************************
 //******************************************************************************
-void XBridgeTransactionDialog::setPendingId(const uint256 & id)
+void XBridgeTransactionDialog::setPendingId(const uint256 & id,
+                                            const std::vector<unsigned char> & hubAddress)
 {
-    m_pendingId = id;
+    m_pendingId  = id;
+    m_hubAddress = hubAddress;
+
     bool isPending = m_pendingId != uint256();
 
     m_amountFrom->setEnabled(!isPending);
@@ -255,11 +259,20 @@ void XBridgeTransactionDialog::onWalletListReceivedHandler(const QStringList & w
 //******************************************************************************
 void XBridgeTransactionDialog::onSendTransaction()
 {
-    std::string f = util::base64_decode(m_addressFrom->text().toStdString());
-    std::vector<unsigned char> from(f.begin(), f.end());
-    std::string t = util::base64_decode(m_addressTo->text().toStdString().c_str());
-    std::vector<unsigned char> to(t.begin(), t.end());
-    if (from.size() != 20 || to.size() != 20)
+//    std::string f = util::base64_decode(m_addressFrom->text().toStdString());
+//    std::vector<unsigned char> from(f.begin(), f.end());
+//    std::string t = util::base64_decode(m_addressTo->text().toStdString().c_str());
+//    std::vector<unsigned char> to(t.begin(), t.end());
+//    if (from.size() != 20 || to.size() != 20)
+//    {
+//        QMessageBox::warning(this, trUtf8("check parameters"), trUtf8("Invalid address"));
+//        return;
+//    }
+
+    std::string from = m_addressFrom->text().toStdString();
+    std::string to   = m_addressTo->text().toStdString().c_str();
+    if ((from.size() != 33 && from.size() != 34) ||
+        (to.size() != 33 && to.size() != 34))
     {
         QMessageBox::warning(this, trUtf8("check parameters"), trUtf8("Invalid address"));
         return;
@@ -275,7 +288,7 @@ void XBridgeTransactionDialog::onSendTransaction()
 
     double fromAmount      = m_amountFrom->text().toDouble();
     double toAmount        = m_amountTo->text().toDouble();
-    if (fromAmount == 0 || toAmount == 0)
+    if (fromAmount <= 0 || toAmount <= 0)
     {
         QMessageBox::warning(this, trUtf8("check parameters"), trUtf8("Invalid amount"));
         return;
@@ -284,12 +297,16 @@ void XBridgeTransactionDialog::onSendTransaction()
     if (m_pendingId != uint256())
     {
         // accept pending tx
-        m_model.newTransactionFromPending(m_pendingId, from, to);
+        m_model.newTransactionFromPending(m_pendingId, m_hubAddress, from, to);
     }
     else
     {
         // new tx
-        m_model.newTransaction(from, to, fromCurrency, toCurrency, fromAmount, toAmount);
+        if (!m_model.newTransaction(from, to, fromCurrency, toCurrency, fromAmount, toAmount))
+        {
+            QMessageBox::warning(this, trUtf8("check parameters"), trUtf8("Invalid amount (less than minimum)"));
+            return;
+        }
     }
 
     accept();

@@ -34,7 +34,8 @@ public:
         AddressTo    = 3,
         AmountTo     = 4,
         State        = 5,
-        LastColumn   = State
+        Tax          = 6,
+        LastColumn   = Tax
     };
 
 public:
@@ -47,15 +48,16 @@ public:
 
     bool isMyTransaction(const unsigned int index) const;
 
-    bool newTransaction(const std::vector<unsigned char> & from,
-                        const std::vector<unsigned char> & to,
+    bool newTransaction(const std::string & from,
+                        const std::string & to,
                         const std::string & fromCurrency,
                         const std::string & toCurrency,
                         const double fromAmount,
                         const double toAmount);
     bool newTransactionFromPending(const uint256 & id,
-                                   const std::vector<unsigned char> & from,
-                                   const std::vector<unsigned char> & to);
+                                   const std::vector<unsigned char> & hub,
+                                   const std::string & from,
+                                   const std::string & to);
 
     bool cancelTransaction(const uint256 & id);
 
@@ -66,8 +68,8 @@ private slots:
 
 private:
     void onTransactionReceived(const XBridgeTransactionDescr & tx);
-    void onTransactionIdChanged(const uint256 & id, const uint256 & newid);
-    void onTransactionStateChanged(const uint256 & id, const unsigned int state);
+    void onTransactionStateChanged(const uint256 & id, const uint32_t state);
+    void onTransactionCancelled(const uint256 & id, const uint32_t state, const uint32_t reason);
 
     QString transactionState(const XBridgeTransactionDescr::State state) const;
 

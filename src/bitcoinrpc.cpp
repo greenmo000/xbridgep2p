@@ -16,11 +16,15 @@
 //#include <boost/filesystem/fstream.hpp>
 //#include <boost/shared_ptr.hpp>
 //#include <list>
+#include <stdio.h>
 
 #include "bitcoinrpc.h"
 #include "bignum.h"
 #include "util/util.h"
 #include "util/logger.h"
+#include "httpstatuscode.h"
+
+#define HTTP_DEBUG
 
 //*****************************************************************************
 //*****************************************************************************
@@ -109,17 +113,16 @@ bool DecodeBase58Check(const char * psz, std::vector<unsigned char> & vchRet)
 }
 
 //******************************************************************************
-// HTTP status codes
 //******************************************************************************
-enum HTTPStatusCode
+std::vector<unsigned char> toXAddr(const std::string & addr)
 {
-    HTTP_OK                    = 200,
-    HTTP_BAD_REQUEST           = 400,
-    HTTP_UNAUTHORIZED          = 401,
-    HTTP_FORBIDDEN             = 403,
-    HTTP_NOT_FOUND             = 404,
-    HTTP_INTERNAL_SERVER_ERROR = 500,
-};
+    std::vector<unsigned char> vaddr;
+    if (rpc::DecodeBase58Check(addr.c_str(), vaddr))
+    {
+        vaddr.erase(vaddr.begin());
+    }
+    return vaddr;
+}
 
 //******************************************************************************
 //******************************************************************************
@@ -203,14 +206,14 @@ public:
     std::streamsize read(char* s, std::streamsize n)
     {
         handshake(ssl::stream_base::server); // HTTPS servers read first
-        if (fUseSSL) return stream.read_some(asio::buffer(s, n));
-        return stream.next_layer().read_some(asio::buffer(s, n));
+        if (fUseSSL) return stream.read_some(asio::buffer(s, static_cast<size_t>(n)));
+        return stream.next_layer().read_some(asio::buffer(s, static_cast<size_t>(n)));
     }
     std::streamsize write(const char* s, std::streamsize n)
     {
         handshake(ssl::stream_base::client); // HTTPS clients write first
-        if (fUseSSL) return asio::write(stream, asio::buffer(s, n));
-        return asio::write(stream.next_layer(), asio::buffer(s, n));
+        if (fUseSSL) return asio::write(stream, asio::buffer(s, static_cast<size_t>(n)));
+        return asio::write(stream.next_layer(), asio::buffer(s, static_cast<size_t>(n)));
     }
     bool connect(const std::string& server, const std::string& port)
     {
@@ -243,7 +246,7 @@ string JSONRPCRequest(const string& strMethod, const Array& params, const Value&
     request.push_back(Pair("method", strMethod));
     request.push_back(Pair("params", params));
     request.push_back(Pair("id", id));
-    return write_string(Value(request), false) + "\n";
+    return write_string(Value(request), json_spirit::none, 6) + "\n";
 }
 
 //******************************************************************************
@@ -311,7 +314,7 @@ int ReadHTTPHeader(std::basic_istream<char>& stream, map<string, string>& mapHea
 
 //******************************************************************************
 //******************************************************************************
-int ReadHTTP(std::basic_istream<char>& stream, map<string, string>& mapHeadersRet, string& strMessageRet)
+int readHTTP(std::basic_istream<char>& stream, map<string, string>& mapHeadersRet, string& strMessageRet)
 {
     mapHeadersRet.clear();
     strMessageRet = "";
@@ -376,13 +379,23 @@ Object CallRPC(const std::string & rpcuser, const std::string & rpcpasswd,
 
     // Send request
     string strRequest = JSONRPCRequest(strMethod, params, 1);
+
+#ifdef HTTP_DEBUG
+    LOG() << "HTTP: req  " << strMethod << " " << strRequest;
+#endif
+
     string strPost = HTTPPost(strRequest, mapRequestHeaders);
     stream << strPost << std::flush;
 
     // Receive reply
     map<string, string> mapHeaders;
     string strReply;
-    int nStatus = ReadHTTP(stream, mapHeaders, strReply);
+    int nStatus = readHTTP(stream, mapHeaders, strReply);
+
+#ifdef HTTP_DEBUG
+    LOG() << "HTTP: resp " << nStatus << " " << strReply;
+#endif
+
     if (nStatus == HTTP_UNAUTHORIZED)
         throw runtime_error("incorrect rpcuser or rpcpassword (authorization failed)");
     else if (nStatus >= 400 && nStatus != HTTP_BAD_REQUEST && nStatus != HTTP_NOT_FOUND && nStatus != HTTP_INTERNAL_SERVER_ERROR)
@@ -447,7 +460,7 @@ bool listaccounts(const std::string & rpcuser, const std::string & rpcpasswd,
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "listaccounts exception " << e.what();
         return false;
     }
 
@@ -502,7 +515,7 @@ bool getaddressesbyaccount(const std::string & rpcuser, const std::string & rpcp
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "getaddressesbyaccount exception " << e.what();
         return false;
     }
 
@@ -609,7 +622,7 @@ bool listUnspent(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "requestAddressBook exception " << e.what();
+        LOG() << "listunspent exception " << e.what();
         return false;
     }
 
@@ -618,11 +631,200 @@ bool listUnspent(const std::string & rpcuser,
 
 //*****************************************************************************
 //*****************************************************************************
+bool createRawTransaction(const std::string & rpcuser,
+                          const std::string & rpcpasswd,
+                          const std::string & rpcip,
+                          const std::string & rpcport,
+                          const std::vector<std::pair<string, int> > & inputs,
+                          const std::vector<std::pair<std::string, double> > & outputs,
+                          const uint32_t lockTime,
+                          std::string & tx)
+{
+    try
+    {
+        LOG() << "rpc call <createrawtransaction>";
+
+        // inputs
+        Array i;
+        for (const std::pair<string, int> & input : inputs)
+        {
+            Object tmp;
+            tmp.push_back(Pair("txid", input.first));
+            tmp.push_back(Pair("vout", input.second));
+
+            i.push_back(tmp);
+        }
+
+        // outputs
+        Object o;
+        for (const std::pair<std::string, double> & dest : outputs)
+        {
+            o.push_back(Pair(dest.first, dest.second));
+        }
+
+        Array params;
+        params.push_back(i);
+        params.push_back(o);
+
+        // locktime
+        if (lockTime > 0)
+        {
+            params.push_back(uint64_t(lockTime));
+        }
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "createrawtransaction", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        tx = write_string(result, false);
+        if (tx[0] == '\"')
+        {
+            tx.erase(0, 1);
+        }
+        if (tx[tx.size()-1] == '\"')
+        {
+            tx.erase(tx.size()-1, 1);
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "createrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool decodeRawTransaction(const std::string & rpcuser,
+                          const std::string & rpcpasswd,
+                          const std::string & rpcip,
+                          const std::string & rpcport,
+                          const std::string & rawtx,
+                          std::string & txid,
+                          std::string & tx)
+{
+    try
+    {
+        LOG() << "rpc call <decoderawtransaction>";
+
+        Array params;
+        params.push_back(rawtx);
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "decoderawtransaction", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != obj_type)
+        {
+            // Result
+            LOG() << "result not an object " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        tx   = write_string(result, false);
+
+        const Value & vtxid = find_value(result.get_obj(), "txid");
+        if (vtxid.type() == str_type)
+        {
+            txid = vtxid.get_str();
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "decoderawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string prevtxsJson(const std::vector<std::tuple<std::string, int, std::string, std::string> > & prevtxs)
+{
+    // prevtxs
+    if (!prevtxs.size())
+    {
+        return std::string();
+    }
+
+    Array arrtx;
+    for (const std::tuple<std::string, int, std::string, std::string> & prev : prevtxs)
+    {
+        Object o;
+        o.push_back(Pair("txid",         std::get<0>(prev)));
+        o.push_back(Pair("vout",         std::get<1>(prev)));
+        o.push_back(Pair("scriptPubKey", std::get<2>(prev)));
+        std::string redeem = std::get<3>(prev);
+        if (redeem.size())
+        {
+            o.push_back(Pair("redeemScript", redeem));
+        }
+        arrtx.push_back(o);
+    }
+
+    return write_string(Value(arrtx));
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool signRawTransaction(const std::string & rpcuser,
                         const std::string & rpcpasswd,
                         const std::string & rpcip,
                         const std::string & rpcport,
-                        std::string & rawtx)
+                        std::string & rawtx,
+                        bool & complete)
+{
+    std::vector<std::tuple<std::string, int, std::string, std::string> > arr;
+    std::string prevtxs = prevtxsJson(arr);
+    std::vector<string> keys;
+    return signRawTransaction(rpcuser, rpcpasswd, rpcip, rpcport,
+                              rawtx, prevtxs, keys, complete);
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool signRawTransaction(const std::string & rpcuser,
+                        const std::string & rpcpasswd,
+                        const std::string & rpcip,
+                        const std::string & rpcport,
+                        std::string & rawtx,
+                        const string & prevtxs,
+                        const std::vector<std::string> & keys,
+                        bool & complete)
 {
     try
     {
@@ -630,6 +832,40 @@ bool signRawTransaction(const std::string & rpcuser,
 
         Array params;
         params.push_back(rawtx);
+
+        // prevtxs
+        if (!prevtxs.size())
+        {
+            params.push_back(Value::null);
+        }
+        else
+        {
+            Value v;
+            if (!read_string(prevtxs, v))
+            {
+                ERR() << "error read json " << __FUNCTION__;
+                ERR() << prevtxs;
+                params.push_back(Value::null);
+            }
+            else
+            {
+                params.push_back(v.get_array());
+            }
+        }
+
+        // priv keys
+        if (!keys.size())
+        {
+            params.push_back(Value::null);
+        }
+        else
+        {
+            Array jkeys;
+            std::copy(keys.begin(), keys.end(), std::back_inserter(jkeys));
+
+            params.push_back(jkeys);
+        }
+
         Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
                                "signrawtransaction", params);
 
@@ -655,9 +891,10 @@ bool signRawTransaction(const std::string & rpcuser,
         }
 
         Object obj = result.get_obj();
-        const Value & tx = find_value(obj, "hex");
+        const Value  & tx = find_value(obj, "hex");
+        const Value & cpl = find_value(obj, "complete");
 
-        if (tx.type() != str_type)
+        if (tx.type() != str_type || cpl.type() != bool_type)
         {
             LOG() << "bad hex " <<
                      (tx.type() == null_type ? "" :
@@ -666,7 +903,9 @@ bool signRawTransaction(const std::string & rpcuser,
             return false;
         }
 
-        rawtx = tx.get_str();
+        rawtx    = tx.get_str();
+        complete = cpl.get_bool();
+
     }
     catch (std::exception & e)
     {
@@ -697,7 +936,6 @@ bool sendRawTransaction(const std::string & rpcuser,
         // Parse reply
         // const Value & result = find_value(reply, "result");
         const Value & error  = find_value(reply, "error");
-
         if (error.type() != null_type)
         {
             // Error
@@ -709,6 +947,152 @@ bool sendRawTransaction(const std::string & rpcuser,
     catch (std::exception & e)
     {
         LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool getNewPubKey(const std::string & rpcuser,
+                  const std::string & rpcpasswd,
+                  const std::string & rpcip,
+                  const std::string & rpcport,
+                  std::string & key)
+{
+    try
+    {
+        LOG() << "rpc call <getnewpubkey>";
+
+        Array params;
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "getnewpubkey", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        key = result.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "getnewpubkey exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool dumpPrivKey(const std::string & rpcuser,
+                 const std::string & rpcpasswd,
+                 const std::string & rpcip,
+                 const std::string & rpcport,
+                 const std::string & address,
+                 string & key)
+{
+    try
+    {
+        LOG() << "rpc call <dumpprivkey>";
+
+        Array params;
+        params.push_back(address);
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "dumpprivkey", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        key = result.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "dumpprivkey exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool importPrivKey(const std::string & rpcuser,
+                   const std::string & rpcpasswd,
+                   const std::string & rpcip,
+                   const std::string & rpcport,
+                   const std::string & key,
+                   const std::string & label,
+                   const bool & noScanWallet)
+{
+    try
+    {
+        LOG() << "rpc call <importprivkey>";
+
+        Array params;
+        params.push_back(key);
+        params.push_back(label);
+        if (noScanWallet)
+        {
+            params.push_back(false);
+        }
+
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "importprivkey", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "importprivkey exception " << e.what();
         return false;
     }
 
@@ -756,7 +1140,65 @@ bool getNewAddress(const std::string & rpcuser,
     }
     catch (std::exception & e)
     {
-        LOG() << "signrawtransaction exception " << e.what();
+        LOG() << "getnewaddress exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool addMultisigAddress(const std::string & rpcuser,
+                        const std::string & rpcpasswd,
+                        const std::string & rpcip,
+                        const std::string & rpcport,
+                        const std::vector<std::string> & keys,
+                        std::string & addr)
+{
+    try
+    {
+        LOG() << "rpc call <addmultisigaddress>";
+
+        Array params;
+        params.push_back(static_cast<int>(keys.size()));
+
+        Array paramKeys;
+        for (const std::string & key : keys)
+        {
+            paramKeys.push_back(key);
+        }
+        params.push_back(paramKeys);
+
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "addmultisigaddress", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an string " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        addr = result.get_str();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "addmultisigaddress exception " << e.what();
         return false;
     }
 
@@ -812,6 +1254,226 @@ bool getTransaction(const std::string & rpcuser,
 
     return true;
 
+}
+
+
+//*****************************************************************************
+//*****************************************************************************
+bool eth_gasPrice(const std::string & rpcip,
+                  const std::string & rpcport,
+                  uint64_t & gasPrice)
+{
+    try
+    {
+        LOG() << "rpc call <eth_gasPrice>";
+
+        Array params;
+        Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                               "eth_gasPrice", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+
+        const Value & result = find_value(reply, "result");
+
+        if (result.type() != str_type)
+        {
+            // Result
+            LOG() << "result not an array " <<
+                     (result.type() == null_type ? "" :
+                       write_string(result, true));
+            return false;
+        }
+
+        std::string value = result.get_str();
+        gasPrice = strtoll(value.substr(2).c_str(), nullptr, 16);
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "eth_accounts exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool eth_accounts(const std::string   & rpcip,
+                  const std::string   & rpcport,
+                  std::vector<string> & addresses)
+{
+    try
+    {
+        LOG() << "rpc call <eth_accounts>";
+
+        Array params;
+        Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                               "eth_accounts", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+
+        const Value & result = find_value(reply, "result");
+
+        if (result.type() != array_type)
+        {
+            // Result
+            LOG() << "result not an array " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        Array arr = result.get_array();
+        for (const Value & v : arr)
+        {
+            if (v.type() == str_type)
+            {
+                addresses.push_back(v.get_str());
+            }
+        }
+
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool eth_getBalance(const std::string & rpcip,
+                    const std::string & rpcport,
+                    const std::string & account,
+                    uint64_t & amount)
+{
+    try
+    {
+        LOG() << "rpc call <eth_getBalance>";
+
+//        std::vector<std::string> accounts;
+//        rpc::eth_accounts(rpcip, rpcport, accounts);
+
+//        for (const std::string & account : accounts)
+        {
+            Array params;
+            params.push_back(account);
+            params.push_back("latest");
+            Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                                   "eth_getBalance", params);
+
+            // Parse reply
+            // const Value & result = find_value(reply, "result");
+            const Value & error  = find_value(reply, "error");
+
+            if (error.type() != null_type)
+            {
+                // Error
+                LOG() << "error: " << write_string(error, false);
+                // int code = find_value(error.get_obj(), "code").get_int();
+                return false;
+            }
+
+            const Value & result = find_value(reply, "result");
+
+            if (result.type() != str_type)
+            {
+                // Result
+                LOG() << "result not an string " <<
+                         (result.type() == null_type ? "" :
+                          write_string(result, true));
+                return false;
+            }
+
+            std::string value = result.get_str();
+            amount = strtoll(value.substr(2).c_str(), nullptr, 16);
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool eth_sendTransaction(const std::string & rpcip,
+                         const std::string & rpcport,
+                         const std::string & from,
+                         const std::string & to,
+                         const uint64_t & amount,
+                         const uint64_t & /*fee*/)
+{
+    try
+    {
+        LOG() << "rpc call <eth_sendTransaction>";
+
+        Array params;
+        // params.push_back(rawtx);
+
+        Object o;
+        o.push_back(Pair("from",       from));
+        o.push_back(Pair("to",         to));
+        o.push_back(Pair("gas",        "0x76c0"));
+        o.push_back(Pair("gasPrice",   "0x9184e72a000"));
+        // o.push_back(Pair("value",      "0x9184e72a"));
+
+        char buf[64];
+        sprintf(buf, "%ullx", amount);
+        o.push_back(Pair("value", buf));
+
+        // o.push_back(Pair("data",       "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"));
+
+        params.push_back(o);
+
+        Object reply = CallRPC("rpcuser", "rpcpasswd", rpcip, rpcport,
+                               "eth_sendTransaction", params);
+
+        // Parse reply
+        // const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "sendrawtransaction exception " << e.what();
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace rpc

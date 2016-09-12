@@ -31,7 +31,7 @@ public:
 public:
     // void setWalletModel(WalletModel * model);
 
-    void setPendingId(const uint256 & id);
+    void setPendingId(const uint256 & id, const std::vector<unsigned char> & hubAddress);
     void setFromAmount(double amount);
     void setFromCurrency(const QString & currency);
     void setToAmount(double amount);
@@ -58,7 +58,8 @@ private:
 
     XBridgeTransactionsModel & m_model;
 
-    uint256        m_pendingId;
+    uint256                    m_pendingId;
+    std::vector<unsigned char> m_hubAddress;
 
     QLineEdit    * m_addressFrom;
     QLineEdit    * m_addressTo;

@@ -3,6 +3,9 @@
 
 #include "xbridge.h"
 #include "xbridgesession.h"
+#include "xbridgesessionbtc.h"
+#include "xbridgesessionethereum.h"
+#include "xbridgesessionrpccommon.h"
 #include "xbridgeapp.h"
 #include "util/logger.h"
 #include "util/settings.h"
@@ -12,7 +15,7 @@
 //*****************************************************************************
 //*****************************************************************************
 XBridge::XBridge()
-    : m_timerIoWork(m_timerIo)
+    : m_timerIoWork(new boost::asio::io_service::work(m_timerIo))
     , m_timerThread(boost::bind(&boost::asio::io_service::run, &m_timerIo))
     , m_timer(m_timerIo, boost::posix_time::seconds(TIMER_INTERVAL))
 {
@@ -24,7 +27,7 @@ XBridge::XBridge()
             IoServicePtr ios(new boost::asio::io_service);
 
             m_services.push_back(ios);
-            m_works.push_back(boost::asio::io_service::work(*ios));
+            m_works.push_back(WorkPtr(new boost::asio::io_service::work(*ios)));
 
             m_threads.create_thread(boost::bind(&boost::asio::io_service::run, ios));
         }
@@ -38,26 +41,65 @@ XBridge::XBridge()
             std::vector<std::string> wallets = s.exchangeWallets();
             for (std::vector<std::string>::iterator i = wallets.begin(); i != wallets.end(); ++i)
             {
-                // std::string label   = s.get<std::string>(*i + ".Title");
-                // std::string address = s.get<std::string>(*i + ".Address");
-                std::string ip       = s.get<std::string>(*i + ".Ip");
-                std::string port     = s.get<std::string>(*i + ".Port");
-                std::string user     = s.get<std::string>(*i + ".Username");
-                std::string passwd   = s.get<std::string>(*i + ".Password");
-                std::string prefix   = s.get<std::string>(*i + ".AddressPrefix");
-                boost::uint64_t COIN = s.get<boost::uint64_t>(*i + ".COIN", 0);
+                WalletParam wp;
+                wp.currency                    = *i;
+                wp.title                       = s.get<std::string>(*i + ".Title");
+                wp.address                     = s.get<std::string>(*i + ".Address");
+                wp.ip                          = s.get<std::string>(*i + ".Ip");
+                wp.port                        = s.get<std::string>(*i + ".Port");
+                wp.user                        = s.get<std::string>(*i + ".Username");
+                wp.passwd                      = s.get<std::string>(*i + ".Password");
+                wp.addrPrefix[0]               = s.get<int>(*i + ".AddressPrefix", 0);
+                wp.scriptPrefix[0]             = s.get<int>(*i + ".ScriptPrefix", 0);
+                wp.secretPrefix[0]             = s.get<int>(*i + ".SecretPrefix", 0);
+                // wp.COIN                        = s.get<uint64_t>(*i + ".COIN", 0);
+                wp.minAmount                   = s.get<uint64_t>(*i + ".MinimumAmount", 0);
+                wp.dustAmount                  = s.get<uint64_t>(*i + ".DustAmount", 0);
+                wp.method                      = s.get<std::string>(*i + ".CreateTxMethod");
+                wp.isGetNewPubKeySupported     = s.get<bool>(*i + ".GetNewKeySupported", false);
+                wp.isImportWithNoScanSupported = s.get<bool>(*i + ".ImportWithNoScanSupported", false);
 
-                if (ip.empty() || port.empty() ||
-                    user.empty() || passwd.empty() ||
-                    prefix.empty() || COIN == 0)
+                if (wp.ip.empty() || wp.port.empty() ||
+                    wp.user.empty() || wp.passwd.empty()
+                    // ||
+                    // wp.prefix[0] == 0 || wp.sprefix[0] == 0 || // can be 0
+                    // wp.COIN == 0
+                        )
                 {
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
                 }
+                else
+                {
+                    LOG() << "read wallet " << *i << " [" << wp.title << "] " << wp.ip
+                          << ":" << wp.port; // << " COIN=" << wp.COIN;
+                }
 
-                XBridgeSessionPtr session(new XBridgeSession(*i, ip, port, user, passwd, prefix, COIN));
-                app.addSession(session);
-                // session->requestAddressBook();
+                XBridgeSessionPtr session;
+                if (wp.method == "ETHER")
+                {
+                    assert(!"not implemented");
+                    // session.reset(new XBridgeSessionEthereum(wp));
+                }
+                else if (wp.method == "BTC")
+                {
+                    // assert(!"not implemented");
+                    // session.reset(new XBridgeSessionBtc(wp));
+                    session.reset(new XBridgeSession(wp));
+                }
+                else if (wp.method == "RPC")
+                {
+                    assert(!"not implemented");
+                    // session.reset(new XBridgeSessionRpc(wp));
+                }
+                else
+                {
+                    session.reset(new XBridgeSession(wp));
+                }
+                if (session)
+                {
+                    app.addSession(session);
+                }
             }
         }
     }
@@ -81,11 +123,18 @@ void XBridge::stop()
 {
     m_timer.cancel();
     m_timerIo.stop();
+    m_timerIoWork.reset();
 
-    for (auto i = m_services.begin(); i != m_services.end(); ++i)
+//    for (IoServicePtr & i : m_services)
+//    {
+//        i->stop();
+//    }
+    for (WorkPtr & i : m_works)
     {
-        (*i)->stop();
+        i.reset();
     }
+
+    m_threads.join_all();
 }
 
 //******************************************************************************
@@ -98,7 +147,8 @@ void XBridge::onTimer()
         m_services.push_back(m_services.front());
         m_services.pop_front();
 
-        XBridgeSessionPtr session(new XBridgeSession);
+        // XBridgeSessionPtr session(new XBridgeSession);
+        XBridgeSessionPtr session = XBridgeApp::instance().serviceSession();
 
         IoServicePtr io = m_services.front();
 

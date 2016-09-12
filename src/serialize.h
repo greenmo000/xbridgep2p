@@ -107,19 +107,21 @@ enum
 #define WRITEDATA(s, obj)   s.write((char*)&(obj), sizeof(obj))
 #define READDATA(s, obj)    s.read((char*)&(obj), sizeof(obj))
 
-inline unsigned int GetSerializeSize(char a,           int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(signed char a,    int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(unsigned char a,  int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(signed short a,   int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(unsigned short a, int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(signed int a,     int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(unsigned int a,   int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(signed long a,    int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(unsigned long a,  int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(int64 a,          int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(uint64 a,         int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(float a,          int, int=0) { return sizeof(a); }
-inline unsigned int GetSerializeSize(double a,         int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(char a,           int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(signed char a,    int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(unsigned char a,  int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(signed short a,   int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(unsigned short a, int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(signed int a,     int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(unsigned int a,   int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(signed long a,    int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(unsigned long a,  int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(int64 a,          int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(uint64 a,         int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(float a,          int, int=0) { return sizeof(a); }
+//inline unsigned int GetSerializeSize(double a,         int, int=0) { return sizeof(a); }
+
+template<typename Var> unsigned int GetSerializeSize(Var, int, int=0) { return sizeof(Var); }
 
 template<typename Stream> inline void Serialize(Stream& s, char a,           int, int=0) { WRITEDATA(s, a); }
 template<typename Stream> inline void Serialize(Stream& s, signed char a,    int, int=0) { WRITEDATA(s, a); }
@@ -149,7 +151,7 @@ template<typename Stream> inline void Unserialize(Stream& s, uint64& a,         
 template<typename Stream> inline void Unserialize(Stream& s, float& a,          int, int=0) { READDATA(s, a); }
 template<typename Stream> inline void Unserialize(Stream& s, double& a,         int, int=0) { READDATA(s, a); }
 
-inline unsigned int GetSerializeSize(bool a, int, int=0)                          { return sizeof(char); }
+inline unsigned int GetSerializeSize(bool /*a*/, int, int=0)                          { return sizeof(char); }
 template<typename Stream> inline void Serialize(Stream& s, bool a, int, int=0)    { char f=a; WRITEDATA(s, f); }
 template<typename Stream> inline void Unserialize(Stream& s, bool& a, int, int=0) { char f; READDATA(s, f); a=f; }
 
@@ -183,20 +185,20 @@ void WriteCompactSize(Stream& os, uint64 nSize)
 {
     if (nSize < 253)
     {
-        unsigned char chSize = nSize;
+        unsigned char chSize = static_cast<unsigned char>(nSize);
         WRITEDATA(os, chSize);
     }
     else if (nSize <= std::numeric_limits<unsigned short>::max())
     {
         unsigned char chSize = 253;
-        unsigned short xSize = nSize;
+        unsigned short xSize = static_cast<unsigned short>(nSize);
         WRITEDATA(os, chSize);
         WRITEDATA(os, xSize);
     }
     else if (nSize <= std::numeric_limits<unsigned int>::max())
     {
         unsigned char chSize = 254;
-        unsigned int xSize = nSize;
+        unsigned int xSize = static_cast<unsigned int>(nSize);
         WRITEDATA(os, chSize);
         WRITEDATA(os, xSize);
     }
@@ -393,7 +395,7 @@ void Unserialize(Stream& is, std::basic_string<C>& str, int, int)
 // vector
 //
 template<typename T, typename A>
-unsigned int GetSerializeSize_impl(const std::vector<T, A>& v, int nType, int nVersion, const boost::true_type&)
+unsigned int GetSerializeSize_impl(const std::vector<T, A>& v, int /*nType*/, int /*nVersion*/, const boost::true_type&)
 {
     return (GetSizeOfCompactSize(v.size()) + v.size() * sizeof(T));
 }
@@ -415,7 +417,7 @@ inline unsigned int GetSerializeSize(const std::vector<T, A>& v, int nType, int 
 
 
 template<typename Stream, typename T, typename A>
-void Serialize_impl(Stream& os, const std::vector<T, A>& v, int nType, int nVersion, const boost::true_type&)
+void Serialize_impl(Stream& os, const std::vector<T, A>& v, int /*nType*/, int /*nVersion*/, const boost::true_type&)
 {
     WriteCompactSize(os, v.size());
     if (!v.empty())
@@ -438,7 +440,7 @@ inline void Serialize(Stream& os, const std::vector<T, A>& v, int nType, int nVe
 
 
 template<typename Stream, typename T, typename A>
-void Unserialize_impl(Stream& is, std::vector<T, A>& v, int nType, int nVersion, const boost::true_type&)
+void Unserialize_impl(Stream& is, std::vector<T, A>& v, int /*nType*/, int /*nVersion*/, const boost::true_type&)
 {
     // Limit size per read so bogus size value won't cause out of memory
     v.clear();
@@ -671,20 +673,20 @@ class CSerActionSerialize { };
 class CSerActionUnserialize { };
 
 template<typename Stream, typename T>
-inline unsigned int SerReadWrite(Stream& s, const T& obj, int nType, int nVersion, CSerActionGetSerializeSize ser_action)
+inline unsigned int SerReadWrite(Stream& /*s*/, const T& obj, int nType, int nVersion, CSerActionGetSerializeSize /*ser_action*/)
 {
     return ::GetSerializeSize(obj, nType, nVersion);
 }
 
 template<typename Stream, typename T>
-inline unsigned int SerReadWrite(Stream& s, const T& obj, int nType, int nVersion, CSerActionSerialize ser_action)
+inline unsigned int SerReadWrite(Stream& s, const T& obj, int nType, int nVersion, CSerActionSerialize /*ser_action*/)
 {
     ::Serialize(s, obj, nType, nVersion);
     return 0;
 }
 
 template<typename Stream, typename T>
-inline unsigned int SerReadWrite(Stream& s, T& obj, int nType, int nVersion, CSerActionUnserialize ser_action)
+inline unsigned int SerReadWrite(Stream& s, T& obj, int nType, int nVersion, CSerActionUnserialize /*ser_action*/)
 {
     ::Unserialize(s, obj, nType, nVersion);
     return 0;
@@ -761,7 +763,7 @@ public:
         Init(nTypeIn, nVersionIn);
     }
 
-    CDataStream(const std::vector<unsigned char>& vchIn, int nTypeIn = SER_GETHASH, int nVersionIn = 0) : vch((char*)&vchIn.begin()[0], (char*)&vchIn.end()[0])
+    CDataStream(const std::vector<unsigned char>& vchIn, int nTypeIn = SER_GETHASH, int nVersionIn = 0) : vch(vchIn.begin(), vchIn.end())
     {
         Init(nTypeIn, nVersionIn);
     }
@@ -916,7 +918,7 @@ public:
     }
 
     bool eof() const             { return size() == 0; }
-    bool fail() const            { return state & (std::ios::badbit | std::ios::failbit); }
+    bool fail() const            { return (state & (std::ios::badbit | std::ios::failbit)) > 0; }
     bool good() const            { return !eof() && (state == 0); }
     void clear(short n)          { state = n; }  // name conflict with vector clear()
     short exceptions()           { return exceptmask; }
@@ -1079,7 +1081,7 @@ public:
             THROW_WITH_STACKTRACE(std::ios_base::failure(psz));
     }
 
-    bool fail() const            { return state & (std::ios::badbit | std::ios::failbit); }
+    bool fail() const            { return (state & (std::ios::badbit | std::ios::failbit)) > 0; }
     bool good() const            { return state == 0; }
     void clear(short n = 0)      { state = n; }
     short exceptions()           { return exceptmask; }

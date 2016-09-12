@@ -4,6 +4,7 @@
 #include "xbridgetransactionsview.h"
 #include "../xbridgeapp.h"
 // #include "xbridgetransactiondialog.h"
+#include "../xbridgeexchange.h"
 #include "../util/verify.h"
 #include "../uiconnector.h"
 #include "../util/logger.h"
@@ -22,7 +23,7 @@
 XBridgeTransactionsView::XBridgeTransactionsView(QWidget *parent)
     : QWidget(parent)
     // , m_walletModel(0)
-    , m_dlg(m_txModel)
+    , m_dlg(m_txModel, this)
 {
     setupUi();
 }
@@ -80,14 +81,25 @@ void XBridgeTransactionsView::setupUi()
 #endif
     header->resizeSection(XBridgeTransactionsModel::AmountTo,    80);
     header->resizeSection(XBridgeTransactionsModel::State,       128);
+    header->resizeSection(XBridgeTransactionsModel::Tax,         64);
     vbox->addWidget(m_transactionsList);
 
     QHBoxLayout * hbox = new QHBoxLayout;
 
-    QPushButton * addTxBtn = new QPushButton(trUtf8("New Transaction"), this);
-    // addTxBtn->setIcon(QIcon("qrc://"))
-    VERIFY(connect(addTxBtn, SIGNAL(clicked()), this, SLOT(onNewTransaction())));
-    hbox->addWidget(addTxBtn);
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (!e.isEnabled())
+    {
+        QPushButton * addTxBtn = new QPushButton(trUtf8("New Transaction"), this);
+        // addTxBtn->setIcon(QIcon("qrc://"))
+        VERIFY(connect(addTxBtn, SIGNAL(clicked()), this, SLOT(onNewTransaction())));
+        hbox->addWidget(addTxBtn);
+    }
+    else
+    {
+        QPushButton * addTxBtn = new QPushButton(trUtf8("Exchange node"), this);
+        addTxBtn->setEnabled(false);
+        hbox->addWidget(addTxBtn);
+    }
 
     hbox->addStretch();
 
@@ -148,7 +160,7 @@ QMenu * XBridgeTransactionsView::setupContextMenu(QModelIndex & index)
 //******************************************************************************
 void XBridgeTransactionsView::onNewTransaction()
 {
-    m_dlg.setPendingId(uint256());
+    m_dlg.setPendingId(uint256(), std::vector<unsigned char>());
     m_dlg.show();
 }
 
@@ -172,9 +184,10 @@ void XBridgeTransactionsView::onAcceptTransaction()
         return;
     }
 
-    m_dlg.setPendingId(d.id);
+    m_dlg.setPendingId(d.id, d.hubAddress);
     m_dlg.setFromAmount((double)d.toAmount / XBridgeTransactionDescr::COIN);
     m_dlg.setToAmount((double)d.fromAmount / XBridgeTransactionDescr::COIN);
+    m_dlg.setFromCurrency(QString::fromStdString(d.toCurrency));
     m_dlg.setToCurrency(QString::fromStdString(d.fromCurrency));
     m_dlg.show();
 }
@@ -216,6 +229,12 @@ void XBridgeTransactionsView::onRollbackTransaction()
 //******************************************************************************
 void XBridgeTransactionsView::onContextMenu(QPoint /*pt*/)
 {
+    XBridgeExchange & e = XBridgeExchange::instance();
+    if (e.isEnabled())
+    {
+        return;
+    }
+
     m_contextMenuIndex = m_transactionsList->selectionModel()->currentIndex();
     if (!m_contextMenuIndex.isValid())
     {

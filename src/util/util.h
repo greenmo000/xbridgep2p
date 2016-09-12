@@ -6,6 +6,7 @@
 
 #include "uint256.h"
 #include "../serialize.h"
+#include "logger.h"
 
 #include <string>
 
@@ -30,6 +31,11 @@ namespace util
     std::string base64_encode(const std::vector<unsigned char> & s);
     std::string base64_encode(const std::string & s);
     std::string base64_decode(const std::string & s);
+
+    std::string to_str(const uint256 & obj);
+
+    // TODO implement
+    // std::vector<unsigned char> strToAddress(const std::string & addr);
 
     template<typename T1> uint256 hash(const T1 pbegin, const T1 pend)
     {
@@ -170,8 +176,8 @@ std::string HexStr(const T itbegin, const T itend, bool fSpaces = false)
 
 std::string HexStr(const std::vector<unsigned char>& vch, bool fSpaces=false);
 
-std::vector<char> ParseHex(const char* psz);
-std::vector<char> ParseHex(const std::string& str);
+std::vector<unsigned char> ParseHex(const char* psz);
+std::vector<unsigned char> ParseHex(const std::string& str);
 
 inline uint160 Hash160(const std::vector<unsigned char>& vch)
 {

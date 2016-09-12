@@ -4,16 +4,31 @@
 #ifndef XBRIDGEPACKET_H
 #define XBRIDGEPACKET_H
 
+#include "version.h"
+
 #include <vector>
 #include <deque>
 #include <memory>
 #include <ctime>
-#include <boost/cstdint.hpp>
-#include <boost/shared_ptr.hpp>
+#include <stdint.h>
+#include <assert.h>
 
 //******************************************************************************
 //******************************************************************************
-#define XBRIDGE_PROTOCOL_VERSION 0xff000003
+enum TxCancelReason
+{
+    crUnknown         = 0,
+    crUserRequest     = 1,
+    crNoMoney         = 2,
+    crDust            = 3,
+    crRpcError        = 4,
+    crNotSigned       = 5,
+    crNotAccepted     = 6,
+    crRollback        = 7,
+    crRpcRequest      = 8,
+    crXbridgeRejected = 9,
+    crInvalidAddress  = 10
+};
 
 //******************************************************************************
 //******************************************************************************
@@ -39,6 +54,11 @@ enum XBridgeCommand
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |
     // xbcTransaction           -->    |     <-- xbcTransaction
+    //                                 |     --> xbcPendingTransaction
+    //                                 |     --> xbcPendingTransaction
+    //                                 |     --> xbcPendingTransaction
+    //                                 |
+    //                                 |     <-- xbcAcceptingTransaction
     //                                 |
     // xbcTransactionHold       <--    |     --> xbcTransactionHold
     // xbcTransactionHoldApply  -->    |     <-- xbcTransactionHoldApply
@@ -59,125 +79,171 @@ enum XBridgeCommand
 
     // exchange transaction
     //
-    // xbcTransaction
+    // xbcTransaction  (132 bytes min)
+    // clients not process this messages, only exchange
     //    uint256 client transaction id
-    //    uint160 source address
+    //    string source address (33-34 byte + 0)
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
+    //    string destination address (33-34 byte + 0)
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransaction = 3,
     //
-    // xbcTransactionHold
-    //    uint160 client address
-    //    uint160 hub address
-    //    uint256 client transaction id
-    //    uint256 hub transaction id
-    xbcTransactionHold = 4,
-    //
-    // xbcTransactionHoldApply
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    xbcTransactionHoldApply = 5,
-    //
-    // xbcTransactionInit
-    //    uint160 client address
-    //    uint160 hub address
-    //    uint256 hub transaction id
-    //    uint160 source address
+    // xbcPendingTransaction (88 bytes)
+    // exchange broadcast send this message, send list of opened transactions
+    //    uint256 transaction id
     //    8 bytes source currency
     //    uint64 source amount
-    //    uint160 destination address
     //    8 bytes destination currency
     //    uint64 destination amount
-    xbcTransactionInit = 6,
+    //    uint160 hub address
+    //    uint32_t fee in percent, *1000 (0.3% == 300)
+    xbcPendingTransaction = 4,
     //
-    // xbcTransactionInitialized
+    // xbcTransactionAccepting (152 bytes min)
+    // client accepting opened tx
+    //    uint160 hub address
+    //    uint256 client transaction id
+    //    string source address (33-34 byte + 0)
+    //    8 bytes source currency
+    //    uint64 source amount
+    //    string destination address (33-34 byte + 0)
+    //    8 bytes destination currency
+    //    uint64 destination amount
+    xbcTransactionAccepting = 5,
+    //
+    // xbcTransactionHold (72 bytes)
+    //    uint160 client address
+    //    uint160 hub address
+    //    uint256 transaction id
+    xbcTransactionHold = 6,
+    //
+    // xbcTransactionHoldApply (72 bytes)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionInitialized = 7,
+    xbcTransactionHoldApply = 7,
     //
-    // xbcTransactionCreate
+    // xbcTransactionInit (172 bytes min)
+    //    uint160 client address
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    //    string source address (33-34 byte + 0)
+    //    8 bytes source currency
+    //    uint64 source amount
+    //    string destination address (33-34 byte + 0)
+    //    8 bytes destination currency
+    //    uint64 destination amount
+    xbcTransactionInit = 8,
+    //
+    // xbcTransactionInitialized (138 bytes)
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    x public key, 33 bytes
+    //    public key, 33 bytes
+    xbcTransactionInitialized = 9,
+    //
+    // xbcTransactionCreate (212 bytes min)
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id
-    //    uint160  destination address
-    //    uint32_t tx1 lock time (in seconds)
-    //    uint32_t tx2 lock time (in seconds)
-    xbcTransactionCreate = 8,
+    //    string destination address (33-34 byte + 0)
+    //    string hub wallet address (33-34 byte + 0)
+    //    uint32_t fee in percent, *1000 (0.3% == 300)
+    //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
+    //    x public key, 33 bytes
+    //    opponent public key, 33 bytes
+    xbcTransactionCreate = 10,
     //
-    // xbcTransactionCreated
+    // xbcTransactionCreated (74 bytes min)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw transaction
-    xbcTransactionCreated = 9,
+    //    string  prevtxs for sign refund
+    //    string  raw refund transaction
+    xbcTransactionCreated = 11,
     //
-    // xbcTransactionSign
+    // xbcTransactionSignRefund (74 bytes min)
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    string  raw transaction
-    xbcTransactionSign = 10,
+    //    string  prevtxs for sign refund
+    //    string  raw refund transaction
+    xbcTransactionSignRefund = 12,
     //
     // xbcTransactionSigned
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw transaction (signed)
-    xbcTransactionSigned = 11,
+    //    string  raw refund transaction (signed)
+    xbcTransactionRefundSigned = 13,
     //
-    // xbcTransactionCommit
+    // xbcTransactionCommitStage1
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  raw transaction (signed)
-    xbcTransactionCommit = 12,
+    //    string  raw refund transaction (signed)
+    xbcTransactionCommitStage1 = 14,
     //
-    // xbcTransactionCommited
+    // xbcTransactionCommitedStage1
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    string bail in tx id
+    xbcTransactionCommitedStage1 = 15,
+    //
+    // xbcTransactionCommitStage2
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    string  x private key for import
+    //    string  raw payment transaction (signed)
+    //    string  raw refund transaction (signed)
+    xbcTransactionCommitStage2 = 16,
+    //
+    // xbcTransactionCommitedStage2
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionCommited = 13,
+    xbcTransactionCommitedStage2 = 17,
     //
     // xbcTransactionConfirm
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionConfirm = 14,
+    xbcTransactionConfirm = 18,
     //
     // xbcTransactionConfirmed
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionConfirmed = 15,
+    xbcTransactionConfirmed = 19,
     //
-    // xbcTransactionCancel
-    //    uint160 hub address
-    //    uint256 hub transaction id
-    xbcTransactionCancel = 16,
+    // xbcTransactionCancel (36 bytes)
+    //    uint256  hub transaction id
+    //    uint32_t reason
+    xbcTransactionCancel = 20,
     //
     // xbcTransactionRollback
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionRollback = 17,
+    xbcTransactionRollback = 21,
     //
     // xbcTransactionFinished
     //    uint160 client address
     //    uint256 hub transaction id
     //
-    xbcTransactionFinished = 18,
+    xbcTransactionFinished = 22,
     //
     // xbcTransactionDropped
     //    uint160 address
     //    uint256 hub transaction id
     //
-    xbcTransactionDropped = 19,
+    xbcTransactionDropped = 23,
 
     // smart hub periodically send this message for invitations to trading
     // this message contains address of smart hub and
@@ -186,33 +252,23 @@ enum XBridgeCommand
     //
     // xbcExchangeWallets
     //     {wallet id (string)}|{wallet title (string)}|{wallet id (string)}|{wallet title (string)}
-    xbcExchangeWallets = 20,
+    xbcExchangeWallets = 24,
 
     // wallet send transaction hash when transaction received
     //
     // xbcReceivedTransaction
     //     uint256 transaction id (bitcoin transaction hash)
-    xbcReceivedTransaction = 21,
-
-    // smart hub broadcast send this message, send list of opened transactions
-    //
-    // xbcPendingTransaction
-    //    uint256 transaction id
-    //    8 bytes source currency
-    //    uint64 source amount
-    //    8 bytes destination currency
-    //    uint64 destination amount
-    xbcPendingTransaction = 22,
+    xbcReceivedTransaction = 25,
 
     // address book entry
     //
     // xbcAddressBook
-    xbcAddressBookEntry = 23
+    xbcAddressBookEntry = 26
 };
 
 //******************************************************************************
 //******************************************************************************
-typedef boost::uint32_t crc_t;
+typedef uint32_t crc_t;
 
 //******************************************************************************
 // header 8*4 bytes
@@ -234,23 +290,23 @@ class XBridgePacket
 public:
     enum
     {
-        headerSize    = 8*sizeof(boost::uint32_t),
-        commandSize   = sizeof(boost::uint32_t),
-        timestampSize = sizeof(boost::uint32_t)
+        headerSize    = 8*sizeof(uint32_t),
+        commandSize   = sizeof(uint32_t),
+        timestampSize = sizeof(uint32_t)
     };
 
-    std::size_t     size()    const     { return sizeField(); }
-    std::size_t     allSize() const     { return m_body.size(); }
+    uint32_t     size()    const     { return sizeField(); }
+    uint32_t     allSize() const     { return static_cast<uint32_t>(m_body.size()); }
 
-    crc_t           crc()     const
+    crc_t        crc()     const
     {
         // TODO implement this
-        assert(false || "not implemented");
-        return (0);
+        assert(!"not implemented");
+        return 0;
         // return crcField();
     }
 
-    boost::uint32_t version() const       { return versionField(); }
+    uint32_t version() const       { return versionField(); }
 
     XBridgeCommand  command() const       { return static_cast<XBridgeCommand>(commandField()); }
 
@@ -273,7 +329,7 @@ public:
         // crcField() = 0;
     }
 
-    void resize(const unsigned int size)
+    void resize(const uint32_t size)
     {
         m_body.resize(size+headerSize);
         sizeField() = size;
@@ -286,7 +342,7 @@ public:
         m_body[headerSize] = data;
     }
 
-    void    setData(const boost::int32_t data)
+    void    setData(const int32_t data)
     {
         m_body.resize(sizeof(data) + headerSize);
         sizeField() = sizeof(data);
@@ -296,7 +352,7 @@ public:
     void    setData(const std::string & data)
     {
         m_body.resize(data.size() + headerSize);
-        sizeField() = data.size();
+        sizeField() = static_cast<uint32_t>(data.size());
         if (data.size())
         {
             data.copy((char *)(&m_body[headerSize]), data.size());
@@ -305,10 +361,10 @@ public:
 
     void    setData(const std::vector<unsigned char> & data, const unsigned int offset = 0)
     {
-        setData(&data[0], data.size(), offset);
+        setData(&data[0], static_cast<uint32_t>(data.size()), offset);
     }
 
-    void    setData(const unsigned char * data, const unsigned int size, const unsigned int offset = 0)
+    void    setData(const unsigned char * data, const uint32_t size, const uint32_t offset = 0)
     {
         unsigned int off = offset + headerSize;
         if (size)
@@ -322,27 +378,44 @@ public:
         }
     }
 
-    void append(const boost::uint32_t data)
+//    template<typename _T>
+//    void append(const _T data)
+//    {
+//        m_body.reserve(m_body.size() + sizeof(data));
+//        unsigned char * ptr = (unsigned char *)&data;
+//        std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
+//        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
+//    }
+
+    void append(const uint16_t data)
     {
         m_body.reserve(m_body.size() + sizeof(data));
         unsigned char * ptr = (unsigned char *)&data;
         std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
-        sizeField() = m_body.size() - headerSize;
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
     }
 
-    void append(const boost::uint64_t data)
+    void append(const uint32_t data)
     {
         m_body.reserve(m_body.size() + sizeof(data));
         unsigned char * ptr = (unsigned char *)&data;
         std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
-        sizeField() = m_body.size() - headerSize;
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
+    }
+
+    void append(const uint64_t data)
+    {
+        m_body.reserve(m_body.size() + sizeof(data));
+        unsigned char * ptr = (unsigned char *)&data;
+        std::copy(ptr, ptr+sizeof(data), std::back_inserter(m_body));
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
     }
 
     void append(const unsigned char * data, const int size)
     {
         m_body.reserve(m_body.size() + size);
         std::copy(data, data+size, std::back_inserter(m_body));
-        sizeField() = m_body.size() - headerSize;
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
     }
 
     void append(const std::string & data)
@@ -350,23 +423,23 @@ public:
         m_body.reserve(m_body.size() + data.size()+1);
         std::copy(data.begin(), data.end(), std::back_inserter(m_body));
         m_body.push_back(0);
-        sizeField() = m_body.size() - headerSize;
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
     }
 
     void append(const std::vector<unsigned char> & data)
     {
         m_body.reserve(m_body.size() + data.size());
         std::copy(data.begin(), data.end(), std::back_inserter(m_body));
-        sizeField() = m_body.size() - headerSize;
+        sizeField() = static_cast<uint32_t>(m_body.size()) - headerSize;
     }
 
     void    copyFrom(const std::vector<unsigned char> & data)
     {
         m_body = data;
 
-        if (sizeField() != data.size()-headerSize)
+        if (sizeField() != static_cast<uint32_t>(data.size())-headerSize)
         {
-            assert(false || "incorrect data size in XBridgePacket::copyFrom");
+            assert(!"incorrect data size in XBridgePacket::copyFrom");
         }
 
         // TODO check packet crc
@@ -374,13 +447,13 @@ public:
 
     XBridgePacket() : m_body(headerSize, 0)
     {
-        versionField()   = static_cast<boost::uint32_t>(XBRIDGE_PROTOCOL_VERSION);
-        timestampField() = static_cast<boost::uint32_t>(time(0));
+        versionField()   = static_cast<uint32_t>(XBRIDGE_PROTOCOL_VERSION);
+        timestampField() = static_cast<uint32_t>(time(0));
     }
 
     explicit XBridgePacket(const std::string& raw) : m_body(raw.begin(), raw.end())
     {
-        timestampField() = static_cast<boost::uint32_t>(time(0));
+        timestampField() = static_cast<uint32_t>(time(0));
     }
 
     XBridgePacket(const XBridgePacket & other)
@@ -390,9 +463,9 @@ public:
 
     XBridgePacket(XBridgeCommand c) : m_body(headerSize, 0)
     {
-        versionField()   = static_cast<boost::uint32_t>(XBRIDGE_PROTOCOL_VERSION);
-        commandField()   = static_cast<boost::uint32_t>(c);
-        timestampField() = static_cast<boost::uint32_t>(time(0));
+        versionField()   = static_cast<uint32_t>(XBRIDGE_PROTOCOL_VERSION);
+        commandField()   = static_cast<uint32_t>(c);
+        timestampField() = static_cast<uint32_t>(time(0));
     }
 
     XBridgePacket & operator = (const XBridgePacket & other)
@@ -403,27 +476,27 @@ public:
     }
 
 private:
-    template<std::size_t INDEX>
-    boost::uint32_t &       field32()
-        { return *static_cast<boost::uint32_t *>(static_cast<void *>(&m_body[INDEX * 4])); }
+    template<uint32_t INDEX>
+    uint32_t & field32()
+        { return *static_cast<uint32_t *>(static_cast<void *>(&m_body[INDEX * 4])); }
 
-    template<std::size_t INDEX>
-    boost::uint32_t const& field32() const
-        { return *static_cast<boost::uint32_t const*>(static_cast<void const*>(&m_body[INDEX * 4])); }
+    template<uint32_t INDEX>
+    uint32_t const& field32() const
+        { return *static_cast<uint32_t const*>(static_cast<void const*>(&m_body[INDEX * 4])); }
 
-    boost::uint32_t       & versionField()         { return field32<0>(); }
-    boost::uint32_t const & versionField() const   { return field32<0>(); }
-    boost::uint32_t &       commandField()         { return field32<1>(); }
-    boost::uint32_t const & commandField() const   { return field32<1>(); }
-    boost::uint32_t &       timestampField()       { return field32<2>(); }
-    boost::uint32_t const & timestampField() const { return field32<2>(); }
-    boost::uint32_t &       sizeField()            { return field32<3>(); }
-    boost::uint32_t const & sizeField() const      { return field32<3>(); }
-    boost::uint32_t &       crcField()             { return field32<4>(); }
-    boost::uint32_t const & crcField() const       { return field32<4>(); }
+    uint32_t       & versionField()         { return field32<0>(); }
+    uint32_t const & versionField() const   { return field32<0>(); }
+    uint32_t &       commandField()         { return field32<1>(); }
+    uint32_t const & commandField() const   { return field32<1>(); }
+    uint32_t &       timestampField()       { return field32<2>(); }
+    uint32_t const & timestampField() const { return field32<2>(); }
+    uint32_t &       sizeField()            { return field32<3>(); }
+    uint32_t const & sizeField() const      { return field32<3>(); }
+    uint32_t &       crcField()             { return field32<4>(); }
+    uint32_t const & crcField() const       { return field32<4>(); }
 };
 
-typedef boost::shared_ptr<XBridgePacket> XBridgePacketPtr;
+typedef std::shared_ptr<XBridgePacket> XBridgePacketPtr;
 typedef std::deque<XBridgePacketPtr>   XBridgePacketQueue;
 
 #endif // XBRIDGEPACKET_H

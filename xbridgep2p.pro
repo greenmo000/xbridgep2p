@@ -38,6 +38,7 @@ CONFIG(release, debug|release) {
 }
 else:CONFIG(debug, debug|release){
     TARGET = ../bin/xbridgep2p-debug
+    DEFINES += __DEBUG__
 }
 
 
@@ -72,6 +73,10 @@ DEFINES +=\
 
 } #win32
 
+INCLUDEPATH += \
+    $$PWD \
+    $$PWD/src \
+
 #-------------------------------------------------
 SOURCES += \
     src/main.cpp\
@@ -94,7 +99,18 @@ SOURCES += \
     src/key.cpp \
     src/keystore.cpp \
     src/sync.cpp \
-    src/crypter.cpp
+    src/crypter.cpp \
+    src/util/txlog.cpp \
+    src/config.cpp \
+    src/bitcoinrpcserver.cpp \
+    src/bitcoinrpcconnection.cpp \
+    src/bitcoinrpcssliostreamdevice.cpp \
+    src/bitcoinrpchandlers.cpp \
+    src/bitcoinrpctable.cpp \
+    src/xbridgesessionethereum.cpp \
+    src/xbridgesessionrpccommon.cpp \
+    src/xbridgesessionbtc.cpp \
+    src/ui/uiutil.cpp
 
 #-------------------------------------------------
 HEADERS += \
@@ -133,7 +149,18 @@ HEADERS += \
     src/keystore.h \
     src/sync.h \
     src/crypter.h \
-    src/base58.h
+    src/base58.h \
+    src/util/txlog.h \
+    src/xbridgewallet.h \
+    src/bitcoinrpcconnection.h \
+    src/bitcoinrpcssliostreamdevice.h \
+    src/httpstatuscode.h \
+    src/rpcstatuscode.h \
+    src/bitcoinrpctable.h \
+    src/xbridgesessionethereum.h \
+    src/xbridgesessionrpccommon.h \
+    src/xbridgesessionbtc.h \
+    src/ui/uiutil.h
 
 #-------------------------------------------------
 !withoutgui {

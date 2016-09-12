@@ -21,7 +21,8 @@ XBridgeAddressBookModel::XBridgeAddressBookModel()
 //******************************************************************************
 XBridgeAddressBookModel::~XBridgeAddressBookModel()
 {
-
+    uiConnector.NotifyXBridgeAddressBookEntryReceived.disconnect
+            (boost::bind(&XBridgeAddressBookModel::onAddressBookEntryReceived, this, _1, _2, _3));
 }
 
 //******************************************************************************
@@ -47,7 +48,7 @@ QVariant XBridgeAddressBookModel::data(const QModelIndex & idx, int role) const
         return QVariant();
     }
 
-    if (idx.row() < 0 || idx.row() >= m_addressBook.size())
+    if (idx.row() < 0 || idx.row() >= static_cast<int>(m_addressBook.size()))
     {
         return QVariant();
     }
@@ -97,7 +98,7 @@ QVariant XBridgeAddressBookModel::headerData(int section, Qt::Orientation orient
 //******************************************************************************
 XBridgeAddressBookModel::AddressBookEntry XBridgeAddressBookModel::entry(const int row)
 {
-    if (row < 0 || row >= m_addressBook.size())
+    if (row < 0 || row >= static_cast<int>(m_addressBook.size()))
     {
         return AddressBookEntry();
     }
