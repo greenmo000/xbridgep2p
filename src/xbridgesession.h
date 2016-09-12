@@ -98,6 +98,9 @@ protected:
     bool makeNewPubKey(CPubKey & newPKey) const;
     std::string secretToString(CSecret & secret) const;
 
+    boost::uint64_t minTxFee(const uint32_t inputCount, const uint32_t outputCount);
+    std::string round_x(const long double val, uint32_t prec);
+
 protected:
     virtual bool processInvalid(XBridgePacketPtr packet);
     virtual bool processZero(XBridgePacketPtr packet);

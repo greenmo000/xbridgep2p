@@ -1132,106 +1132,106 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-CScript destination(const std::vector<unsigned char> & address, const char prefix)
-{
-    uint160 uikey(address);
-    CKeyID key(uikey);
+//CScript destination(const std::vector<unsigned char> & address, const char prefix)
+//{
+//    uint160 uikey(address);
+//    CKeyID key(uikey);
 
-    CBitcoinAddress baddr;
-    baddr.Set(key, prefix);
+//    CBitcoinAddress baddr;
+//    baddr.Set(key, prefix);
 
-    CScript addr;
-    addr.SetDestination(baddr.Get());
-    return addr;
-}
+//    CScript addr;
+//    addr.SetDestination(baddr.Get());
+//    return addr;
+//}
 
-//******************************************************************************
-//******************************************************************************
-CScript destination(const std::string & address)
-{
-    CBitcoinAddress baddr(address);
+////******************************************************************************
+////******************************************************************************
+//CScript destination(const std::string & address)
+//{
+//    CBitcoinAddress baddr(address);
 
-    CScript addr;
-    addr.SetDestination(baddr.Get());
-    return addr;
-}
-
-//******************************************************************************
-//******************************************************************************
-std::string txToStringBTC(const CBTCTransaction & tx)
-{
-    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-    ss << tx;
-    return HexStr(ss.begin(), ss.end());
-}
+//    CScript addr;
+//    addr.SetDestination(baddr.Get());
+//    return addr;
+//}
 
 //******************************************************************************
 //******************************************************************************
-std::string txToString(const CTransaction & tx)
-{
-    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-    ss << tx;
-    return HexStr(ss.begin(), ss.end());
-}
+//std::string txToStringBTC(const CBTCTransaction & tx)
+//{
+//    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+//    ss << tx;
+//    return HexStr(ss.begin(), ss.end());
+//}
 
 //******************************************************************************
 //******************************************************************************
-CBTCTransaction txFromStringBTC(const std::string & str)
-{
-    CBTCTransaction tx;
-
-    try
-    {
-        std::vector<unsigned char> txdata = ParseHex(str);
-        CDataStream stream(txdata,
-                           SER_NETWORK, PROTOCOL_VERSION);
-        stream >> tx;
-    }
-    catch (std::exception & e)
-    {
-        LOG() << "exception " << e.what() << " in " << __FUNCTION__;
-    }
-    catch (...)
-    {
-        LOG() << "unknown exception in " << __FUNCTION__;
-    }
-
-    return tx;
-}
+//std::string txToString(const CTransaction & tx)
+//{
+//    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+//    ss << tx;
+//    return HexStr(ss.begin(), ss.end());
+//}
 
 //******************************************************************************
 //******************************************************************************
-CTransaction txFromString(const std::string & str)
-{
-    CTransaction tx;
-    try
-    {
-        std::vector<unsigned char> txdata = ParseHex(str);
-        CDataStream stream(txdata,
-                           SER_NETWORK, PROTOCOL_VERSION);
-        stream >> tx;
-    }
-    catch (std::exception & e)
-    {
-        LOG() << "exception " << e.what() << " in " << __FUNCTION__;
-    }
-    catch (...)
-    {
-        LOG() << "unknown exception in " << __FUNCTION__;
-    }
-    return tx;
-}
+//CBTCTransaction txFromStringBTC(const std::string & str)
+//{
+//    CBTCTransaction tx;
+
+//    try
+//    {
+//        std::vector<unsigned char> txdata = ParseHex(str);
+//        CDataStream stream(txdata,
+//                           SER_NETWORK, PROTOCOL_VERSION);
+//        stream >> tx;
+//    }
+//    catch (std::exception & e)
+//    {
+//        LOG() << "exception " << e.what() << " in " << __FUNCTION__;
+//    }
+//    catch (...)
+//    {
+//        LOG() << "unknown exception in " << __FUNCTION__;
+//    }
+
+//    return tx;
+//}
 
 //******************************************************************************
 //******************************************************************************
-boost::uint64_t minTxFee(const uint32_t inputCount, const uint32_t outputCount)
+//CTransaction txFromString(const std::string & str)
+//{
+//    CTransaction tx;
+//    try
+//    {
+//        std::vector<unsigned char> txdata = ParseHex(str);
+//        CDataStream stream(txdata,
+//                           SER_NETWORK, PROTOCOL_VERSION);
+//        stream >> tx;
+//    }
+//    catch (std::exception & e)
+//    {
+//        LOG() << "exception " << e.what() << " in " << __FUNCTION__;
+//    }
+//    catch (...)
+//    {
+//        LOG() << "unknown exception in " << __FUNCTION__;
+//    }
+//    return tx;
+//}
+
+//******************************************************************************
+//******************************************************************************
+boost::uint64_t XBridgeSession::minTxFee(const uint32_t inputCount, const uint32_t outputCount)
 {
     return 148*inputCount + 34*outputCount + 10;
 }
 
 //******************************************************************************
 //******************************************************************************
-std::string round_x(const long double val, uint32_t prec)
+std::string XBridgeSession::round_x(const long double val, uint32_t prec)
 {
     long double value = val;
     value *= pow(10, prec);
@@ -1247,7 +1247,7 @@ std::string round_x(const long double val, uint32_t prec)
     }
     svalue.insert(svalue.length()-prec, 1, '.');
 
-//    value = std::stold(svalue);
+    value = std::stold(svalue);
 //    return value;
     return svalue;
 }
@@ -1353,20 +1353,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // create multisig address for first tx
     {
-        // create multisig address
-//        std::vector<std::string> keys;
-//        keys.push_back(HexStr(mPubkey.Raw()));
-//        keys.push_back(HexStr(xtx->mPubKey.Raw()));
-
-//        if (!rpc::addMultisigAddress(m_wallet.user, m_wallet.passwd,
-//                                     m_wallet.ip, m_wallet.port,
-//                                     keys, multisig))
-//        {
-//            LOG() << "multisig create error, transaction canceled " << __FUNCTION__;
-//            sendCancelTransaction(txid, crRpcError);
-//            return true;
-//        }
-
         bool compressed = true;
         CKey km;
         km.MakeNewKey();
@@ -1393,7 +1379,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     std::string binjson;
     {
         std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, std::string> > outputs;
+        std::vector<std::pair<std::string, double> > outputs;
 
         // inputs
         for (const rpc::Unspent & entry : usedInTx)
@@ -1404,18 +1390,18 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         // outputs
 
         // amount
-        outputs.push_back(std::make_pair(xtx->multisig, round_x(outAmount, 6)));
+        outputs.push_back(std::make_pair(xtx->multisig, outAmount));
 
         // fee2 to x
         CBitcoinAddress baddr;
         baddr.Set(x.GetID(), m_wallet.addrPrefix[0]);
 
-        outputs.push_back(std::make_pair(baddr.ToString(), round_x(fee2, 6)));
+        outputs.push_back(std::make_pair(baddr.ToString(), fee2));
 
         // tax
         if (taxToSend)
         {
-            outputs.push_back(std::make_pair(taxAddress, round_x(taxToSend, 6)));
+            outputs.push_back(std::make_pair(taxAddress, taxToSend));
         }
 
         // rest
@@ -1433,7 +1419,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             }
 
             double rest = inAmount-outAmount-fee1-fee2-taxToSend;
-            outputs.push_back(std::make_pair(addr, round_x(rest, 6)));
+            outputs.push_back(std::make_pair(addr, rest));
         }
 
         std::string bintx;
@@ -1527,14 +1513,14 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // payTx
     {
         std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, std::string> > outputs;
+        std::vector<std::pair<std::string, double> > outputs;
 
         // inputs from binTx
         inputs.push_back(std::make_pair(xtx->binTxId, 0));
         inputs.push_back(std::make_pair(xtx->binTxId, 1));
 
         // outputs
-        outputs.push_back(std::make_pair(destAddress, round_x(outAmount, 6)));
+        outputs.push_back(std::make_pair(destAddress, outAmount));
 
         std::string paytx;
         if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
@@ -1586,7 +1572,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // refTx
     {
         std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, std::string> > outputs;
+        std::vector<std::pair<std::string, double> > outputs;
 
         // inputs from binTx
         inputs.push_back(std::make_pair(xtx->binTxId, 0));
@@ -1604,7 +1590,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
             double fee3 = static_cast<double>(minTxFee(1, 1)) / XBridgeTransactionDescr::COIN;
 
-            outputs.push_back(std::make_pair(addr, round_x(outAmount-fee3, 6)));
+            outputs.push_back(std::make_pair(addr, outAmount-fee3));
         }
 
         // lock time
@@ -1622,7 +1608,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         std::string reftx;
         if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
                                        m_wallet.ip, m_wallet.port,
-                                       inputs, outputs, lockTime, reftx))
+                                       inputs, outputs, 0/*lockTime*/, reftx))
         {
             // cancel transaction
             LOG() << "create transaction error, transaction canceled " << __FUNCTION__;

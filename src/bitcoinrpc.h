@@ -45,7 +45,7 @@ namespace rpc
                               const std::string & rpcip,
                               const std::string & rpcport,
                               const std::vector<std::pair<std::string, int> > & inputs,
-                              const std::vector<std::pair<std::string, std::string> > & outputs,
+                              const std::vector<std::pair<std::string, double> > & outputs,
                               const uint32_t lockTime,
                               std::string & tx);
 
