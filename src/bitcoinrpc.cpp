@@ -891,10 +891,10 @@ bool signRawTransaction(const std::string & rpcuser,
         }
 
         Object obj = result.get_obj();
-        const Value    & tx = find_value(obj, "hex");
-        const Value & compl = find_value(obj, "complete");
+        const Value  & tx = find_value(obj, "hex");
+        const Value & cpl = find_value(obj, "complete");
 
-        if (tx.type() != str_type || compl.type() != bool_type)
+        if (tx.type() != str_type || cpl.type() != bool_type)
         {
             LOG() << "bad hex " <<
                      (tx.type() == null_type ? "" :
@@ -904,7 +904,7 @@ bool signRawTransaction(const std::string & rpcuser,
         }
 
         rawtx    = tx.get_str();
-        complete = compl.get_bool();
+        complete = cpl.get_bool();
 
     }
     catch (std::exception & e)
