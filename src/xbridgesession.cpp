@@ -1594,21 +1594,30 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         }
 
         // lock time
-        uint32_t lockTime;
-        time_t local = time(0); // GetAdjustedTime();
+        uint32_t lockTime = 0;
         if (role == 'A')
         {
-            lockTime = local + 600; // 259200; // 72h in seconds
+            lockTime = 600; // 259200; // 72h in seconds
         }
         else if (role == 'B')
         {
-            lockTime = local + 300; // 259200/2; // 36h in seconds
+            lockTime = 300; // 259200/2; // 36h in seconds
+        }
+
+        if (m_wallet.currency == "BTC")
+        {
+            lockTime = (1 << 22) | (lockTime >> 9);
+        }
+        else
+        {
+            time_t local = time(0); // GetAdjustedTime();
+            lockTime += local;
         }
 
         std::string reftx;
         if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
                                        m_wallet.ip, m_wallet.port,
-                                       inputs, outputs, 0/*lockTime*/, reftx))
+                                       inputs, outputs, lockTime, reftx))
         {
             // cancel transaction
             LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
