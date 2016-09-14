@@ -33,18 +33,11 @@ public:
         return std::static_pointer_cast<XBridgeSessionBtc>(XBridgeSession::shared_from_this());
     }
 
-private:
-    void init();
-
 protected:
-    virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
-
-protected:
-    XBridge::SocketPtr m_socket;
-
-    typedef std::map<const int, fastdelegate::FastDelegate1<XBridgePacketPtr, bool> > PacketHandlersMap;
-    PacketHandlersMap m_handlers;
+    // virtual uint32_t lockTime(const char role) const;
+    virtual std::string createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                             const std::vector<std::pair<std::string, double> > & outputs,
+                                             const uint32_t lockTime);
 };
 
 typedef std::shared_ptr<XBridgeSessionBtc> XBridgeSessionBtcPtr;

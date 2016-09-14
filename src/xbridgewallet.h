@@ -24,7 +24,7 @@ struct WalletParam
     char                       secretPrefix[8];
     std::string                taxaddr;
     unsigned int               fee;
-    // uint64_t                   COIN;
+    uint64_t                   COIN;
     uint64_t                   minAmount;
     uint64_t                   dustAmount;
     std::string                method;
@@ -33,7 +33,7 @@ struct WalletParam
 
     WalletParam()
         : fee(300)
-        // , COIN(0)
+        , COIN(0)
         , minAmount(0)
         , dustAmount(0)
         , isGetNewPubKeySupported(false)

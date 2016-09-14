@@ -1254,6 +1254,68 @@ std::string XBridgeSession::round_x(const long double val, uint32_t prec)
 
 //******************************************************************************
 //******************************************************************************
+uint32_t XBridgeSession::lockTime(const char role) const
+{
+    // lock time
+    uint32_t lt = 0;
+    if (role == 'A')
+    {
+        lt = 259200; // 72h in seconds
+    }
+    else if (role == 'B')
+    {
+        lt = 259200/2; // 36h in seconds
+    }
+
+    time_t local = time(0); // GetAdjustedTime();
+    return lt += local;
+}
+
+//******************************************************************************
+//******************************************************************************
+std::string XBridgeSession::createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                                 const std::vector<std::pair<std::string, double> > & outputs,
+                                                 const uint32_t lockTime)
+{
+//    std::string tx;
+//    if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                   m_wallet.ip, m_wallet.port,
+//                                   inputs, outputs, lockTime, tx))
+//    {
+//        // cancel transaction
+//        LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
+//        return std::string();
+//    }
+
+//    return tx;
+
+    CTransaction tx;
+
+    for (const std::pair<std::string, int> & in : inputs)
+    {
+        tx.vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second),
+                               CScript(), std::numeric_limits<uint32_t>::max() - 1));
+    }
+
+    for (const std::pair<std::string, double> & out : outputs)
+    {
+        CScript addr;
+        addr.SetDestination(CBitcoinAddress(out.first).Get());
+        tx.vout.push_back(CTxOut(out.second*m_wallet.COIN, addr));
+    }
+
+    if (lockTime)
+    {
+        tx.nLockTime = lockTime;
+    }
+
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << tx;
+    return HexStr(ss.begin(), ss.end());
+}
+
+//******************************************************************************
+//******************************************************************************
 bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
@@ -1593,31 +1655,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             outputs.push_back(std::make_pair(addr, outAmount-fee3));
         }
 
-        // lock time
-        uint32_t lockTime = 0;
-        if (role == 'A')
-        {
-            lockTime = 600; // 259200; // 72h in seconds
-        }
-        else if (role == 'B')
-        {
-            lockTime = 300; // 259200/2; // 36h in seconds
-        }
-
-        if (m_wallet.currency == "BTC")
-        {
-            lockTime = (1 << 22) | (lockTime >> 9);
-        }
-        else
-        {
-            time_t local = time(0); // GetAdjustedTime();
-            lockTime += local;
-        }
-
-        std::string reftx;
-        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
-                                       m_wallet.ip, m_wallet.port,
-                                       inputs, outputs, lockTime, reftx))
+        std::string reftx = createRawTransaction(inputs, outputs, lockTime(role));
+        if (!reftx.size())
         {
             // cancel transaction
             LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
@@ -2114,6 +2153,8 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
 
         sendPacket(tr->b_address(), reply2);
     }
+
+    return true;
 }
 
 //******************************************************************************
