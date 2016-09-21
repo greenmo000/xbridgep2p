@@ -36,7 +36,8 @@ public:
         trInitialized,
         trCreated,
         trSigned,
-        trCommited,
+        trCommitedStage1,
+
         trConfirmed,
         trFinished,
         trCancelled,
@@ -133,6 +134,9 @@ public:
     bool                       setKeys(const std::string & addr,
                                        const CPubKey & x,
                                        const CPubKey & pk);
+    bool                       setPayTx(const std::string & addr,
+                                        const std::string & prevtxs,
+                                        const std::string & payTx);
     bool                       setRefTx(const std::string & addr,
                                         const std::string & prevtxs,
                                         const std::string & refTx);

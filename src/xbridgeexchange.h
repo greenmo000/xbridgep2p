@@ -73,9 +73,10 @@ public:
     bool updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
                                              const std::string & from,
                                              const std::string & refTx);
-    bool updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
-                                               const std::string & from,
-                                               const std::string & txid);
+    bool updateTransactionWhenCommitedStage1Received(XBridgeTransactionPtr tx,
+                                                     const std::string & from,
+                                                     const std::string & prevtxs,
+                                                     const std::string & rawpaytx);
     bool updateTransactionWhenConfirmedReceived(XBridgeTransactionPtr tx,
                                                 const std::string & from);
 

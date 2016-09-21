@@ -113,16 +113,36 @@ protected:
     virtual bool processXChatMessage(XBridgePacketPtr packet);
 
     virtual bool processTransaction(XBridgePacketPtr packet);
+    virtual bool processPendingTransaction(XBridgePacketPtr packet);
     virtual bool processTransactionAccepting(XBridgePacketPtr packet);
+
+    virtual bool processBitcoinTransactionHash(XBridgePacketPtr packet);
+
+    virtual bool processAddressBookEntry(XBridgePacketPtr packet);
+
+    virtual bool processTransactionHold(XBridgePacketPtr packet);
     virtual bool processTransactionHoldApply(XBridgePacketPtr packet);
+
+    virtual bool processTransactionInit(XBridgePacketPtr packet);
     virtual bool processTransactionInitialized(XBridgePacketPtr packet);
+
+    virtual bool processTransactionCreate(XBridgePacketPtr packet);
     virtual bool processTransactionCreated(XBridgePacketPtr packet);
+
+    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
     virtual bool processTransactionRefundSigned(XBridgePacketPtr packet);
+
+    virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
     virtual bool processTransactionCommitedStage1(XBridgePacketPtr packet);
+
+    virtual bool processTransactionSignPayment(XBridgePacketPtr packet);
+    virtual bool processTransactionPaymentSigned(XBridgePacketPtr packet);
+
+    virtual bool processTransactionCommitStage2(XBridgePacketPtr packet);
     virtual bool processTransactionCommitedStage2(XBridgePacketPtr packet);
+
     virtual bool processTransactionConfirm(XBridgePacketPtr packet);
     virtual bool processTransactionConfirmed(XBridgePacketPtr packet);
-    virtual bool processTransactionCancel(XBridgePacketPtr packet);
 
     virtual bool finishTransaction(XBridgeTransactionPtr tr);
     virtual bool sendCancelTransaction(const uint256 & txid,
@@ -130,17 +150,7 @@ protected:
     virtual bool rollbackTransaction(XBridgeTransactionPtr tr);
     virtual bool revertXBridgeTransaction(const uint256 & id);
 
-    virtual bool processBitcoinTransactionHash(XBridgePacketPtr packet);
-
-    virtual bool processAddressBookEntry(XBridgePacketPtr packet);
-
-    virtual bool processPendingTransaction(XBridgePacketPtr packet);
-    virtual bool processTransactionHold(XBridgePacketPtr packet);
-    virtual bool processTransactionInit(XBridgePacketPtr packet);
-    virtual bool processTransactionCreate(XBridgePacketPtr packet);
-    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
-    virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
-    virtual bool processTransactionCommitStage2(XBridgePacketPtr packet);
+    virtual bool processTransactionCancel(XBridgePacketPtr packet);
     virtual bool processTransactionFinished(XBridgePacketPtr packet);
     virtual bool processTransactionRollback(XBridgePacketPtr packet);
     virtual bool processTransactionDropped(XBridgePacketPtr packet);

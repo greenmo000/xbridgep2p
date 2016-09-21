@@ -112,6 +112,7 @@ enum XBridgeCommand
     //    8 bytes destination currency
     //    uint64 destination amount
     xbcTransactionAccepting = 5,
+
     //
     // xbcTransactionHold (72 bytes)
     //    uint160 client address
@@ -124,6 +125,7 @@ enum XBridgeCommand
     //    uint160 client address
     //    uint256 hub transaction id
     xbcTransactionHoldApply = 7,
+
     //
     // xbcTransactionInit (172 bytes min)
     //    uint160 client address
@@ -144,6 +146,7 @@ enum XBridgeCommand
     //    x public key, 33 bytes
     //    public key, 33 bytes
     xbcTransactionInitialized = 9,
+
     //
     // xbcTransactionCreate (212 bytes min)
     //    uint160  client address
@@ -164,6 +167,7 @@ enum XBridgeCommand
     //    string  prevtxs for sign refund
     //    string  raw refund transaction
     xbcTransactionCreated = 11,
+
     //
     // xbcTransactionSignRefund (74 bytes min)
     //    uint160 client address
@@ -179,6 +183,7 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     //    string  raw refund transaction (signed)
     xbcTransactionRefundSigned = 13,
+
     //
     // xbcTransactionCommitStage1
     //    uint160 hub address
@@ -193,6 +198,23 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     //    string bail in tx id
     xbcTransactionCommitedStage1 = 15,
+
+    // xbcTransactionSignPayment (74 bytes min)
+    //    uint160 client address
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    //    string  prevtxs for sign payment
+    //    string  raw payment transaction
+    xbcTransactionSignPayment = 16,
+    //
+    // xbcTransactionPaymentSigned
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    //    string  raw payment transaction (signed)
+    xbcTransactionPaymentSigned = 17,
+
+
     //
     // xbcTransactionCommitStage2
     //    uint160 hub address
@@ -201,49 +223,49 @@ enum XBridgeCommand
     //    string  x private key for import
     //    string  raw payment transaction (signed)
     //    string  raw refund transaction (signed)
-    xbcTransactionCommitStage2 = 16,
+    xbcTransactionCommitStage2 = 18,
     //
     // xbcTransactionCommitedStage2
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionCommitedStage2 = 17,
+    xbcTransactionCommitedStage2 = 19,
     //
     // xbcTransactionConfirm
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
     //    uint256 pay tx hash
-    xbcTransactionConfirm = 18,
+    xbcTransactionConfirm = 20,
     //
     // xbcTransactionConfirmed
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionConfirmed = 19,
+    xbcTransactionConfirmed = 21,
     //
     // xbcTransactionCancel (36 bytes)
     //    uint256  hub transaction id
     //    uint32_t reason
-    xbcTransactionCancel = 20,
+    xbcTransactionCancel = 22,
     //
     // xbcTransactionRollback
     //    uint160 hub address
     //    uint256 hub transaction id
-    xbcTransactionRollback = 21,
+    xbcTransactionRollback = 23,
     //
     // xbcTransactionFinished
     //    uint160 client address
     //    uint256 hub transaction id
     //
-    xbcTransactionFinished = 22,
+    xbcTransactionFinished = 24,
     //
     // xbcTransactionDropped
     //    uint160 address
     //    uint256 hub transaction id
     //
-    xbcTransactionDropped = 23,
+    xbcTransactionDropped = 25,
 
     // smart hub periodically send this message for invitations to trading
     // this message contains address of smart hub and
@@ -252,18 +274,18 @@ enum XBridgeCommand
     //
     // xbcExchangeWallets
     //     {wallet id (string)}|{wallet title (string)}|{wallet id (string)}|{wallet title (string)}
-    xbcExchangeWallets = 24,
+    xbcExchangeWallets = 26,
 
     // wallet send transaction hash when transaction received
     //
     // xbcReceivedTransaction
     //     uint256 transaction id (bitcoin transaction hash)
-    xbcReceivedTransaction = 25,
+    xbcReceivedTransaction = 27,
 
     // address book entry
     //
     // xbcAddressBook
-    xbcAddressBookEntry = 26
+    xbcAddressBookEntry = 28
 };
 
 //******************************************************************************

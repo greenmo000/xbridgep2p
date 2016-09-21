@@ -434,24 +434,25 @@ bool XBridgeExchange::updateTransactionWhenSignedReceived(XBridgeTransactionPtr 
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::updateTransactionWhenCommitedReceived(XBridgeTransactionPtr tx,
-                                                            const std::string & from,
-                                                            const std::string & txid)
+bool XBridgeExchange::updateTransactionWhenCommitedStage1Received(XBridgeTransactionPtr tx,
+                                                                  const std::string & from,
+                                                                  const std::string & prevtxs,
+                                                                  const std::string & rawpaytx)
 {
-    if (!tx->setBinTxId(from, txid))
+    if (!tx->setPayTx(from, prevtxs, rawpaytx))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
         return false;
     }
 
-    {
-        boost::mutex::scoped_lock l (m_unconfirmedLock);
-        m_unconfirmed[txid] = tx->id();
-    }
+//    {
+//        boost::mutex::scoped_lock l (m_unconfirmedLock);
+//        m_unconfirmed[txid] = tx->id();
+//    }
 
     // update transaction state
-    if (tx->increaseStateCounter(XBridgeTransaction::trSigned, from) == XBridgeTransaction::trCommited)
+    if (tx->increaseStateCounter(XBridgeTransaction::trSigned, from) == XBridgeTransaction::trCommitedStage1)
     {
         return true;
     }
@@ -465,7 +466,7 @@ bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionP
                                                              const std::string & from)
 {
     // update transaction state
-    if (tx->increaseStateCounter(XBridgeTransaction::trCommited, from) == XBridgeTransaction::trFinished)
+    if (tx->increaseStateCounter(XBridgeTransaction::trCommitedStage1, from) == XBridgeTransaction::trFinished)
     {
         return true;
     }

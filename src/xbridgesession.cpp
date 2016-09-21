@@ -119,6 +119,10 @@ void XBridgeSession::init()
 
         m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSession::processTransactionCommitStage1);
         m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSession::processTransactionCommitedStage1);
+
+        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSession::processTransactionSignPayment);
+        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSession::processTransactionPaymentSigned);
+
         m_handlers[xbcTransactionCommitStage2]     .bind(this, &XBridgeSession::processTransactionCommitStage2);
         m_handlers[xbcTransactionCommitedStage2]   .bind(this, &XBridgeSession::processTransactionCommitedStage2);
 
@@ -1064,6 +1068,7 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
     // transaction id
     uint256 id(packet->data()+40);
 
+    // public keys
     CPubKey x  (packet->data()+72, packet->data()+105);
     CPubKey pk1(packet->data()+105, packet->data()+138);
 
@@ -1774,10 +1779,10 @@ bool XBridgeSession::processTransactionCreated(XBridgePacketPtr packet)
     {
         if (tr->state() == XBridgeTransaction::trCreated)
         {
-            // send packets for sign transaction
+            // send packets for sign refund transaction
 
             // TODO remove this log
-            LOG() << "send xbcTransactionSign to "
+            LOG() << "send xbcTransactionSignRefund to "
                   << util::base64_encode(std::string((char *)&tr->a_destination()[0], 20));
 
             XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSignRefund));
@@ -2075,15 +2080,13 @@ bool XBridgeSession::processTransactionCommitStage1(XBridgePacketPtr packet)
     xtx->state = XBridgeTransactionDescr::trCommited;
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
-    assert(!"not finished");
-    return true;
-
     // send commit apply to hub
     XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCommitedStage1));
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    reply->append(xtx->binTxId);
+    reply->append(xtx->prevtxs);
+    reply->append(xtx->payTx);
 
     sendPacket(hubAddress, reply);
     return true;
@@ -2100,7 +2103,7 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
     if (packet->size() <= 72)
     {
         ERR() << "invalid packet size for xbcTransactionCommited "
-              << "need bin 72 bytes, received " << packet->size() << " "
+              << "need min 72 bytes, received " << packet->size() << " "
               << __FUNCTION__;
         return false;
     }
@@ -2117,9 +2120,19 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
         return true;
     }
 
-    std::vector<unsigned char> from(packet->data()+20, packet->data()+40);
-    uint256 txid(packet->data()+40);
-    std::string bintxid(reinterpret_cast<const char *>(packet->data()+72));
+    size_t offset = 20;
+
+    std::vector<unsigned char> from(packet->data()+offset, packet->data()+offset+20);
+    offset += 20;
+
+    uint256 txid(packet->data()+offset);
+    offset += 32;
+
+    std::string prevtxs(reinterpret_cast<const char *>(packet->data()+offset));
+    offset += prevtxs.size()+1;
+
+    std::string payTx(reinterpret_cast<const char *>(packet->data()+offset));
+    // offset += refTx.size()+1;
 
     XBridgeTransactionPtr tr = e.transaction(txid);
     boost::mutex::scoped_lock l(tr->m_lock);
@@ -2134,26 +2147,167 @@ bool XBridgeSession::processTransactionCommitedStage1(XBridgePacketPtr packet)
         return true;
     }
 
-    e.updateTransactionWhenCommitedReceived(tr, sfrom, bintxid);
+    e.updateTransactionWhenCommitedStage1Received(tr, sfrom, prevtxs, payTx);
 
-    if (tr->state() == XBridgeTransaction::trSigned)
+    if (tr->state() == XBridgeTransaction::trCommitedStage1)
     {
-        // send commit transactions to clients
+        // send packets for sign payment tx
 
         // TODO remove this log
-        LOG() << "send xbcTransactionCommitStage2 to "
-              << util::base64_encode(std::string((char *)&tr->b_address()[0], 20));
+        LOG() << "send xbcTransactionSignPayment to "
+              << util::base64_encode(std::string((char *)&tr->a_destination()[0], 20));
 
-        XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionCommitStage2));
-        reply2->append(tr->b_address());
+        XBridgePacketPtr reply(new XBridgePacket(xbcTransactionSignPayment));
+        reply->append(rpc::toXAddr(tr->a_destination()));
+        reply->append(sessionAddr(), 20);
+        reply->append(txid.begin(), 32);
+        reply->append(tr->b_prevtxs());
+        reply->append(tr->b_payTx());
+
+        sendPacket(tr->a_destination(), reply);
+
+        // TODO remove this log
+        LOG() << "send xbcTransactionSignPayment to "
+              << util::base64_encode(std::string((char *)&tr->b_destination()[0], 20));
+
+        XBridgePacketPtr reply2(new XBridgePacket(xbcTransactionSignPayment));
+        reply2->append(rpc::toXAddr(tr->b_destination()));
         reply2->append(sessionAddr(), 20);
         reply2->append(txid.begin(), 32);
-        reply2->append(tr->b_payTx());
-        reply2->append(tr->b_refTx());
+        reply2->append(tr->a_prevtxs());
+        reply2->append(tr->a_payTx());
 
-        sendPacket(tr->b_address(), reply2);
+        sendPacket(tr->b_destination(), reply2);
     }
 
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeSession::processTransactionSignPayment(XBridgePacketPtr packet)
+{
+    DEBUG_TRACE_LOG(currencyToLog());
+
+    if (packet->size() < 74)
+    {
+        ERR() << "incorrect packet size for xbcTransactionSign "
+              << "need more than 74 received " << packet->size() << " "
+              << __FUNCTION__;
+        return false;
+    }
+
+    std::vector<unsigned char> thisAddress(packet->data(), packet->data()+20);
+
+    size_t offset = 20;
+    std::vector<unsigned char> hubAddress(packet->data()+offset, packet->data()+offset+20);
+    offset += 20;
+
+    uint256 txid(packet->data()+offset);
+    offset += 32;
+
+    std::string prevtxs(reinterpret_cast<const char *>(packet->data()+offset));
+    offset += prevtxs.size()+1;
+
+    std::string paytx(reinterpret_cast<const char *>(packet->data()+offset));
+    // offset += reftx.size()+1;
+
+    // check txid
+    XBridgeTransactionDescrPtr xtx;
+    {
+        boost::mutex::scoped_lock l(XBridgeApp::m_txHelperLocker);
+
+        if (!XBridgeApp::m_helperTransactions.count(txid))
+        {
+            // wtf? unknown transaction
+            LOG() << "unknown transaction " << util::to_str(txid) << " " << __FUNCTION__;
+            return true;
+        }
+
+        xtx = XBridgeApp::m_helperTransactions[txid];
+    }
+
+    // TODO check txpay/txref, inputs/outputs/locktime, use decorerawtransaction
+    // unserialize
+//    {
+//        CTransaction txpay = txFromString(payTx);
+//        CTransaction txref = txFromString(refTx);
+
+//        if (txref.nLockTime < LOCKTIME_THRESHOLD)
+//        {
+//            // not signed, cancel tx
+//            sendCancelTransaction(txid, crNotSigned);
+//            return true;
+//        }
+//    }
+
+    std::vector<std::string> keys;
+    keys.push_back(secretToString(xtx->mSecret));
+    keys.push_back(secretToString(xtx->xSecret));
+
+    TXLOG() << "refund unsigned " << paytx;
+
+    // sign refund tx
+    bool complete = false;
+    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port,
+                                 paytx, prevtxs, keys, complete))
+    {
+        // do not sign, cancel
+        sendCancelTransaction(txid, crNotSigned);
+        return true;
+    }
+
+    assert(complete && "not fully signed");
+
+    TXLOG() << "refund   signed " << paytx;
+
+//#ifdef __DEBUG__
+
+//    std::string json;
+//    std::string reftxid;
+//    if (rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                   m_wallet.ip, m_wallet.port,
+//                                   reftx, reftxid, json))
+//    {
+//        TXLOG() << json;
+//    }
+
+//#endif
+
+    // sign payment tx
+//    complete = false;
+//    if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port,
+//                                 paytx, prevtxs, keys, complete))
+//    {
+//        // do not sign, cancel
+//        sendCancelTransaction(txid, crNotSigned);
+//        return true;
+//    }
+
+//    assert(!complete && "not fully signed");
+
+    assert(!"not finished");
+    return true;
+
+    xtx->state = XBridgeTransactionDescr::trSigned;
+    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
+
+    // send reply
+    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionRefundSigned));
+    reply->append(hubAddress);
+    reply->append(thisAddress);
+    reply->append(txid.begin(), 32);
+    reply->append(paytx);
+
+    sendPacket(hubAddress, reply);
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+bool XBridgeSession::processTransactionPaymentSigned(XBridgePacketPtr packet)
+{
+    assert(!"not implemented");
     return true;
 }
 

@@ -158,12 +158,12 @@ XBridgeTransaction::State XBridgeTransaction::increaseStateCounter(XBridgeTransa
         }
         if (m_a_stateChanged && m_b_stateChanged)
         {
-            m_state = trCommited;
+            m_state = trCommitedStage1;
             m_a_stateChanged = m_b_stateChanged = false;
         }
         return m_state;
     }
-    else if (state == trCommited && m_state == state)
+    else if (state == trCommitedStage1 && m_state == state)
     {
         if (from == m_a.dest())
         {
@@ -591,6 +591,33 @@ bool XBridgeTransaction::setKeys(const std::string & addr,
     {
         m_a_x   = x;
         m_a_pk1 = pk;
+        return true;
+    }
+    return false;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+bool XBridgeTransaction::setPayTx(const std::string & addr,
+                                  const std::string & prevtxs,
+                                  const std::string & payTx)
+{
+    if (m_b.source() == addr || m_a.dest() == addr)
+    {
+        if (prevtxs.size())
+        {
+            m_prevtxs2  = prevtxs;
+        }
+        m_rawpaytx2 = payTx;
+        return true;
+    }
+    else if (m_a.source() == addr || m_b.dest() == addr)
+    {
+        if (prevtxs.size())
+        {
+            m_prevtxs1  = prevtxs;
+        }
+        m_rawpaytx1 = payTx;
         return true;
     }
     return false;
