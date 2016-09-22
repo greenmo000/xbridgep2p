@@ -668,7 +668,7 @@ bool XBridgeSession::processTransactionAccepting(XBridgePacketPtr packet)
     // DEBUG_TRACE();
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() <= 152)
+    if (packet->size() < 152)
     {
         ERR() << "invalid packet size for xbcTransactionAccepting "
               << "need min 152 bytes, received " << packet->size() << " "
@@ -946,7 +946,7 @@ bool XBridgeSession::processTransactionInit(XBridgePacketPtr packet)
 {
     DEBUG_TRACE_LOG(currencyToLog());
 
-    if (packet->size() <= 172)
+    if (packet->size() < 172)
     {
         ERR() << "incorrect packet size for xbcTransactionInit "
               << "need 172 bytes min, received " << packet->size() << " "
@@ -1279,6 +1279,9 @@ uint32_t XBridgeSession::lockTime(const char role) const
 //******************************************************************************
 //******************************************************************************
 std::string XBridgeSession::createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                                 const CPubKey & my1,
+                                                 const CPubKey & r1,
+                                                 const CPubKey & x,
                                                  const std::vector<std::pair<std::string, double> > & outputs,
                                                  const uint32_t lockTime)
 {
@@ -1460,19 +1463,20 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         outputs.push_back(std::make_pair(xtx->multisig, outAmount));
 
         // fee2 to x
-        CBitcoinAddress baddr;
-        baddr.Set(x.GetID(), m_wallet.addrPrefix[0]);
+//        CBitcoinAddress baddr;
+//        baddr.Set(x.GetID(), m_wallet.addrPrefix[0]);
 
-        outputs.push_back(std::make_pair(baddr.ToString(), fee2));
+//        outputs.push_back(std::make_pair(baddr.ToString(), fee2));
 
-        // tax
-        if (taxToSend)
-        {
-            outputs.push_back(std::make_pair(taxAddress, taxToSend));
-        }
+//        // tax
+//        if (taxToSend)
+//        {
+//            outputs.push_back(std::make_pair(taxAddress, taxToSend));
+//        }
 
         // rest
-        if (inAmount > outAmount+fee1+fee2+taxToSend)
+        // if (inAmount > outAmount+fee1+fee2+taxToSend)
+        if (inAmount > outAmount+fee1)
         {
             std::string addr;
             if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd,
@@ -1489,10 +1493,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             outputs.push_back(std::make_pair(addr, rest));
         }
 
-        std::string bintx;
-        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
-                                       m_wallet.ip, m_wallet.port,
-                                       inputs, outputs, 0, bintx))
+        std::string bintx = createRawTransaction(inputs, xtx->mPubKey, mPubkey, x, outputs, 430850);
+        if (!bintx.size())
         {
             // cancel transaction
             LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
@@ -1529,194 +1531,196 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
         xtx->binTx   = bintx;
         xtx->binTxId = bintxid;
-
     } // binTx
 
+    assert(!"finish here");
+    return true;
+
     // prevtxs for sign next transactions
-    {
-        std::vector<std::tuple<std::string, int, std::string, std::string> > prevtxs;
+//    {
+//        std::vector<std::tuple<std::string, int, std::string, std::string> > prevtxs;
 
-        Value v;
-        if (!read_string(binjson, v))
-        {
-            // wtf ?
-            ERR() << "error read tx json, cancelled " << binjson;
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
+//        Value v;
+//        if (!read_string(binjson, v))
+//        {
+//            // wtf ?
+//            ERR() << "error read tx json, cancelled " << binjson;
+//            sendCancelTransaction(txid, crRpcError);
+//            return true;
+//        }
 
-        Object o = v.get_obj();
-        v = find_value(o, "vout");
-        Array outs = v.get_array();
-        for (const Value & out : outs)
-        {
-            Value vn = find_value(out.get_obj(), "n");
-            if (vn.type() != int_type)
-            {
-                continue;
-            }
-            uint32_t n = vn.get_int();
+//        Object o = v.get_obj();
+//        v = find_value(o, "vout");
+//        Array outs = v.get_array();
+//        for (const Value & out : outs)
+//        {
+//            Value vn = find_value(out.get_obj(), "n");
+//            if (vn.type() != int_type)
+//            {
+//                continue;
+//            }
+//            uint32_t n = vn.get_int();
 
-            Value vscript = find_value(out.get_obj(), "scriptPubKey");
-            if (vscript.type() != obj_type)
-            {
-                continue;
-            }
+//            Value vscript = find_value(out.get_obj(), "scriptPubKey");
+//            if (vscript.type() != obj_type)
+//            {
+//                continue;
+//            }
 
-            Object script = vscript.get_obj();
+//            Object script = vscript.get_obj();
 
-            Value vhex = find_value(script, "hex");
-            if (vhex.type() != str_type)
-            {
-                continue;
-            }
+//            Value vhex = find_value(script, "hex");
+//            if (vhex.type() != str_type)
+//            {
+//                continue;
+//            }
 
-            prevtxs.push_back(std::make_tuple(xtx->binTxId, n, vhex.get_str(), n == 0 ? xtx->redeem : ""));
-        }
+//            prevtxs.push_back(std::make_tuple(xtx->binTxId, n, vhex.get_str(), n == 0 ? xtx->redeem : ""));
+//        }
 
-        xtx->prevtxs = rpc::prevtxsJson(prevtxs);
-    } // inputs
+//        xtx->prevtxs = rpc::prevtxsJson(prevtxs);
+//    } // inputs
 
-    // payTx
-    {
-        std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, double> > outputs;
+//    // payTx
+//    {
+//        std::vector<std::pair<std::string, int> >    inputs;
+//        std::vector<std::pair<std::string, double> > outputs;
 
-        // inputs from binTx
-        inputs.push_back(std::make_pair(xtx->binTxId, 0));
-        inputs.push_back(std::make_pair(xtx->binTxId, 1));
+//        // inputs from binTx
+//        inputs.push_back(std::make_pair(xtx->binTxId, 0));
+//        inputs.push_back(std::make_pair(xtx->binTxId, 1));
 
-        // outputs
-        outputs.push_back(std::make_pair(destAddress, outAmount));
+//        // outputs
+//        outputs.push_back(std::make_pair(destAddress, outAmount));
 
-        std::string paytx;
-        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
-                                       m_wallet.ip, m_wallet.port,
-                                       inputs, outputs, 0, paytx))
-        {
-            // cancel transaction
-            LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
+//        std::string paytx;
+//        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                       m_wallet.ip, m_wallet.port,
+//                                       inputs, outputs, 0, paytx))
+//        {
+//            // cancel transaction
+//            LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
+//            sendCancelTransaction(txid, crRpcError);
+//            return true;
+//        }
 
-        // sign
-        std::vector<std::string> keys;
-        keys.push_back(secretToString(xtx->mSecret));
+//        // sign
+//        std::vector<std::string> keys;
+//        keys.push_back(secretToString(xtx->mSecret));
 
-        bool complete = false;
-        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
-                                     m_wallet.ip, m_wallet.port,
-                                     paytx, xtx->prevtxs, keys, complete))
-        {
-            // do not sign, cancel
-            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-            sendCancelTransaction(txid, crNotSigned);
-            return true;
-        }
+//        bool complete = false;
+//        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                     m_wallet.ip, m_wallet.port,
+//                                     paytx, xtx->prevtxs, keys, complete))
+//        {
+//            // do not sign, cancel
+//            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
+//            sendCancelTransaction(txid, crNotSigned);
+//            return true;
+//        }
 
-        assert(!complete && "not fully signed");
+//        assert(!complete && "not fully signed");
 
-        std::string json;
-        std::string paytxid;
-        if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
-                                       m_wallet.ip, m_wallet.port,
-                                       paytx, paytxid, json))
-        {
-            LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
+//        std::string json;
+//        std::string paytxid;
+//        if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                       m_wallet.ip, m_wallet.port,
+//                                       paytx, paytxid, json))
+//        {
+//            LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
+//            sendCancelTransaction(txid, crRpcError);
+//            return true;
+//        }
 
-        TXLOG() << "payment  " << paytx;
-        TXLOG() << json;
+//        TXLOG() << "payment  " << paytx;
+//        TXLOG() << json;
 
-        xtx->payTx   = paytx;
-        xtx->payTxId = paytxid;
+//        xtx->payTx   = paytx;
+//        xtx->payTxId = paytxid;
 
-    } // payTx
+//    } // payTx
 
-    // refTx
-    {
-        std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<std::string, double> > outputs;
+//    // refTx
+//    {
+//        std::vector<std::pair<std::string, int> >    inputs;
+//        std::vector<std::pair<std::string, double> > outputs;
 
-        // inputs from binTx
-        inputs.push_back(std::make_pair(xtx->binTxId, 0));
+//        // inputs from binTx
+//        inputs.push_back(std::make_pair(xtx->binTxId, 0));
 
-        // outputs
-        {
-            std::string addr;
-            if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, addr))
-            {
-                // cancel transaction
-                LOG() << "rpc error, transaction canceled " << __FUNCTION__;
-                sendCancelTransaction(txid, crRpcError);
-                return true;
-            }
+//        // outputs
+//        {
+//            std::string addr;
+//            if (!rpc::getNewAddress(m_wallet.user, m_wallet.passwd, m_wallet.ip, m_wallet.port, addr))
+//            {
+//                // cancel transaction
+//                LOG() << "rpc error, transaction canceled " << __FUNCTION__;
+//                sendCancelTransaction(txid, crRpcError);
+//                return true;
+//            }
 
-            double fee3 = static_cast<double>(minTxFee(1, 1)) / XBridgeTransactionDescr::COIN;
+//            double fee3 = static_cast<double>(minTxFee(1, 1)) / XBridgeTransactionDescr::COIN;
 
-            outputs.push_back(std::make_pair(addr, outAmount-fee3));
-        }
+//            outputs.push_back(std::make_pair(addr, outAmount-fee3));
+//        }
 
-        std::string reftx = createRawTransaction(inputs, outputs, lockTime(role));
-        if (!reftx.size())
-        {
-            // cancel transaction
-            LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
+//        std::string reftx = createRawTransaction(inputs, outputs, lockTime(role));
+//        if (!reftx.size())
+//        {
+//            // cancel transaction
+//            LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
+//            sendCancelTransaction(txid, crRpcError);
+//            return true;
+//        }
 
-        // sign
-        std::vector<std::string> keys;
-        keys.push_back(secretToString(xtx->mSecret));
+//        // sign
+//        std::vector<std::string> keys;
+//        keys.push_back(secretToString(xtx->mSecret));
 
-        bool complete = false;
-        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
-                                     m_wallet.ip, m_wallet.port,
-                                     reftx, xtx->prevtxs, keys, complete))
-        {
-            // do not sign, cancel
-            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-            sendCancelTransaction(txid, crNotSigned);
-            return true;
-        }
+//        bool complete = false;
+//        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                     m_wallet.ip, m_wallet.port,
+//                                     reftx, xtx->prevtxs, keys, complete))
+//        {
+//            // do not sign, cancel
+//            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
+//            sendCancelTransaction(txid, crNotSigned);
+//            return true;
+//        }
 
-        assert(!complete && "not fully signed");
+//        assert(!complete && "not fully signed");
 
-        std::string json;
-        std::string reftxid;
-        if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
-                                       m_wallet.ip, m_wallet.port,
-                                       reftx, reftxid, json))
-        {
-            LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
+//        std::string json;
+//        std::string reftxid;
+//        if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+//                                       m_wallet.ip, m_wallet.port,
+//                                       reftx, reftxid, json))
+//        {
+//            LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
+//            sendCancelTransaction(txid, crRpcError);
+//            return true;
+//        }
 
-        TXLOG() << "refund  " << reftx;
-        TXLOG() << json;
+//        TXLOG() << "refund  " << reftx;
+//        TXLOG() << json;
 
-        xtx->refTx   = reftx;
-        xtx->refTxId = reftxid;
+//        xtx->refTx   = reftx;
+//        xtx->refTxId = reftxid;
 
-    } // refTx
+//    } // refTx
 
-    xtx->state = XBridgeTransactionDescr::trCreated;
-    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
+//    xtx->state = XBridgeTransactionDescr::trCreated;
+//    uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
-    // send reply
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCreated));
-    reply->append(hubAddress);
-    reply->append(thisAddress);
-    reply->append(txid.begin(), 32);
-    reply->append(xtx->prevtxs);
-    reply->append(xtx->refTx);
+//    // send reply
+//    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionCreated));
+//    reply->append(hubAddress);
+//    reply->append(thisAddress);
+//    reply->append(txid.begin(), 32);
+//    reply->append(xtx->prevtxs);
+//    reply->append(xtx->refTx);
 
-    sendPacket(hubAddress, reply);
+//    sendPacket(hubAddress, reply);
     return true;
 }
 

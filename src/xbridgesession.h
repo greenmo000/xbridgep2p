@@ -103,6 +103,9 @@ protected:
 
     virtual uint32_t lockTime(const char role) const;
     virtual std::string createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                             const CPubKey & my1,
+                                             const CPubKey & r1,
+                                             const CPubKey & x,
                                              const std::vector<std::pair<std::string, double> > & outputs,
                                              const uint32_t lockTime);
 

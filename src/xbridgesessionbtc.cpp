@@ -60,32 +60,42 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 //*****************************************************************************
 //*****************************************************************************
 std::string XBridgeSessionBtc::createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                                    const CPubKey & my1,
+                                                    const CPubKey & r1,
+                                                    const CPubKey & x,
                                                     const std::vector<std::pair<std::string, double> > & outputs,
                                                     const uint32_t lockTime)
 {
-//    uint32_t sequence = (1 << 22) | (lockTime >> 9);
-//    uint32_t time = (sequence & 0x0000ffff) << 9;
-
     CBTCTransaction tx;
-    tx.nVersion = 2;
 
     for (const std::pair<std::string, int> & in : inputs)
     {
-//        tx.vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second), CScript(), sequence));
         tx.vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second),
                                CScript(), std::numeric_limits<uint32_t>::max() - 1));
     }
 
-    for (const std::pair<std::string, double> & out : outputs)
+    // for (const std::pair<std::string, double> & out : outputs)
+    for (uint32_t i = 0; i < outputs.size(); ++i)
     {
-        CKeyID id;
-        CBitcoinAddress(out.first).GetKeyID(id);
-        CScript addr;
-        addr << lockTime << OP_CHECKLOCKTIMEVERIFY << OP_DROP
-             << OP_DUP << OP_HASH160 << id << OP_EQUALVERIFY << OP_CHECKSIG;
+        const std::pair<std::string, double> & out = outputs[i];
 
-//        CScript addr;
-//        addr.SetDestination(CBitcoinAddress(out.first).Get());
+        CScript addr;
+
+        if (i == 0)
+        {
+            addr << OP_IF << lockTime << OP_CHECKLOCKTIMEVERIFY << OP_DROP
+                 << OP_DUP << OP_HASH160 << my1.GetID()
+                 << OP_EQUALVERIFY << OP_CHECKSIG
+                 << OP_ELSE
+                 << OP_DUP << OP_HASH160 << r1.GetID()
+                 << OP_EQUALVERIFY << OP_CHECKSIGVERIFY
+                 << OP_DUP << OP_HASH160 << x.GetID()
+                 << OP_EQUAL << OP_ENDIF;
+        }
+        else
+        {
+            addr.SetDestination(CBitcoinAddress(out.first).Get());
+        }
 
         tx.vout.push_back(CTxOut(out.second*m_wallet.COIN, addr));
     }
