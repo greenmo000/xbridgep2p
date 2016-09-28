@@ -1419,6 +1419,30 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     // create transactions
 
     // create multisig address for first tx
+//    {
+//        bool compressed = true;
+//        CKey km;
+//        km.MakeNewKey();
+//        xtx->mPubKey = km.GetPubKey();
+//        xtx->mSecret = km.GetSecret(compressed);
+//        assert(compressed && "must be compressed key");
+
+//        std::vector<CKey> pubkeys;
+//        pubkeys.resize(2);
+//        pubkeys[0].SetPubKey(mPubkey);
+//        pubkeys[1].SetPubKey(xtx->mPubKey);
+
+//        CScript inner;
+//        inner.SetMultisig(2, pubkeys);
+//        CBitcoinAddress baddr;
+//        baddr.Set(inner.GetID(), m_wallet.scriptPrefix[0]);
+
+//        xtx->multisig = baddr.ToString();
+//        xtx->redeem   = HexStr(inner.begin(), inner.end());
+
+//    } // multisig
+
+    // create address for first tx
     {
         bool compressed = true;
         CKey km;
@@ -1427,20 +1451,22 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         xtx->mSecret = km.GetSecret(compressed);
         assert(compressed && "must be compressed key");
 
-        std::vector<CKey> pubkeys;
-        pubkeys.resize(2);
-        pubkeys[0].SetPubKey(mPubkey);
-        pubkeys[1].SetPubKey(xtx->mPubKey);
-
         CScript inner;
-        inner.SetMultisig(2, pubkeys);
+        inner << OP_IF
+                    << lockTime(role) << OP_CHECKLOCKTIMEVERIFY << OP_DROP
+                    << OP_DUP << OP_HASH160 << xtx->mPubKey.GetID() << OP_EQUALVERIFY << OP_CHECKSIG
+              << OP_ELSE
+                    << OP_DUP << OP_HASH160 << mPubkey.GetID() << OP_EQUALVERIFY << OP_CHECKSIGVERIFY
+                    << OP_DUP << OP_HASH160 << x.GetID() << OP_EQUAL
+              << OP_ENDIF;
+
         CBitcoinAddress baddr;
         baddr.Set(inner.GetID(), m_wallet.scriptPrefix[0]);
 
         xtx->multisig = baddr.ToString();
         xtx->redeem   = HexStr(inner.begin(), inner.end());
 
-    } // multisig
+    } // address for first tx
 
     // binTx
     std::string binjson;
@@ -1660,8 +1686,12 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             outputs.push_back(std::make_pair(addr, outAmount-fee3));
         }
 
-        std::string reftx = createRawTransaction(inputs, outputs, lockTime(role));
-        if (!reftx.size())
+//        std::string reftx = createRawTransaction(inputs, outputs, lockTime(role));
+//        if (!reftx.size())
+        std::string reftx;
+        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
+                                       m_wallet.ip, m_wallet.port,
+                                       inputs, outputs, 0, reftx))
         {
             // cancel transaction
             LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
