@@ -105,7 +105,7 @@ public:
     std::string                a_refTx() const;
     std::string                a_bintxid() const;
 
-    // CPubKey                    a_x() const;
+    CPubKey                    a_x() const;
     CPubKey                    a_pk1() const;
 
     // uint256                    secondId() const;
@@ -118,7 +118,7 @@ public:
     std::string                b_refTx() const;
     std::string                b_bintxid() const;
 
-    CPubKey                    b_x() const;
+    // CPubKey                    b_x() const;
     CPubKey                    b_pk1() const;
 
     std::string                fromXAddr(const std::vector<unsigned char> & xaddr) const;

@@ -1,3 +1,6 @@
+//******************************************************************************
+//******************************************************************************
+
 #ifndef CTRANSACTION_H
 #define CTRANSACTION_H
 
@@ -8,7 +11,10 @@
 #include <string>
 #include <cstring>
 #include <cstdio>
+#include <memory>
 
+//******************************************************************************
+//******************************************************************************
 class COutPoint
 {
 public:
@@ -47,6 +53,8 @@ public:
     }
 };
 
+//******************************************************************************
+//******************************************************************************
 class CTxIn
 {
 public:
@@ -123,6 +131,8 @@ public:
     }
 };
 
+//******************************************************************************
+//******************************************************************************
 class CTxOut
 {
 public:
@@ -203,7 +213,14 @@ public:
     }
 };
 
-class CBTCTransaction
+//******************************************************************************
+//******************************************************************************
+class CTransaction;
+typedef std::shared_ptr<CTransaction> CTransactionPtr;
+
+//******************************************************************************
+//******************************************************************************
+class CTransaction
 {
 public:
     static const int CURRENT_VERSION=1;
@@ -218,9 +235,14 @@ public:
     mutable int nDoS;
     bool DoS(int nDoSIn, bool fIn) const { nDoS += nDoSIn; return fIn; }
 
-    CBTCTransaction()
+    CTransaction()
     {
         SetNull();
+    }
+
+    virtual CTransactionPtr clone()
+    {
+        return CTransactionPtr(new CTransaction(*this));
     }
 
     IMPLEMENT_SERIALIZE
@@ -235,7 +257,7 @@ public:
 
     void SetNull()
     {
-        nVersion = CBTCTransaction::CURRENT_VERSION;
+        nVersion = CTransaction::CURRENT_VERSION;
         nTime = static_cast<unsigned int>(time(0));// GetAdjustedTime();
         vin.clear();
         vout.clear();
@@ -270,7 +292,7 @@ public:
 //        return true;
 //    }
 
-    bool IsNewerThan(const CBTCTransaction& old) const
+    bool IsNewerThan(const CTransaction& old) const
     {
         if (vin.size() != old.vin.size())
             return false;
@@ -403,7 +425,7 @@ public:
 //        return true;
 //    }
 
-    friend bool operator==(const CBTCTransaction& a, const CBTCTransaction& b)
+    friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return (a.nVersion  == b.nVersion &&
                 // a.nTime     == b.nTime &&
@@ -412,17 +434,24 @@ public:
                 a.nLockTime == b.nLockTime);
     }
 
-    friend bool operator!=(const CBTCTransaction& a, const CBTCTransaction& b)
+    friend bool operator!=(const CTransaction& a, const CTransaction& b)
     {
         return !(a == b);
     }
 
-    std::string ToStringShort() const
+    virtual std::string toString() const
     {
-        std::string str;
-        str += strprintf("%s %s", GetHash().ToString().c_str(), IsCoinBase()? "base" : (IsCoinStake()? "stake" : "user"));
-        return str;
+        CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+        ss << *this;
+        return HexStr(ss.begin(), ss.end());
     }
+
+//    std::string ToStringShort() const
+//    {
+//        std::string str;
+//        str += strprintf("%s %s", GetHash().ToString().c_str(), IsCoinBase()? "base" : (IsCoinStake()? "stake" : "user"));
+//        return str;
+//    }
 
 //    std::string ToString() const
 //    {
@@ -492,27 +521,24 @@ protected:
 //    const CTxOut& GetOutputFor(const CTxIn& input, const MapPrevTx& inputs) const;
 };
 
+//******************************************************************************
+//******************************************************************************
+typedef CTransaction CBTCTransaction;
 
-class CTransaction : public CBTCTransaction
+//******************************************************************************
+//******************************************************************************
+class CXCTransaction : public CTransaction
 {
 public:
-    CTransaction() : CBTCTransaction()
+    CXCTransaction() : CTransaction()
     {
 
     }
 
-//    CTransaction(CBTCTransaction & o)
-//    {
-//        // OMG :(
-//        // CTransaction diff from CBTCTransaction only methods of serialisation
-//        *this = reinterpret_cast<CTransaction &>(o);
-//    }
-
-//    CTransaction & operator = (const CBTCTransaction & o)
-//    {
-//        *this = reinterpret_cast<const CTransaction &>(o);
-//        return *this;
-//    }
+    virtual CTransactionPtr clone()
+    {
+        return CTransactionPtr(new CTransaction(*this));
+    }
 
     IMPLEMENT_SERIALIZE
     (
@@ -524,7 +550,7 @@ public:
         READWRITE(nLockTime);
     )
 
-    friend bool operator==(const CTransaction& a, const CTransaction& b)
+    friend bool operator==(const CXCTransaction& a, const CXCTransaction& b)
     {
         return (a.nVersion  == b.nVersion &&
                 a.nTime     == b.nTime &&
@@ -536,6 +562,13 @@ public:
     virtual uint256 GetHash() const
     {
         return SerializeHash(*this);
+    }
+
+    virtual std::string toString() const
+    {
+        CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+        ss << *this;
+        return HexStr(ss.begin(), ss.end());
     }
 };
 

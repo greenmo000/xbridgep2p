@@ -18,6 +18,7 @@
 typedef std::vector<unsigned char> valtype;
 
 class CTransaction;
+typedef std::shared_ptr<CTransaction> CTransactionPtr;
 
 /** Signature hash types/flags */
 enum
@@ -589,8 +590,9 @@ public:
 
 
 
+uint256 SignatureHash(CScript scriptCode, const CTransactionPtr & txTo, unsigned int nIn, int nHashType);
 
-bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, const CTransaction& txTo, unsigned int nIn, int nHashType);
+bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, const CTransactionPtr &txTo, unsigned int nIn, int nHashType);
 bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet);
 int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions);
 bool IsStandard(const CScript& scriptPubKey);
@@ -598,14 +600,14 @@ bool IsMine(const CKeyStore& keystore, const CScript& scriptPubKey);
 bool IsMine(const CKeyStore& keystore, const CTxDestination &dest);
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet);
 bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet);
-bool SignSignature(const CKeyStore& keystore, const CScript& fromPubKey, CTransaction& txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);
-bool SignSignature(const CKeyStore& keystore, const CTransaction& txFrom, CTransaction& txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);
-bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CTransaction& txTo, unsigned int nIn,
+bool SignSignature(const CKeyStore& keystore, const CScript& fromPubKey, CTransactionPtr &txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);
+bool SignSignature(const CKeyStore& keystore, const CTransactionPtr &txFrom, CTransactionPtr &txTo, unsigned int nIn, int nHashType=SIGHASH_ALL);
+bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CTransactionPtr &txTo, unsigned int nIn,
                   bool fValidatePayToScriptHash, int nHashType);
-bool VerifySignature(const CTransaction& txFrom, const CTransaction& txTo, unsigned int nIn, bool fValidatePayToScriptHash, int nHashType);
+bool VerifySignature(const CTransactionPtr &txFrom, const CTransactionPtr &txTo, unsigned int nIn, bool fValidatePayToScriptHash, int nHashType);
 
 // Given two sets of signatures for scriptPubKey, possibly with OP_0 placeholders,
 // combine them intelligently and return the result.
-CScript CombineSignatures(CScript scriptPubKey, const CTransaction& txTo, unsigned int nIn, const CScript& scriptSig1, const CScript& scriptSig2);
+CScript CombineSignatures(CScript scriptPubKey, const CTransactionPtr& txTo, unsigned int nIn, const CScript& scriptSig1, const CScript& scriptSig2);
 
 #endif

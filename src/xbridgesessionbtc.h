@@ -35,9 +35,13 @@ public:
 
 protected:
     // virtual uint32_t lockTime(const char role) const;
+    virtual CTransactionPtr createTransaction();
+    virtual CTransactionPtr createTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                              const std::vector<std::pair<CScript, double> > & outputs,
+                                              const uint32_t lockTime = 0);
     virtual std::string createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
-                                             const std::vector<std::pair<std::string, double> > & outputs,
-                                             const uint32_t lockTime);
+                                             const std::vector<std::pair<CScript, double> > & outputs,
+                                             const uint32_t lockTime = 0);
 };
 
 typedef std::shared_ptr<XBridgeSessionBtc> XBridgeSessionBtcPtr;

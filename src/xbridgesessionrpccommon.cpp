@@ -107,8 +107,8 @@ void XBridgeSessionRpc::init()
 //******************************************************************************
 CScript destination(const std::vector<unsigned char> & address, const char prefix);
 CScript destination(const std::string & address);
-std::string txToString(const CTransaction & tx);
-CTransaction txFromString(const std::string & str);
+std::string txToString(const CXCTransaction & tx);
+CXCTransaction txFromString(const std::string & str);
 boost::uint64_t minTxFee(const uint32_t inputCount, const uint32_t outputCount);
 
 //******************************************************************************

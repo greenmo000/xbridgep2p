@@ -7,10 +7,12 @@
 #include "xbridge.h"
 #include "xbridgepacket.h"
 #include "xbridgetransaction.h"
+#include "xbridgetransactiondescr.h"
 #include "xbridgewallet.h"
 #include "FastDelegate.h"
 #include "util/uint256.h"
 #include "key.h"
+#include "ctransaction.h"
 
 #include <memory>
 #include <set>
@@ -102,9 +104,13 @@ protected:
     std::string round_x(const long double val, uint32_t prec);
 
     virtual uint32_t lockTime(const char role) const;
+    virtual CTransactionPtr createTransaction();
+    virtual CTransactionPtr createTransaction(const std::vector<std::pair<std::string, int> > & inputs,
+                                              const std::vector<std::pair<CScript, double> > & outputs,
+                                              const uint32_t lockTime = 0);
     virtual std::string createRawTransaction(const std::vector<std::pair<std::string, int> > & inputs,
-                                             const std::vector<std::pair<std::string, double> > & outputs,
-                                             const uint32_t lockTime);
+                                             const std::vector<std::pair<CScript, double> > & outputs,
+                                             const uint32_t lockTime = 0);
 
 protected:
     virtual bool processInvalid(XBridgePacketPtr packet);

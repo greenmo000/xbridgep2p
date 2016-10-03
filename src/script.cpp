@@ -17,7 +17,7 @@ using namespace boost;
 #include "util/util.h"
 #include "ctransaction.h"
 
-bool CheckSig(vector<unsigned char> vchSig, vector<unsigned char> vchPubKey, CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType);
+bool CheckSig(vector<unsigned char> vchSig, vector<unsigned char> vchPubKey, CScript scriptCode, const CTransactionPtr &txTo, unsigned int nIn, int nHashType);
 
 static const valtype vchFalse(0);
 static const valtype vchZero(0);
@@ -251,7 +251,7 @@ const char* GetOpName(opcodetype opcode)
     }
 }
 
-bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, const CTransaction& txTo, unsigned int nIn, int nHashType)
+bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, const CTransactionPtr &txTo, unsigned int nIn, int nHashType)
 {
     CAutoBN_CTX pctx;
     CScript::const_iterator pc = script.begin();
@@ -1059,65 +1059,65 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, co
 
 
 
-uint256 SignatureHash(CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType)
+uint256 SignatureHash(CScript scriptCode, const CTransactionPtr & txTo, unsigned int nIn, int nHashType)
 {
-    if (nIn >= txTo.vin.size())
+    if (nIn >= txTo->vin.size())
     {
         printf("ERROR: SignatureHash() : nIn=%d out of range\n", nIn);
         return 1;
     }
-    CTransaction txTmp(txTo);
+    CTransactionPtr txTmp = txTo->clone();
 
     // In case concatenating two scripts ends up with two codeseparators,
     // or an extra one at the end, this prevents all those possible incompatibilities.
     scriptCode.FindAndDelete(CScript(OP_CODESEPARATOR));
 
     // Blank out other inputs' signatures
-    for (unsigned int i = 0; i < txTmp.vin.size(); i++)
-        txTmp.vin[i].scriptSig = CScript();
-    txTmp.vin[nIn].scriptSig = scriptCode;
+    for (unsigned int i = 0; i < txTmp->vin.size(); i++)
+        txTmp->vin[i].scriptSig = CScript();
+    txTmp->vin[nIn].scriptSig = scriptCode;
 
     // Blank out some of the outputs
     if ((nHashType & 0x1f) == SIGHASH_NONE)
     {
         // Wildcard payee
-        txTmp.vout.clear();
+        txTmp->vout.clear();
 
         // Let the others update at will
-        for (unsigned int i = 0; i < txTmp.vin.size(); i++)
+        for (unsigned int i = 0; i < txTmp->vin.size(); i++)
             if (i != nIn)
-                txTmp.vin[i].nSequence = 0;
+                txTmp->vin[i].nSequence = 0;
     }
     else if ((nHashType & 0x1f) == SIGHASH_SINGLE)
     {
         // Only lock-in the txout payee at same index as txin
         unsigned int nOut = nIn;
-        if (nOut >= txTmp.vout.size())
+        if (nOut >= txTmp->vout.size())
         {
             printf("ERROR: SignatureHash() : nOut=%d out of range\n", nOut);
             return 1;
         }
-        txTmp.vout.resize(nOut+1);
+        txTmp->vout.resize(nOut+1);
         for (unsigned int i = 0; i < nOut; i++)
-            txTmp.vout[i].SetNull();
+            txTmp->vout[i].SetNull();
 
         // Let the others update at will
-        for (unsigned int i = 0; i < txTmp.vin.size(); i++)
+        for (unsigned int i = 0; i < txTmp->vin.size(); i++)
             if (i != nIn)
-                txTmp.vin[i].nSequence = 0;
+                txTmp->vin[i].nSequence = 0;
     }
 
     // Blank out other inputs completely, not recommended for open transactions
     if (nHashType & SIGHASH_ANYONECANPAY)
     {
-        txTmp.vin[0] = txTmp.vin[nIn];
-        txTmp.vin.resize(1);
+        txTmp->vin[0] = txTmp->vin[nIn];
+        txTmp->vin.resize(1);
     }
 
     // Serialize and hash
     CDataStream ss(SER_GETHASH, 0);
     ss.reserve(10000);
-    ss << txTmp << nHashType;
+    ss << *txTmp << nHashType;
     return util::hash(ss.begin(), ss.end());
 }
 
@@ -1179,7 +1179,7 @@ public:
 };
 
 bool CheckSig(vector<unsigned char> vchSig, vector<unsigned char> vchPubKey, CScript scriptCode,
-              const CTransaction& txTo, unsigned int nIn, int nHashType)
+              const CTransactionPtr & txTo, unsigned int nIn, int nHashType)
 {
     static CSignatureCache signatureCache;
 
@@ -1572,7 +1572,7 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, vecto
     return true;
 }
 
-bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CTransaction& txTo, unsigned int nIn,
+bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CTransactionPtr &txTo, unsigned int nIn,
                   bool fValidatePayToScriptHash, int nHashType)
 {
     vector<vector<unsigned char> > stack, stackCopy;
@@ -1609,10 +1609,10 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 }
 
 
-bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransaction& txTo, unsigned int nIn, int nHashType)
+bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransactionPtr &txTo, unsigned int nIn, int nHashType)
 {
-    assert(nIn < txTo.vin.size());
-    CTxIn& txin = txTo.vin[nIn];
+    assert(nIn < txTo->vin.size());
+    CTxIn& txin = txTo->vin[nIn];
 
     // Leave out the signature from the hash, since a signature can't sign itself.
     // The checksig op will also drop the signatures from its hash.
@@ -1644,26 +1644,26 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransa
     return VerifyScript(txin.scriptSig, fromPubKey, txTo, nIn, true, 0);
 }
 
-bool SignSignature(const CKeyStore &keystore, const CTransaction& txFrom, CTransaction& txTo, unsigned int nIn, int nHashType)
+bool SignSignature(const CKeyStore &keystore, const CTransactionPtr &txFrom, CTransactionPtr &txTo, unsigned int nIn, int nHashType)
 {
-    assert(nIn < txTo.vin.size());
-    CTxIn& txin = txTo.vin[nIn];
-    assert(txin.prevout.n < txFrom.vout.size());
+    assert(nIn < txTo->vin.size());
+    CTxIn& txin = txTo->vin[nIn];
+    assert(txin.prevout.n < txFrom->vout.size());
     // assert(txin.prevout.hash == txFrom.GetHash());
-    const CTxOut& txout = txFrom.vout[txin.prevout.n];
+    const CTxOut& txout = txFrom->vout[txin.prevout.n];
 
     return SignSignature(keystore, txout.scriptPubKey, txTo, nIn, nHashType);
 }
 
-bool VerifySignature(const CTransaction& txFrom, const CTransaction& txTo, unsigned int nIn, bool fValidatePayToScriptHash, int nHashType)
+bool VerifySignature(const CTransactionPtr &txFrom, const CTransactionPtr &txTo, unsigned int nIn, bool fValidatePayToScriptHash, int nHashType)
 {
-    assert(nIn < txTo.vin.size());
-    const CTxIn& txin = txTo.vin[nIn];
-    if (txin.prevout.n >= txFrom.vout.size())
+    assert(nIn < txTo->vin.size());
+    const CTxIn& txin = txTo->vin[nIn];
+    if (txin.prevout.n >= txFrom->vout.size())
         return false;
-    const CTxOut& txout = txFrom.vout[txin.prevout.n];
+    const CTxOut& txout = txFrom->vout[txin.prevout.n];
 
-    if (txin.prevout.hash != txFrom.GetHash())
+    if (txin.prevout.hash != txFrom->GetHash())
         return false;
 
     return VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, nIn, fValidatePayToScriptHash, nHashType);
@@ -1677,7 +1677,7 @@ static CScript PushAll(const vector<valtype>& values)
     return result;
 }
 
-static CScript CombineMultisig(CScript scriptPubKey, const CTransaction& txTo, unsigned int nIn,
+static CScript CombineMultisig(CScript scriptPubKey, const CTransactionPtr& txTo, unsigned int nIn,
                                const vector<valtype>& vSolutions,
                                vector<valtype>& sigs1, vector<valtype>& sigs2)
 {
@@ -1732,7 +1732,7 @@ static CScript CombineMultisig(CScript scriptPubKey, const CTransaction& txTo, u
     return result;
 }
 
-static CScript CombineSignatures(CScript scriptPubKey, const CTransaction& txTo, unsigned int nIn,
+static CScript CombineSignatures(CScript scriptPubKey, const CTransactionPtr& txTo, unsigned int nIn,
                                  const txnouttype txType, const vector<valtype>& vSolutions,
                                  vector<valtype>& sigs1, vector<valtype>& sigs2)
 {
@@ -1776,20 +1776,20 @@ static CScript CombineSignatures(CScript scriptPubKey, const CTransaction& txTo,
     return CScript();
 }
 
-CScript CombineSignatures(CScript scriptPubKey, const CTransaction& txTo, unsigned int nIn,
-                          const CScript& scriptSig1, const CScript& scriptSig2)
-{
-    txnouttype txType;
-    vector<vector<unsigned char> > vSolutions;
-    Solver(scriptPubKey, txType, vSolutions);
+//CScript CombineSignatures(CScript scriptPubKey, const CTransactionPtr &txTo, unsigned int nIn,
+//                          const CScript& scriptSig1, const CScript& scriptSig2)
+//{
+//    txnouttype txType;
+//    vector<vector<unsigned char> > vSolutions;
+//    Solver(scriptPubKey, txType, vSolutions);
 
-    vector<valtype> stack1;
-    EvalScript(stack1, scriptSig1, CTransaction(), 0, 0);
-    vector<valtype> stack2;
-    EvalScript(stack2, scriptSig2, CTransaction(), 0, 0);
+//    vector<valtype> stack1;
+//    EvalScript(stack1, scriptSig1, CTransaction(), 0, 0);
+//    vector<valtype> stack2;
+//    EvalScript(stack2, scriptSig2, CTransaction(), 0, 0);
 
-    return CombineSignatures(scriptPubKey, txTo, nIn, txType, vSolutions, stack1, stack2);
-}
+//    return CombineSignatures(scriptPubKey, txTo, nIn, txType, vSolutions, stack1, stack2);
+//}
 
 unsigned int CScript::GetSigOpCount(bool fAccurate) const
 {
