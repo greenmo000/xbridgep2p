@@ -107,9 +107,11 @@ public:
 
 // secure_allocator is defined in allocators.h
 // CPrivKey is a serialized private key, with all parameters included (279 bytes)
-typedef std::vector<unsigned char, secure_allocator<unsigned char> > CPrivKey;
+// typedef std::vector<unsigned char, secure_allocator<unsigned char> > CPrivKey;
+typedef std::vector<unsigned char> CPrivKey;
 // CSecret is a serialization of just the secret parameter (32 bytes)
-typedef std::vector<unsigned char, secure_allocator<unsigned char> > CSecret;
+// typedef std::vector<unsigned char, secure_allocator<unsigned char> > CSecret;
+typedef std::vector<unsigned char> CSecret;
 
 /** An encapsulated OpenSSL Elliptic Curve key (public and/or private) */
 class CKey
