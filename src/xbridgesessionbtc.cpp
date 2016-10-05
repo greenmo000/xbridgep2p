@@ -73,12 +73,16 @@ CTransactionPtr XBridgeSessionBtc::createTransaction(const std::vector<std::pair
     CTransactionPtr tx(new CBTCTransaction);
     tx->nLockTime = lockTime;
 
-    uint32_t sequence = lockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max();
+//    uint32_t sequence = lockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max();
 
+//    for (const std::pair<std::string, int> & in : inputs)
+//    {
+//        tx->vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second),
+//                                CScript(), sequence));
+//    }
     for (const std::pair<std::string, int> & in : inputs)
     {
-        tx->vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second),
-                                CScript(), sequence));
+        tx->vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second)));
     }
 
     for (const std::pair<CScript, double> & out : outputs)

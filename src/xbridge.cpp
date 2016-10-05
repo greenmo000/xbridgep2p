@@ -53,6 +53,7 @@ XBridge::XBridge()
                 wp.scriptPrefix[0]             = s.get<int>(*i + ".ScriptPrefix", 0);
                 wp.secretPrefix[0]             = s.get<int>(*i + ".SecretPrefix", 0);
                 wp.COIN                        = s.get<uint64_t>(*i + ".COIN", 0);
+                wp.minTxFee                    = s.get<uint64_t>(*i + ".MinTxFee", 0);
                 wp.minAmount                   = s.get<uint64_t>(*i + ".MinimumAmount", 0);
                 wp.dustAmount                  = s.get<uint64_t>(*i + ".DustAmount", 0);
                 wp.method                      = s.get<std::string>(*i + ".CreateTxMethod");

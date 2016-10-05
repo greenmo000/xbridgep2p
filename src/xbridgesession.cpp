@@ -1230,9 +1230,14 @@ bool XBridgeSession::processTransactionInitialized(XBridgePacketPtr packet)
 
 //******************************************************************************
 //******************************************************************************
-boost::uint64_t XBridgeSession::minTxFee(const uint32_t inputCount, const uint32_t outputCount)
+uint64_t XBridgeSession::minTxFee(const uint32_t inputCount, const uint32_t outputCount)
 {
-    return 148*inputCount + 34*outputCount + 10;
+    uint64_t fee = 148*inputCount + 34*outputCount + 10;
+    if (m_wallet.minTxFee)
+    {
+        return std::max(fee, m_wallet.minTxFee);
+    }
+    return fee;
 }
 
 //******************************************************************************
@@ -1305,13 +1310,18 @@ CTransactionPtr XBridgeSession::createTransaction(const std::vector<std::pair<st
     CTransactionPtr tx(new CXCTransaction);
     tx->nLockTime = lockTime;
 
-    uint32_t sequence = lockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max();
+//    uint32_t sequence = lockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max();
 
+//    for (const std::pair<std::string, int> & in : inputs)
+//    {
+//        tx->vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second),
+//                                CScript(), sequence));
+//    }
     for (const std::pair<std::string, int> & in : inputs)
     {
-        tx->vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second),
-                                CScript(), sequence));
+        tx->vin.push_back(CTxIn(COutPoint(uint256(in.first), in.second)));
     }
+
 
     for (const std::pair<CScript, double> & out : outputs)
     {
@@ -1725,11 +1735,11 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         }
 
         CScript dest;
-        dest << signature << 0;
+        dest << signature << 1;
         dest += inner;
 
         CTransactionPtr tx(createTransaction());
-        tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest, std::numeric_limits<uint32_t>::max()-1));
+        tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest)); // , std::numeric_limits<uint32_t>::max()-1));
         tx->vout = txUnsigned->vout;
         tx->nLockTime = txUnsigned->nLockTime;
 
