@@ -1440,30 +1440,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // create transactions
 
-    // create multisig address for first tx
-//    {
-//        bool compressed = true;
-//        CKey km;
-//        km.MakeNewKey();
-//        xtx->mPubKey = km.GetPubKey();
-//        xtx->mSecret = km.GetSecret(compressed);
-//        assert(compressed && "must be compressed key");
-
-//        std::vector<CKey> pubkeys;
-//        pubkeys.resize(2);
-//        pubkeys[0].SetPubKey(mPubkey);
-//        pubkeys[1].SetPubKey(xtx->mPubKey);
-
-//        CScript inner;
-//        inner.SetMultisig(2, pubkeys);
-//        CBitcoinAddress baddr;
-//        baddr.Set(inner.GetID(), m_wallet.scriptPrefix[0]);
-
-//        xtx->multisig = baddr.ToString();
-//        xtx->redeem   = HexStr(inner.begin(), inner.end());
-
-//    } // multisig
-
     // create address for first tx
     {
         bool compressed = true;
@@ -1574,92 +1550,50 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     } // binTx
 
-    // prevtxs for sign next transactions
-    {
-        std::vector<std::tuple<std::string, int, std::string, std::string> > prevtxs;
-
-        Value v;
-        if (!read_string(binjson, v))
-        {
-            // wtf ?
-            ERR() << "error read tx json, cancelled " << binjson;
-            sendCancelTransaction(txid, crRpcError);
-            return true;
-        }
-
-        Object o = v.get_obj();
-        v = find_value(o, "vout");
-        Array outs = v.get_array();
-        for (const Value & out : outs)
-        {
-            Value vn = find_value(out.get_obj(), "n");
-            if (vn.type() != int_type)
-            {
-                continue;
-            }
-            uint32_t n = vn.get_int();
-
-            Value vscript = find_value(out.get_obj(), "scriptPubKey");
-            if (vscript.type() != obj_type)
-            {
-                continue;
-            }
-
-            Object script = vscript.get_obj();
-
-            Value vhex = find_value(script, "hex");
-            if (vhex.type() != str_type)
-            {
-                continue;
-            }
-
-            prevtxs.push_back(std::make_tuple(xtx->binTxId, n, vhex.get_str(), n == 0 ? xtx->redeem : ""));
-        }
-
-        xtx->prevtxs = rpc::prevtxsJson(prevtxs);
-
-    } // inputs
-
     // payTx
+    // TODO this tx must be created on other side
 //    {
-//        std::vector<std::pair<std::string, int> >    inputs;
-//        std::vector<std::pair<std::string, double> > outputs;
+//        std::vector<std::pair<std::string, int> > inputs;
+//        std::vector<std::pair<CScript, double> >  outputs;
 
 //        // inputs from binTx
 //        inputs.push_back(std::make_pair(xtx->binTxId, 0));
-//        inputs.push_back(std::make_pair(xtx->binTxId, 1));
 
 //        // outputs
-//        outputs.push_back(std::make_pair(destAddress, outAmount));
-
-//        std::string paytx;
-//        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
-//                                       m_wallet.ip, m_wallet.port,
-//                                       inputs, outputs, 0, paytx))
 //        {
-//            // cancel transaction
-//            LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
-//            sendCancelTransaction(txid, crRpcError);
-//            return true;
+//            CScript scr;
+//            scr.SetDestination(CBitcoinAddress(destAddress).Get());
+
+//            outputs.push_back(std::make_pair(scr, outAmount));
 //        }
 
-//        // sign
-//        std::vector<std::string> keys;
-//        keys.push_back(secretToString(xtx->mSecret));
+//        CTransactionPtr txUnsigned(createTransaction(inputs, outputs, lockTime(xtx->role)));
 
-//        bool complete = false;
-//        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
-//                                     m_wallet.ip, m_wallet.port,
-//                                     paytx, xtx->prevtxs, keys, complete))
+//        CScript inner;
+//        inner << ParseHex(xtx->redeem.c_str());
+//        uint256 hash = SignatureHash(inner, txUnsigned, 0, SIGHASH_ALL);
+
+//        std::vector<unsigned char> signature;
+//        CKey m;
+//        if (!m.SetSecret(xtx->mSecret, true) ||
+//            !m.Sign(hash, signature))
 //        {
-//            // do not sign, cancel
+//            // cancel transaction
 //            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
 //            sendCancelTransaction(txid, crNotSigned);
 //            return true;
 //        }
 
-//        assert(!complete && "not fully signed");
+//        CScript dest;
+//        dest << x.GetID() << signature << xtx->mPubKey << 0;
+//        dest += inner;
 
+//        CTransactionPtr tx(createTransaction());
+//        tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest, std::numeric_limits<uint32_t>::max()-1));
+//        tx->vout = txUnsigned->vout;
+//        tx->nLockTime = txUnsigned->nLockTime;
+
+//        std::string paytx = tx->toString();
 //        std::string json;
 //        std::string paytxid;
 //        if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
@@ -1671,7 +1605,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 //            return true;
 //        }
 
-//        TXLOG() << "payment  " << paytx;
+//        TXLOG() << "payment " << paytx;
 //        TXLOG() << json;
 
 //        xtx->payTx   = paytx;
@@ -1681,8 +1615,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
     // refTx
     {
-        std::vector<std::pair<std::string, int> >    inputs;
-        std::vector<std::pair<CScript, double> > outputs;
+        std::vector<std::pair<std::string, int> > inputs;
+        std::vector<std::pair<CScript, double> >  outputs;
 
         // inputs from binTx
         inputs.push_back(std::make_pair(xtx->binTxId, 0));
@@ -1706,19 +1640,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
         CTransactionPtr txUnsigned(createTransaction(inputs, outputs, lockTime(xtx->role)));
 
-//        std::string reftx = createRawTransaction(inputs, outputs, lockTime(xtx->role));
-//        if (!reftx.size())
-//        std::string reftx;
-//        if (!rpc::createRawTransaction(m_wallet.user, m_wallet.passwd,
-//                                       m_wallet.ip, m_wallet.port,
-//                                       inputs, outputs, 0, reftx))
-//        {
-//            // cancel transaction
-//            LOG() << "create transaction error, transaction canceled " << __FUNCTION__;
-//            sendCancelTransaction(txid, crRpcError);
-//            return true;
-//        }
-
         CScript inner;
         inner << ParseHex(xtx->redeem.c_str());
         uint256 hash = SignatureHash(inner, txUnsigned, 0, SIGHASH_ALL);
@@ -1735,30 +1656,13 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         }
 
         CScript dest;
-        dest << signature << 1;
+        dest << signature << xtx->mPubKey << 1;
         dest += inner;
 
         CTransactionPtr tx(createTransaction());
-        tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest)); // , std::numeric_limits<uint32_t>::max()-1));
+        tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest, std::numeric_limits<uint32_t>::max()-1));
         tx->vout = txUnsigned->vout;
         tx->nLockTime = txUnsigned->nLockTime;
-
-        // sign
-//        std::vector<std::string> keys;
-//        keys.push_back(secretToString(xtx->mSecret));
-
-//        bool complete = false;
-//        if (!rpc::signRawTransaction(m_wallet.user, m_wallet.passwd,
-//                                     m_wallet.ip, m_wallet.port,
-//                                     reftx, xtx->prevtxs, keys, complete))
-//        {
-//            // do not sign, cancel
-//            LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-//            sendCancelTransaction(txid, crNotSigned);
-//            return true;
-//        }
-
-//        assert(!complete && "not fully signed");
 
         std::string reftx = tx->toString();
         std::string json;
@@ -1791,7 +1695,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    reply->append(xtx->prevtxs);
+    // reply->append(xtx->prevtxs);
     reply->append(xtx->refTx);
 
     sendPacket(hubAddress, reply);
@@ -2163,7 +2067,7 @@ bool XBridgeSession::processTransactionCommitStage1(XBridgePacketPtr packet)
     reply->append(hubAddress);
     reply->append(thisAddress);
     reply->append(txid.begin(), 32);
-    reply->append(xtx->prevtxs);
+    // reply->append(xtx->prevtxs);
     reply->append(xtx->payTx);
 
     sendPacket(hubAddress, reply);

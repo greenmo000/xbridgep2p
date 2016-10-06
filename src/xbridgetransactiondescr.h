@@ -80,7 +80,7 @@ struct XBridgeTransactionDescr
     std::string                redeem;
 
     // prevtxs for signrawtransaction
-    std::string                prevtxs;
+    // std::string                prevtxs;
 
     XBridgePacketPtr           packet;
 
@@ -184,7 +184,7 @@ private:
         redeem       = d.redeem;
 
         // prevtxs for signrawtransaction
-        prevtxs      = d.prevtxs;
+        // prevtxs      = d.prevtxs;
 
         // multisig key
         mPubKey      = d.mPubKey;

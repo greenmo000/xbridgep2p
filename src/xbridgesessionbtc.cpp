@@ -40,22 +40,24 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 
 //******************************************************************************
 //******************************************************************************
-//uint32_t XBridgeSessionBtc::lockTime(const char role) const
-//{
-//    // lock time
-//    uint32_t lt = 0;
-//    if (role == 'A')
-//    {
-//        lt = 259200; // 72h in seconds
-//    }
-//    else if (role == 'B')
-//    {
-//        lt  = 259200/2; // 36h in seconds
-//    }
+uint32_t XBridgeSessionBtc::lockTime(const char role) const
+{
+    // lock time
+    uint32_t lt = 0;
+    if (role == 'A')
+    {
+        // lt = 259200; // 72h in seconds
+        lt = 600;
+    }
+    else if (role == 'B')
+    {
+        // lt  = 259200/2; // 36h in seconds
+        lt = 300;
+    }
 
-//    lt = (1 << 22) | ((lt >> 9) + 1);
-//    return lt;
-//}
+    // lt = (1 << 22) | ((lt >> 9) + 1);
+    return lt;
+}
 
 //******************************************************************************
 //******************************************************************************
