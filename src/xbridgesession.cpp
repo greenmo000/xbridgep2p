@@ -1640,8 +1640,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 
         CTransactionPtr txUnsigned(createTransaction(inputs, outputs, lockTime(xtx->role)));
 
-        CScript inner;
-        inner << ParseHex(xtx->redeem.c_str());
+        std::vector<unsigned char> vchredeem = ParseHex(xtx->redeem.c_str());
+        CScript inner(vchredeem.begin(), vchredeem.end());
         uint256 hash = SignatureHash(inner, txUnsigned, 0, SIGHASH_ALL);
 
         std::vector<unsigned char> signature;
@@ -1655,8 +1655,8 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return true;
         }
 
-        CScript dest;
-        dest << signature << xtx->mPubKey << 1;
+        CScript dest(signature.begin(), signature.end());
+        dest << xtx->mPubKey << OP_TRUE;
         dest += inner;
 
         CTransactionPtr tx(createTransaction());
