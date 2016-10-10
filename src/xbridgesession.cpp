@@ -1655,9 +1655,15 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return true;
         }
 
-        CScript dest(signature.begin(), signature.end());
-        dest << xtx->mPubKey << OP_TRUE;
+        TXLOG() << "signature " << HexStr(signature.begin(), signature.end());
+
+        CScript dest;
+        dest << signature << xtx->mPubKey << OP_TRUE;
         dest += inner;
+
+        std::vector<unsigned char> raw = xtx->mPubKey.Raw();
+        TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
+        TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
 
         CTransactionPtr tx(createTransaction());
         tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest, std::numeric_limits<uint32_t>::max()-1));
