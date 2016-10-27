@@ -382,13 +382,13 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const CScript& /*b*/)
-    {
-        // I'm not sure if this should push the script or concatenate scripts.
-        // If there's ever a use for pushing a script onto a script, delete this member fn
-        assert(!"Warning: Pushing a CScript onto a CScript with << is probably not intended, use + to concatenate!");
-        return *this;
-    }
+//    CScript& operator<<(const CScript& /*b*/)
+//    {
+//        // I'm not sure if this should push the script or concatenate scripts.
+//        // If there's ever a use for pushing a script onto a script, delete this member fn
+//        assert(!"Warning: Pushing a CScript onto a CScript with << is probably not intended, use + to concatenate!");
+//        return *this;
+//    }
 
 
     bool GetOp(iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet)
@@ -591,6 +591,7 @@ public:
 
 
 uint256 SignatureHash(CScript scriptCode, const CTransactionPtr & txTo, unsigned int nIn, int nHashType);
+uint256 SignatureHash2(const CScript& scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType/*, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache*/);
 
 bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, const CTransactionPtr &txTo, unsigned int nIn, int nHashType);
 bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet);
