@@ -1121,7 +1121,7 @@ uint256 SignatureHash(CScript scriptCode, const CTransactionPtr & txTo, unsigned
     return util::hash(ss.begin(), ss.end());
 }
 
-uint256 SignatureHash2(const CScript& scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType/*, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache*/)
+uint256 SignatureHash2(const CScript& scriptCode, const CTransactionPtr & txTo, unsigned int nIn, int nHashType/*, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache*/)
 {
 //    if (sigversion == SIGVERSION_WITNESS_V0) {
 //        uint256 hashPrevouts;
@@ -1169,21 +1169,21 @@ uint256 SignatureHash2(const CScript& scriptCode, const CTransaction& txTo, unsi
 //    }
 
     static const uint256 one(uint256S("0000000000000000000000000000000000000000000000000000000000000001"));
-    if (nIn >= txTo.vin.size()) {
+    if (nIn >= txTo->vin.size()) {
         //  nIn out of range
         return one;
     }
 
     // Check for invalid use of SIGHASH_SINGLE
     if ((nHashType & 0x1f) == SIGHASH_SINGLE) {
-        if (nIn >= txTo.vout.size()) {
+        if (nIn >= txTo->vout.size()) {
             //  nOut out of range
             return one;
         }
     }
 
     // Wrapper to serialize only the necessary parts of the transaction being signed
-    CTransactionSignatureSerializer txTmp(txTo, scriptCode, nIn, nHashType);
+    CTransactionSignatureSerializer txTmp(*txTo, scriptCode, nIn, nHashType);
 
     // Serialize and hash
     CHashWriter ss(SER_GETHASH, 0);

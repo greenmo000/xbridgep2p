@@ -1542,7 +1542,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return true;
         }
 
-        TXLOG() << "bailin  " << bintx;
+        TXLOG() << "bailin sendrawtransaction " << bintx;
         TXLOG() << binjson;
 
         xtx->binTx   = bintx;
@@ -1644,8 +1644,6 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
         std::vector<unsigned char> vchredeem = ParseHex(xtx->redeem.c_str());
         CScript inner(vchredeem.begin(), vchredeem.end());
 
-        uint256 hash = SignatureHash(inner, txUnsigned, 0, SIGHASH_ALL);
-
         CKey m;
         if (!m.SetSecret(xtx->mSecret, true))
         {
@@ -1655,24 +1653,10 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return true;
         }
 
-        std::vector<unsigned char> signature;
-        {
-            if (!m.Sign(hash, signature))
-            {
-                // cancel transaction
-                LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-                sendCancelTransaction(txid, crNotSigned);
-                return true;
-            }
-
-            signature.push_back((unsigned char)SIGHASH_ALL);
-
-            TXLOG() << "signature  " << HexStr(signature.begin(), signature.end());
-        }
-
-//        std::vector<unsigned char> signature2;
+//        std::vector<unsigned char> signature;
 //        {
-//            if (!m.Sign(hash, signature2))
+//            uint256 hash = SignatureHash(inner, txUnsigned, 0, SIGHASH_ALL);
+//            if (!m.Sign(hash, signature))
 //            {
 //                // cancel transaction
 //                LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
@@ -1680,56 +1664,22 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 //                return true;
 //            }
 
-//            signature2.push_back((unsigned char)SIGHASH_ALL);
+//            signature.push_back((unsigned char)SIGHASH_ALL);
 
-//            TXLOG() << "signature2 " << HexStr(signature2.begin(), signature2.end());
+//            TXLOG() << "signature  " << HexStr(signature.begin(), signature.end());
 //        }
 
         // sign1
-        {
-            CScript dest;
-            dest << signature << xtx->mPubKey << OP_TRUE << inner;
-
-            std::vector<unsigned char> raw = xtx->mPubKey.Raw();
-            TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
-            TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
-
-            CTransactionPtr tx(createTransaction());
-            tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest, std::numeric_limits<uint32_t>::max()-1));
-            tx->vout = txUnsigned->vout;
-            tx->nLockTime = txUnsigned->nLockTime;
-
-            std::string reftx = tx->toString();
-            std::string json;
-            std::string reftxid;
-            if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
-                                           m_wallet.ip, m_wallet.port,
-                                           reftx, reftxid, json))
-            {
-                LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
-                sendCancelTransaction(txid, crRpcError);
-                return true;
-            }
-
-            TXLOG() << "refund1  " << reftx;
-            TXLOG() << json;
-
-            xtx->refTx   = reftx;
-            xtx->refTxId = reftxid;
-
-        } // sign1
-
-        // sign2
 //        {
-//            CScript dest;
-//            dest << signature2 << xtx->mPubKey << OP_TRUE << inner;
+//            CScript redeem;
+//            redeem << signature << xtx->mPubKey << OP_TRUE << inner;
 
 //            std::vector<unsigned char> raw = xtx->mPubKey.Raw();
 //            TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
 //            TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
 
 //            CTransactionPtr tx(createTransaction());
-//            tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, dest, std::numeric_limits<uint32_t>::max()-1));
+//            tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, redeem, std::numeric_limits<uint32_t>::max()-1));
 //            tx->vout = txUnsigned->vout;
 //            tx->nLockTime = txUnsigned->nLockTime;
 
@@ -1745,13 +1695,63 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
 //                return true;
 //            }
 
-//            TXLOG() << "refund2  " << reftx;
+//            TXLOG() << "refund1 sendrawtransaction " << reftx;
 //            TXLOG() << json;
 
 //            xtx->refTx   = reftx;
 //            xtx->refTxId = reftxid;
 
-//        } // sign2
+//        } // sign1
+
+        std::vector<unsigned char> signature2;
+        {
+            uint256 hash = SignatureHash2(inner, txUnsigned, 0, SIGHASH_ALL);
+            if (!m.Sign(hash, signature2))
+            {
+                // cancel transaction
+                LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
+                sendCancelTransaction(txid, crNotSigned);
+                return true;
+            }
+
+            signature2.push_back((unsigned char)SIGHASH_ALL);
+
+            TXLOG() << "signature2 " << HexStr(signature2.begin(), signature2.end());
+        }
+
+        // sign2
+        {
+            CScript redeem;
+            redeem << signature2 << xtx->mPubKey << OP_TRUE << inner;
+
+            std::vector<unsigned char> raw = xtx->mPubKey.Raw();
+            TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
+            TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
+
+            CTransactionPtr tx(createTransaction());
+            tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, redeem, std::numeric_limits<uint32_t>::max()-1));
+            tx->vout = txUnsigned->vout;
+            tx->nLockTime = txUnsigned->nLockTime;
+
+            std::string reftx = tx->toString();
+            std::string json;
+            std::string reftxid;
+            if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+                                           m_wallet.ip, m_wallet.port,
+                                           reftx, reftxid, json))
+            {
+                LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
+                sendCancelTransaction(txid, crRpcError);
+                return true;
+            }
+
+            TXLOG() << "refund2 sendrawtransaction " << reftx;
+            TXLOG() << json;
+
+            xtx->refTx   = reftx;
+            xtx->refTxId = reftxid;
+
+        } // sign2
 
     } // refTx
 

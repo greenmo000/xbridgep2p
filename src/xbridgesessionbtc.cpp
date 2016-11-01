@@ -42,6 +42,8 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 //******************************************************************************
 uint32_t XBridgeSessionBtc::lockTime(const char role) const
 {
+    return 300;
+
     // lock time
     uint32_t lt = 0;
     if (role == 'A')
