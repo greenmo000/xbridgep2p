@@ -549,6 +549,56 @@ bool requestAddressBook(const std::string & rpcuser, const std::string & rpcpass
 
 //*****************************************************************************
 //*****************************************************************************
+bool getInfo(const std::string & rpcuser,
+             const std::string & rpcpasswd,
+             const std::string & rpcip,
+             const std::string & rpcport,
+             Info & info)
+{
+    try
+    {
+        LOG() << "rpc call <getinfo>";
+
+        Array params;
+        Object reply = CallRPC(rpcuser, rpcpasswd, rpcip, rpcport,
+                               "getinfo", params);
+
+        // Parse reply
+        const Value & result = find_value(reply, "result");
+        const Value & error  = find_value(reply, "error");
+
+        if (error.type() != null_type)
+        {
+            // Error
+            LOG() << "error: " << write_string(error, false);
+            // int code = find_value(error.get_obj(), "code").get_int();
+            return false;
+        }
+        else if (result.type() != obj_type)
+        {
+            // Result
+            LOG() << "result not an object " <<
+                     (result.type() == null_type ? "" :
+                      result.type() == str_type  ? result.get_str() :
+                                                   write_string(result, true));
+            return false;
+        }
+
+        Object o = result.get_obj();
+
+        info.blocks = find_value(o, "blocks").get_int();
+    }
+    catch (std::exception & e)
+    {
+        LOG() << "listunspent exception " << e.what();
+        return false;
+    }
+
+    return true;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 bool listUnspent(const std::string & rpcuser,
                  const std::string & rpcpasswd,
                  const std::string & rpcip,

@@ -28,6 +28,16 @@ namespace rpc
                             const std::string & rpcport,
                             std::vector<AddressBookEntry> & entries);
 
+    struct Info
+    {
+        uint32_t blocks;
+    };
+    bool getInfo(const std::string & rpcuser,
+                 const std::string & rpcpasswd,
+                 const std::string & rpcip,
+                 const std::string & rpcport,
+                 Info & info);
+
     struct Unspent
     {
         std::string txId;
