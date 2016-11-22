@@ -32,6 +32,9 @@ struct WalletParam
     bool                       isGetNewPubKeySupported;
     bool                       isImportWithNoScanSupported;
 
+    // block time in seconds
+    uint32_t                   blockTime;
+
     WalletParam()
         : fee(300)
         , COIN(0)
@@ -39,6 +42,7 @@ struct WalletParam
         , dustAmount(0)
         , isGetNewPubKeySupported(false)
         , isImportWithNoScanSupported(false)
+        , blockTime(0)
     {
         memset(addrPrefix,   0, sizeof(addrPrefix));
         memset(scriptPrefix, 0, sizeof(scriptPrefix));

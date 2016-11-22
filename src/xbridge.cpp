@@ -59,11 +59,11 @@ XBridge::XBridge()
                 wp.method                      = s.get<std::string>(*i + ".CreateTxMethod");
                 wp.isGetNewPubKeySupported     = s.get<bool>(*i + ".GetNewKeySupported", false);
                 wp.isImportWithNoScanSupported = s.get<bool>(*i + ".ImportWithNoScanSupported", false);
+                wp.blockTime                   = s.get<int>(*i + ".BlockTime", 0);
 
                 if (wp.ip.empty() || wp.port.empty() ||
                     wp.user.empty() || wp.passwd.empty() ||
-                    // wp.prefix[0] == 0 || wp.sprefix[0] == 0 || // can be 0
-                    wp.COIN == 0)
+                    wp.COIN == 0 || wp.blockTime == 0)
                 {
                     LOG() << "read wallet " << *i << " with empty parameters>";
                     continue;
