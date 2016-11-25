@@ -34,7 +34,7 @@ public:
     }
 
 protected:
-    virtual uint32_t lockTime(const char role) const;
+    virtual std::pair<uint32_t, uint32_t> lockTime(const char role) const;
     virtual CTransactionPtr createTransaction();
     virtual CTransactionPtr createTransaction(const std::vector<std::pair<std::string, int> > & inputs,
                                               const std::vector<std::pair<CScript, double> > & outputs,

@@ -40,36 +40,41 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 
 //******************************************************************************
 //******************************************************************************
-uint32_t XBridgeSessionBtc::lockTime(const char role) const
+std::pair<uint32_t, uint32_t> XBridgeSessionBtc::lockTime(const char role) const
 {
-    rpc::Info info;
-    if (rpc::getInfo(m_wallet.user, m_wallet.passwd,
-                     m_wallet.ip, m_wallet.port, info))
-    {
-        LOG() << "blockchain info not received " << __FUNCTION__;
-        return 0;
-    }
+//    rpc::Info info;
+//    if (!rpc::getInfo(m_wallet.user, m_wallet.passwd,
+//                      m_wallet.ip, m_wallet.port, info))
+//    {
+//        LOG() << "blockchain info not received " << __FUNCTION__;
+//        return std::make_pair(0, 0);
+//    }
 
-    if (info.blocks == 0)
-    {
-        LOG() << "block count not defined in blockchain info " << __FUNCTION__;
-        return 0;
-    }
+//    if (info.blocks == 0)
+//    {
+//        LOG() << "block count not defined in blockchain info " << __FUNCTION__;
+//        return std::make_pair(0, 0);
+//    }
 
     // lock time
     uint32_t lt = 0;
     if (role == 'A')
     {
         // 72h in seconds
-        lt = info.blocks + 259200 / m_wallet.blockTime;
+        // lt = info.blocks + 1;// 259200 / m_wallet.blockTime;
+        lt = 259200 / m_wallet.blockTime;
     }
     else if (role == 'B')
     {
         // 36h in seconds
-        lt = info.blocks + 259200 / 2 / m_wallet.blockTime;
+        // lt = info.blocks + 1;// 259200 / 2 / m_wallet.blockTime;
+        lt = 259200 / 2 / m_wallet.blockTime;
     }
 
-    return lt;
+    uint32_t seq = lt;
+    lt = seq & 0x0000ffff;
+    return std::make_pair(seq, lt);
+
 }
 
 //******************************************************************************
@@ -86,6 +91,7 @@ CTransactionPtr XBridgeSessionBtc::createTransaction(const std::vector<std::pair
                                                      const uint32_t lockTime)
 {
     CTransactionPtr tx(new CBTCTransaction);
+    tx->nVersion  = 2;
     tx->nLockTime = lockTime;
 
 //    uint32_t sequence = lockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max();

@@ -78,11 +78,11 @@ void XBridgeSessionRpc::init()
         m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionRpc::processTransactionCreate);
         m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionRpc::processTransactionCreated);
 
-        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionRpc::processTransactionSignRefund);
-        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionRpc::processTransactionRefundSigned);
+//        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionRpc::processTransactionSignRefund);
+//        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionRpc::processTransactionRefundSigned);
 
-        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionRpc::processTransactionCommitStage1);
-        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionRpc::processTransactionCommitedStage1);
+//        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionRpc::processTransactionCommitStage1);
+//        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionRpc::processTransactionCommitedStage1);
 
         m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionRpc::processTransactionConfirm);
 

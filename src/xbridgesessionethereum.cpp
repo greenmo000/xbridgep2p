@@ -79,11 +79,11 @@ void XBridgeSessionEthereum::init()
         m_handlers[xbcTransactionCreate]     .bind(this, &XBridgeSessionEthereum::processTransactionCreate);
         m_handlers[xbcTransactionCreated]    .bind(this, &XBridgeSessionEthereum::processTransactionCreated);
 
-        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionEthereum::processTransactionSignRefund);
-        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionRefundSigned);
+//        m_handlers[xbcTransactionSignRefund]       .bind(this, &XBridgeSessionEthereum::processTransactionSignRefund);
+//        m_handlers[xbcTransactionRefundSigned]     .bind(this, &XBridgeSessionEthereum::processTransactionRefundSigned);
 
-        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionEthereum::processTransactionCommitStage1);
-        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionEthereum::processTransactionCommitedStage1);
+//        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionEthereum::processTransactionCommitStage1);
+//        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionEthereum::processTransactionCommitedStage1);
 
         m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEthereum::processTransactionConfirm);
 
@@ -238,13 +238,13 @@ bool XBridgeSessionEthereum::processTransactionSignRefund(XBridgePacketPtr packe
     uiConnector.NotifyXBridgeTransactionStateChanged(txid, xtx->state);
 
     // send reply
-    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionRefundSigned));
-    reply->append(hubAddress);
-    reply->append(thisAddress);
-    reply->append(txid.begin(), 32);
-    reply->append(rawtxrev);
+//    XBridgePacketPtr reply(new XBridgePacket(xbcTransactionRefundSigned));
+//    reply->append(hubAddress);
+//    reply->append(thisAddress);
+//    reply->append(txid.begin(), 32);
+//    reply->append(rawtxrev);
 
-    sendPacket(hubAddress, reply);
+//    sendPacket(hubAddress, reply);
     return true;
 }
 

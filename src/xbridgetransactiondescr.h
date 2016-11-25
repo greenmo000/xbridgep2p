@@ -77,7 +77,7 @@ struct XBridgeTransactionDescr
 
     // multisig address and redeem script
     std::string                multisig;
-    std::string                redeem;
+    std::string                innerScript;
 
     // prevtxs for signrawtransaction
     // std::string                prevtxs;
@@ -181,7 +181,7 @@ private:
 
         // multisig address and redeem script
         multisig     = d.multisig;
-        redeem       = d.redeem;
+        innerScript       = d.innerScript;
 
         // prevtxs for signrawtransaction
         // prevtxs      = d.prevtxs;

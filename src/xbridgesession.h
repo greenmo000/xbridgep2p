@@ -103,7 +103,7 @@ protected:
     uint64_t minTxFee(const uint32_t inputCount, const uint32_t outputCount);
     std::string round_x(const long double val, uint32_t prec);
 
-    virtual uint32_t lockTime(const char role) const;
+    virtual std::pair<uint32_t, uint32_t> lockTime(const char role) const;
     virtual CTransactionPtr createTransaction();
     virtual CTransactionPtr createTransaction(const std::vector<std::pair<std::string, int> > & inputs,
                                               const std::vector<std::pair<CScript, double> > & outputs,
@@ -134,18 +134,6 @@ protected:
 
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
     virtual bool processTransactionCreated(XBridgePacketPtr packet);
-
-    virtual bool processTransactionSignRefund(XBridgePacketPtr packet);
-    virtual bool processTransactionRefundSigned(XBridgePacketPtr packet);
-
-    virtual bool processTransactionCommitStage1(XBridgePacketPtr packet);
-    virtual bool processTransactionCommitedStage1(XBridgePacketPtr packet);
-
-    virtual bool processTransactionSignPayment(XBridgePacketPtr packet);
-    virtual bool processTransactionPaymentSigned(XBridgePacketPtr packet);
-
-    virtual bool processTransactionCommitStage2(XBridgePacketPtr packet);
-    virtual bool processTransactionCommitedStage2(XBridgePacketPtr packet);
 
     virtual bool processTransactionConfirm(XBridgePacketPtr packet);
     virtual bool processTransactionConfirmed(XBridgePacketPtr packet);

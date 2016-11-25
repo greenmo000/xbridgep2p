@@ -160,90 +160,27 @@ enum XBridgeCommand
     //    opponent public key, 33 bytes
     xbcTransactionCreate = 10,
     //
-    // xbcTransactionCreated (74 bytes min)
+    // xbcTransactionCreated (72 bytes min)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string  prevtxs for sign refund
-    //    string  raw refund transaction
+    //    string deposit tx id
     xbcTransactionCreated = 11,
 
     //
-    // xbcTransactionSignRefund (74 bytes min)
+    // xbcTransactionConfirm (72 bytes min)
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    string  prevtxs for sign refund
-    //    string  raw refund transaction
-    xbcTransactionSignRefund = 12,
-    //
-    // xbcTransactionSigned
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    //    string  raw refund transaction (signed)
-    xbcTransactionRefundSigned = 13,
-
-    //
-    // xbcTransactionCommitStage1
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    //    string  raw refund transaction (signed)
-    xbcTransactionCommitStage1 = 14,
-    //
-    // xbcTransactionCommitedStage1
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    //    string bail in tx id
-    xbcTransactionCommitedStage1 = 15,
-
-    // xbcTransactionSignPayment (74 bytes min)
-    //    uint160 client address
-    //    uint160 hub address
-    //    uint256 hub transaction id
-    //    string  prevtxs for sign payment
-    //    string  raw payment transaction
-    xbcTransactionSignPayment = 16,
-    //
-    // xbcTransactionPaymentSigned
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    //    string  raw payment transaction (signed)
-    xbcTransactionPaymentSigned = 17,
-
-
-    //
-    // xbcTransactionCommitStage2
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    //    string  x private key for import
-    //    string  raw payment transaction (signed)
-    //    string  raw refund transaction (signed)
-    xbcTransactionCommitStage2 = 18,
-    //
-    // xbcTransactionCommitedStage2
-    //    uint160 hub address
-    //    uint160 client address
-    //    uint256 hub transaction id
-    //    uint256 pay tx hash
-    xbcTransactionCommitedStage2 = 19,
-    //
-    // xbcTransactionConfirm
-    //    uint160 client address
-    //    uint160 hub address
-    //    uint256 hub transaction id
-    //    uint256 pay tx hash
+    //    string deposit tx id
     xbcTransactionConfirm = 20,
     //
-    // xbcTransactionConfirmed
+    // xbcTransactionConfirmed (72 bytes)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     xbcTransactionConfirmed = 21,
+
     //
     // xbcTransactionCancel (36 bytes)
     //    uint256  hub transaction id
