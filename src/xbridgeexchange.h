@@ -68,7 +68,8 @@ public:
                                                   const CPubKey & pk);
     bool updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
                                               const std::string & from,
-                                              const std::string & binTxId);
+                                              const std::string & binTxId,
+                                              const std::string & innerScript);
     bool updateTransactionWhenSignedReceived(XBridgeTransactionPtr tx,
                                              const std::string & from,
                                              const std::string & refTx);

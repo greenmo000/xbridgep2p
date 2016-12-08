@@ -392,9 +392,10 @@ bool XBridgeExchange::updateTransactionWhenInitializedReceived(XBridgeTransactio
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenCreatedReceived(XBridgeTransactionPtr tx,
                                                            const std::string & from,
-                                                           const std::string & binTxId)
+                                                           const std::string & binTxId,
+                                                           const std::string & innerScript)
 {
-    if (!tx->setBinTxId(from, binTxId))
+    if (!tx->setBinTxId(from, binTxId, innerScript))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";

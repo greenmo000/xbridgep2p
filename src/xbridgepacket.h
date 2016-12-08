@@ -172,7 +172,10 @@ enum XBridgeCommand
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
+    //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
+    //    x public key, 33 bytes
     //    string deposit tx id
+    //    string inner script
     xbcTransactionConfirm = 20,
     //
     // xbcTransactionConfirmed (72 bytes)

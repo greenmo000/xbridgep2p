@@ -371,6 +371,13 @@ std::string XBridgeTransaction::a_bintxid() const
 
 //*****************************************************************************
 //*****************************************************************************
+std::string XBridgeTransaction::a_innerScript() const
+{
+    return m_innerScript1;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 CPubKey XBridgeTransaction::a_x() const
 {
     return m_a_x;
@@ -444,6 +451,13 @@ std::string XBridgeTransaction::b_refTx() const
 std::string XBridgeTransaction::b_bintxid() const
 {
     return m_bintxid2;
+}
+
+//*****************************************************************************
+//*****************************************************************************
+std::string XBridgeTransaction::b_innerScript() const
+{
+    return m_innerScript2;
 }
 
 //*****************************************************************************
@@ -653,16 +667,19 @@ bool XBridgeTransaction::setRefTx(const std::string & addr,
 //*****************************************************************************
 //*****************************************************************************
 bool XBridgeTransaction::setBinTxId(const std::string & addr,
-                                    const std::string & id)
+                                    const std::string & id,
+                                    const std::string & innerScript)
 {
     if (m_b.source() == addr)
     {
-        m_bintxid1 = id;
+        m_bintxid1     = id;
+        m_innerScript1 = innerScript;
         return true;
     }
     else if (m_a.source() == addr)
     {
-        m_bintxid2 = id;
+        m_bintxid2     = id;
+        m_innerScript2 = innerScript;
         return true;
     }
     return false;

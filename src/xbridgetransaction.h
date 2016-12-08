@@ -104,6 +104,7 @@ public:
     std::string                a_payTx() const;
     std::string                a_refTx() const;
     std::string                a_bintxid() const;
+    std::string                a_innerScript() const;
 
     CPubKey                    a_x() const;
     CPubKey                    a_pk1() const;
@@ -117,6 +118,7 @@ public:
     std::string                b_payTx() const;
     std::string                b_refTx() const;
     std::string                b_bintxid() const;
+    std::string                b_innerScript() const;
 
     // CPubKey                    b_x() const;
     CPubKey                    b_pk1() const;
@@ -141,7 +143,8 @@ public:
                                         const std::string & prevtxs,
                                         const std::string & refTx);
     bool                       setBinTxId(const std::string & addr,
-                                          const std::string & id);
+                                          const std::string & id,
+                                          const std::string & innerScript);
 
 public:
     boost::mutex               m_lock;
@@ -174,6 +177,9 @@ private:
 
     std::string                m_bintxid1;
     std::string                m_bintxid2;
+
+    std::string                m_innerScript1;
+    std::string                m_innerScript2;
 
     XBridgeTransactionMember   m_a;
     XBridgeTransactionMember   m_b;
