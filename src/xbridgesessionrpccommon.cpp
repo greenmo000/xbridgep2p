@@ -84,14 +84,16 @@ void XBridgeSessionRpc::init()
 //        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionRpc::processTransactionCommitStage1);
 //        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionRpc::processTransactionCommitedStage1);
 
-        m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionRpc::processTransactionConfirm);
+        m_handlers[xbcTransactionConfirmA]   .bind(this, &XBridgeSessionRpc::processTransactionConfirmA);
+        m_handlers[xbcTransactionConfirmB]   .bind(this, &XBridgeSessionRpc::processTransactionConfirmB);
 
         m_handlers[xbcTransactionCancel]     .bind(this, &XBridgeSessionRpc::processTransactionCancel);
         m_handlers[xbcTransactionRollback]   .bind(this, &XBridgeSessionRpc::processTransactionRollback);
         m_handlers[xbcTransactionFinished]   .bind(this, &XBridgeSessionRpc::processTransactionFinished);
         m_handlers[xbcTransactionDropped]    .bind(this, &XBridgeSessionRpc::processTransactionDropped);
 
-        m_handlers[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionRpc::processTransactionConfirmed);
+        m_handlers[xbcTransactionConfirmedA] .bind(this, &XBridgeSessionRpc::processTransactionConfirmedA);
+        m_handlers[xbcTransactionConfirmedB] .bind(this, &XBridgeSessionRpc::processTransactionConfirmedB);
 
         // wallet received transaction
         m_handlers[xbcReceivedTransaction]   .bind(this, &XBridgeSessionRpc::processBitcoinTransactionHash);

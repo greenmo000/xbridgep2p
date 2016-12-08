@@ -85,14 +85,16 @@ void XBridgeSessionEthereum::init()
 //        m_handlers[xbcTransactionCommitStage1]     .bind(this, &XBridgeSessionEthereum::processTransactionCommitStage1);
 //        m_handlers[xbcTransactionCommitedStage1]   .bind(this, &XBridgeSessionEthereum::processTransactionCommitedStage1);
 
-        m_handlers[xbcTransactionConfirm]    .bind(this, &XBridgeSessionEthereum::processTransactionConfirm);
+        m_handlers[xbcTransactionConfirmA]   .bind(this, &XBridgeSessionEthereum::processTransactionConfirmA);
+        m_handlers[xbcTransactionConfirmB]   .bind(this, &XBridgeSessionEthereum::processTransactionConfirmB);
 
         m_handlers[xbcTransactionCancel]     .bind(this, &XBridgeSessionEthereum::processTransactionCancel);
         m_handlers[xbcTransactionRollback]   .bind(this, &XBridgeSessionEthereum::processTransactionRollback);
         m_handlers[xbcTransactionFinished]   .bind(this, &XBridgeSessionEthereum::processTransactionFinished);
         m_handlers[xbcTransactionDropped]    .bind(this, &XBridgeSessionEthereum::processTransactionDropped);
 
-        m_handlers[xbcTransactionConfirmed]  .bind(this, &XBridgeSessionEthereum::processTransactionConfirmed);
+        m_handlers[xbcTransactionConfirmedA] .bind(this, &XBridgeSessionEthereum::processTransactionConfirmedA);
+        m_handlers[xbcTransactionConfirmedB] .bind(this, &XBridgeSessionEthereum::processTransactionConfirmedB);
 
         // wallet received transaction
         m_handlers[xbcReceivedTransaction]   .bind(this, &XBridgeSessionEthereum::processBitcoinTransactionHash);

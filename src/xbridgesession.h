@@ -135,8 +135,11 @@ protected:
     virtual bool processTransactionCreate(XBridgePacketPtr packet);
     virtual bool processTransactionCreated(XBridgePacketPtr packet);
 
-    virtual bool processTransactionConfirm(XBridgePacketPtr packet);
-    virtual bool processTransactionConfirmed(XBridgePacketPtr packet);
+    virtual bool processTransactionConfirmA(XBridgePacketPtr packet);
+    virtual bool processTransactionConfirmedA(XBridgePacketPtr packet);
+
+    virtual bool processTransactionConfirmB(XBridgePacketPtr packet);
+    virtual bool processTransactionConfirmedB(XBridgePacketPtr packet);
 
     virtual bool finishTransaction(XBridgeTransactionPtr tr);
     virtual bool sendCancelTransaction(const uint256 & txid,

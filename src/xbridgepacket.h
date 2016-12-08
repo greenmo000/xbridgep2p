@@ -127,10 +127,11 @@ enum XBridgeCommand
     xbcTransactionHoldApply = 7,
 
     //
-    // xbcTransactionInit (172 bytes min)
+    // xbcTransactionInit (174 bytes min)
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
+    //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
     //    string source address (33-34 byte + 0)
     //    8 bytes source currency
     //    uint64 source amount
@@ -168,21 +169,36 @@ enum XBridgeCommand
     xbcTransactionCreated = 11,
 
     //
-    // xbcTransactionConfirm (72 bytes min)
+    // xbcTransactionConfirmA (72 bytes min)
     //    uint160 client address
     //    uint160 hub address
     //    uint256 hub transaction id
-    //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
-    //    x public key, 33 bytes
-    //    string deposit tx id
-    //    string inner script
-    xbcTransactionConfirm = 20,
+    //    string B deposit tx id
+    //    string B inner script
+    xbcTransactionConfirmA = 20,
     //
-    // xbcTransactionConfirmed (72 bytes)
+    // xbcTransactionConfirmedA (72 bytes min)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    xbcTransactionConfirmed = 21,
+    //    string x private key
+    xbcTransactionConfirmedA = 21,
+    //
+    // xbcTransactionConfirmB (105 bytes min)
+    //    uint160 client address
+    //    uint160 hub address
+    //    uint256 hub transaction id
+    //    x public key, 33 bytes
+    //    string x private key
+    //    string A deposit tx id
+    //    string A inner script
+    xbcTransactionConfirmB = 20,
+    //
+    // xbcTransactionConfirmedB (72 bytes min)
+    //    uint160 hub address
+    //    uint160 client address
+    //    uint256 hub transaction id
+    xbcTransactionConfirmedB = 21,
 
     //
     // xbcTransactionCancel (36 bytes)
