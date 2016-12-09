@@ -36,7 +36,7 @@ public:
         trInitialized,
         trCreated,
         trSigned,
-        trCommitedStage1,
+        trCommited,
 
         trConfirmed,
         trFinished,

@@ -175,14 +175,14 @@ enum XBridgeCommand
     //    uint256 hub transaction id
     //    string B deposit tx id
     //    string B inner script
-    xbcTransactionConfirmA = 20,
+    xbcTransactionConfirmA = 18,
     //
     // xbcTransactionConfirmedA (72 bytes min)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
     //    string x private key
-    xbcTransactionConfirmedA = 21,
+    xbcTransactionConfirmedA = 19,
     //
     // xbcTransactionConfirmB (105 bytes min)
     //    uint160 client address

@@ -452,7 +452,7 @@ bool XBridgeExchange::updateTransactionWhenCommitedStage1Received(XBridgeTransac
 //    }
 
     // update transaction state
-    if (tx->increaseStateCounter(XBridgeTransaction::trSigned, from) == XBridgeTransaction::trCommitedStage1)
+    if (tx->increaseStateCounter(XBridgeTransaction::trSigned, from) == XBridgeTransaction::trCommited)
     {
         return true;
     }
@@ -466,7 +466,7 @@ bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionP
                                                              const std::string & from)
 {
     // update transaction state
-    if (tx->increaseStateCounter(XBridgeTransaction::trCommitedStage1, from) == XBridgeTransaction::trFinished)
+    if (tx->increaseStateCounter(XBridgeTransaction::trCreated, from) == XBridgeTransaction::trFinished)
     {
         return true;
     }

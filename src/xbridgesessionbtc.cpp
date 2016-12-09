@@ -43,7 +43,7 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 uint32_t XBridgeSessionBtc::lockTime(const char role) const
 {
     rpc::Info info;
-    if (rpc::getInfo(m_wallet.user, m_wallet.passwd,
+    if (!rpc::getInfo(m_wallet.user, m_wallet.passwd,
                      m_wallet.ip, m_wallet.port, info))
     {
         LOG() << "blockchain info not received " << __FUNCTION__;
@@ -61,12 +61,14 @@ uint32_t XBridgeSessionBtc::lockTime(const char role) const
     if (role == 'A')
     {
         // 72h in seconds
-        lt = info.blocks + 259200 / m_wallet.blockTime;
+        // lt = info.blocks + 259200 / m_wallet.blockTime;
+        lt = info.blocks + 120 / m_wallet.blockTime;
     }
     else if (role == 'B')
     {
         // 36h in seconds
-        lt = info.blocks + 259200 / 2 / m_wallet.blockTime;
+        // lt = info.blocks + 259200 / 2 / m_wallet.blockTime;
+        lt = info.blocks + 60 / 2 / m_wallet.blockTime;
     }
 
     return lt;
