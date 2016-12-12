@@ -9,7 +9,6 @@
 //#include <boost/asio/ip/v6_only.hpp>
 //#include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 #include <boost/iostreams/concepts.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/algorithm/string.hpp>
@@ -301,7 +300,7 @@ Value getCurrencyList(const Array & params, bool fHelp)
 
 //******************************************************************************
 //******************************************************************************
-Value createTransaction(const Array & params, bool fHelp)
+Value createTransaction(const Array & /*params*/, bool /*fHelp*/)
 {
 //    if (fHelp || params.size() != 6)
 //    {
@@ -340,7 +339,7 @@ Value createTransaction(const Array & params, bool fHelp)
 
 //******************************************************************************
 //******************************************************************************
-Value acceptTransaction(const Array & params, bool fHelp)
+Value acceptTransaction(const Array & /*params*/, bool /*fHelp*/)
 {
 //    if (fHelp || params.size() != 3)
 //    {

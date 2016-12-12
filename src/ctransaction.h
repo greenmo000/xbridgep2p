@@ -286,7 +286,7 @@ public:
 //            nBlockTime = GetAdjustedTime();
 //        if ((int64)nLockTime < ((int64)nLockTime < LOCKTIME_THRESHOLD ? (int64)nBlockHeight : nBlockTime))
 //            return true;
-//        BOOST_FOREACH(const CTxIn& txin, vin)
+//        for (const CTxIn & txin : vin)
 //            if (!txin.IsFinal())
 //                return false;
 //        return true;
@@ -370,7 +370,7 @@ public:
 //    int64 GetValueOut() const
 //    {
 //        int64 nValueOut = 0;
-//        BOOST_FOREACH(const CTxOut& txout, vout)
+//        for (const CTxOut & txout : vout)
 //        {
 //            nValueOut += txout.nValue;
 //            if (!MoneyRange(txout.nValue) || !MoneyRange(nValueOut))
