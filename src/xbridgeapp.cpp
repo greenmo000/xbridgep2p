@@ -42,8 +42,6 @@ UIConnector uiConnector;
 boost::mutex                                  XBridgeApp::m_txLocker;
 std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_pendingTransactions;
 std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_transactions;
-boost::mutex                                  XBridgeApp::m_txHelperLocker;
-std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_helperTransactions;
 boost::mutex                                  XBridgeApp::m_txUnconfirmedLocker;
 std::map<uint256, XBridgeTransactionDescrPtr> XBridgeApp::m_unconfirmed;
 

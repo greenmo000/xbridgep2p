@@ -198,9 +198,6 @@ public:
     static std::map<uint256, XBridgeTransactionDescrPtr> m_pendingTransactions;
     static std::map<uint256, XBridgeTransactionDescrPtr> m_transactions;
 
-    static boost::mutex                                  m_txHelperLocker;
-    static std::map<uint256, XBridgeTransactionDescrPtr> m_helperTransactions;
-
     static boost::mutex                                  m_txUnconfirmedLocker;
     static std::map<uint256, XBridgeTransactionDescrPtr> m_unconfirmed;
 
