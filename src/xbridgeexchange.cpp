@@ -370,10 +370,10 @@ bool XBridgeExchange::updateTransactionWhenHoldApplyReceived(XBridgeTransactionP
 //*****************************************************************************
 bool XBridgeExchange::updateTransactionWhenInitializedReceived(XBridgeTransactionPtr tx,
                                                                const std::string & from,
-                                                               const CPubKey & x,
+                                                               const std::vector<unsigned char> & hx,
                                                                const CPubKey & pk)
 {
-    if (!tx->setKeys(from, x, pk))
+    if (!tx->setKeys(from, hx, pk))
     {
         // wtf?
         LOG() << "unknown sender address for transaction, id <" << tx->id().GetHex() << ">";
@@ -476,7 +476,7 @@ bool XBridgeExchange::updateTransactionWhenConfirmedReceived(XBridgeTransactionP
 
 //*****************************************************************************
 //*****************************************************************************
-bool XBridgeExchange::updateTransaction(const uint256 & hash)
+bool XBridgeExchange::updateTransaction(const uint256 & /*hash*/)
 {
     assert(!"not implemented");
     return true;

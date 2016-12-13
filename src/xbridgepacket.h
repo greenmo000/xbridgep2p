@@ -140,24 +140,23 @@ enum XBridgeCommand
     //    uint64 destination amount
     xbcTransactionInit = 8,
     //
-    // xbcTransactionInitialized (138 bytes)
+    // xbcTransactionInitialized (125 bytes)
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    x public key, 33 bytes
+    //    uint160 hash(X pub key), 20 bytes
     //    public key, 33 bytes
     xbcTransactionInitialized = 9,
 
     //
-    // xbcTransactionCreate (212 bytes min)
+    // xbcTransactionCreate (193 bytes min)
     //    uint160  client address
     //    uint160  hub address
     //    uint256  hub transaction id
     //    string destination address (33-34 byte + 0)
     //    string hub wallet address (33-34 byte + 0)
     //    uint32_t fee in percent, *1000 (0.3% == 300)
-    //    uint16_t  role ( 'A' (Alice) or 'B' (Bob) :) )
-    //    x public key, 33 bytes
+    //    uint160 hash(X pub key), 20 bytes
     //    opponent public key, 33 bytes
     xbcTransactionCreate = 10,
     //
@@ -181,7 +180,7 @@ enum XBridgeCommand
     //    uint160 hub address
     //    uint160 client address
     //    uint256 hub transaction id
-    //    string x private key
+    //    x public key, 33 bytes
     xbcTransactionConfirmedA = 19,
     //
     // xbcTransactionConfirmB (105 bytes min)
@@ -189,7 +188,6 @@ enum XBridgeCommand
     //    uint160 hub address
     //    uint256 hub transaction id
     //    x public key, 33 bytes
-    //    string x private key
     //    string A deposit tx id
     //    string A inner script
     xbcTransactionConfirmB = 20,
