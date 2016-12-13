@@ -1860,7 +1860,7 @@ bool XBridgeSession::processTransactionConfirmedA(XBridgePacketPtr packet)
 
     uint256 txid(packet->data()+40);
 
-    CPubKey xPubkey(packet->data()+72, packet->data()+72+32);
+    CPubKey xPubkey(packet->data()+72, packet->data()+72+33);
 
     XBridgeTransactionPtr tr = e.transaction(txid);
     boost::mutex::scoped_lock l(tr->m_lock);
