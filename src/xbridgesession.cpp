@@ -1492,7 +1492,7 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
                 return true;
             }
 
-            CScript scr;    
+            CScript scr;
             scr.SetDestination(CBitcoinAddress(addr).Get());
 
             outputs.push_back(std::make_pair(scr, outAmount));
@@ -1513,55 +1513,59 @@ bool XBridgeSession::processTransactionCreate(XBridgePacketPtr packet)
             return true;
         }
 
-        std::vector<unsigned char> signature2;
+        CScript redeem;
         {
-            uint256 hash = SignatureHash2(inner, txUnsigned, 0, SIGHASH_ALL);
-            if (!m.Sign(hash, signature2))
+            CScript tmp;
+            tmp << xtx->mPubKey << OP_TRUE << inner;
+
+            std::vector<unsigned char> signature2;
             {
-                // cancel transaction
-                LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
-                sendCancelTransaction(txid, crNotSigned);
-                return true;
+                uint256 hash = SignatureHash2(inner, txUnsigned, 0, SIGHASH_ALL);
+                if (!m.Sign(hash, signature2))
+                {
+                    // cancel transaction
+                    LOG() << "sign transaction error, transaction canceled " << __FUNCTION__;
+                    sendCancelTransaction(txid, crNotSigned);
+                    return true;
+                }
+
+                signature2.push_back((unsigned char)SIGHASH_ALL);
+
+                TXLOG() << "signature2 " << HexStr(signature2.begin(), signature2.end());
             }
 
-            signature2.push_back((unsigned char)SIGHASH_ALL);
-
-            TXLOG() << "signature2 " << HexStr(signature2.begin(), signature2.end());
+            redeem << signature2;
+            redeem += tmp;
         }
 
-        // sign2
+        std::vector<unsigned char> raw = xtx->mPubKey.Raw();
+        TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
+        TXLOG() << "xtx->mPubKey->GetID " << xtx->mPubKey.GetID().GetHex();
+        // TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
+
+        CTransactionPtr tx(createTransaction());
+        tx->nVersion  = txUnsigned->nVersion;
+        tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, redeem, std::numeric_limits<uint32_t>::max()-1));
+        tx->vout      = txUnsigned->vout;
+        tx->nLockTime = txUnsigned->nLockTime;
+
+        std::string reftx = tx->toString();
+        std::string json;
+        std::string reftxid;
+        if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
+                                       m_wallet.ip, m_wallet.port,
+                                       reftx, reftxid, json))
         {
-            CScript redeem;
-            redeem << signature2 << xtx->mPubKey << OP_TRUE << inner;
+            LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
+            sendCancelTransaction(txid, crRpcError);
+            return true;
+        }
 
-            std::vector<unsigned char> raw = xtx->mPubKey.Raw();
-            TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
-            TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
+        TXLOG() << "refund2 sendrawtransaction " << reftx;
+        TXLOG() << json;
 
-            CTransactionPtr tx(createTransaction());
-            tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, redeem, std::numeric_limits<uint32_t>::max()-1));
-            tx->vout = txUnsigned->vout;
-            tx->nLockTime = txUnsigned->nLockTime;
-
-            std::string reftx = tx->toString();
-            std::string json;
-            std::string reftxid;
-            if (!rpc::decodeRawTransaction(m_wallet.user, m_wallet.passwd,
-                                           m_wallet.ip, m_wallet.port,
-                                           reftx, reftxid, json))
-            {
-                LOG() << "decode signed transaction error, transaction canceled " << __FUNCTION__;
-                sendCancelTransaction(txid, crRpcError);
-                return true;
-            }
-
-            TXLOG() << "refund2 sendrawtransaction " << reftx;
-            TXLOG() << json;
-
-            xtx->refTx   = reftx;
-            xtx->refTxId = reftxid;
-
-        } // sign2
+        xtx->refTx   = reftx;
+        xtx->refTxId = reftxid;
 
     } // refTx
 
@@ -1741,8 +1745,8 @@ bool XBridgeSession::processTransactionConfirmA(XBridgePacketPtr packet)
 
         CTransactionPtr txUnsigned(createTransaction(inputs, outputs));
 
-        std::vector<unsigned char> vchredeem = ParseHex(innerScript.c_str());
-        CScript inner(vchredeem.begin(), vchredeem.end());
+        std::vector<unsigned char> vchinner = ParseHex(innerScript.c_str());
+        CScript inner(vchinner.begin(), vchinner.end());
 
         CKey m;
         if (!m.SetSecret(xtx->mSecret, true))
@@ -1772,15 +1776,17 @@ bool XBridgeSession::processTransactionConfirmA(XBridgePacketPtr packet)
         // sign2
         {
             CScript redeem;
-            redeem << xtx->xPubKey << signature2 << xtx->mPubKey << OP_FALSE << inner;
+            redeem << xtx->xPubKey << signature2 << xtx->mPubKey << OP_FALSE;
+            redeem += inner;
 
             std::vector<unsigned char> raw = xtx->mPubKey.Raw();
             TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
             TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
 
             CTransactionPtr tx(createTransaction());
+            tx->nVersion  = txUnsigned->nVersion;
             tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, redeem, std::numeric_limits<uint32_t>::max()-1));
-            tx->vout = txUnsigned->vout;
+            tx->vout      = txUnsigned->vout;
             tx->nLockTime = txUnsigned->nLockTime;
 
             std::string paytx = tx->toString();
@@ -1997,15 +2003,17 @@ bool XBridgeSession::processTransactionConfirmB(XBridgePacketPtr packet)
         // sign2
         {
             CScript redeem;
-            redeem << x << signature2 << xtx->mPubKey << OP_FALSE << inner;
+            redeem << x << signature2 << xtx->mPubKey << OP_FALSE;
+            redeem += inner;
 
             std::vector<unsigned char> raw = xtx->mPubKey.Raw();
             TXLOG() << "xtx->mPubKey " << HexStr(raw.begin(), raw.end());
             TXLOG() << "inner " << HexStr(inner.begin(), inner.end());
 
             CTransactionPtr tx(createTransaction());
+            tx->nVersion  = txUnsigned->nVersion;
             tx->vin.push_back(CTxIn(txUnsigned->vin[0].prevout, redeem, std::numeric_limits<uint32_t>::max()-1));
-            tx->vout = txUnsigned->vout;
+            tx->vout      = txUnsigned->vout;
             tx->nLockTime = txUnsigned->nLockTime;
 
             std::string paytx = tx->toString();

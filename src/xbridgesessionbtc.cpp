@@ -43,7 +43,7 @@ XBridgeSessionBtc::~XBridgeSessionBtc()
 uint32_t XBridgeSessionBtc::lockTime(const char role) const
 {
     // TODO for testing
-    return 600;
+    return 4;
 
     rpc::Info info;
     if (!rpc::getInfo(m_wallet.user, m_wallet.passwd,
